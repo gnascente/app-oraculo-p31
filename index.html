@@ -2,6 +2,23 @@
 <!DOCTYPE html>
 <html lang="pt-BR" translate="no">
 <head>
+    <!-- Link para o Manifest -->
+<link rel="manifest" href="manifest.json">
+
+<!-- Ícones para iOS (Apple) -->
+<link rel="apple-touch-icon" href="icon.png">
+
+<script>
+    // Registro do Service Worker
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js')
+                .then(() => console.log('Service Worker registrado com sucesso.'))
+                .catch((err) => console.log('Falha ao registrar:', err));
+        });
+    }
+</script>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
     <meta name="google" content="notranslate">
