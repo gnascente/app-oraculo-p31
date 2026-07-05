@@ -5,14 +5,23 @@
     <link rel="apple-touch-icon" href="icon.png">
 
     <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(() => console.log('Service Worker registrado.'))
-                    .catch((err) => console.log('Falha ao registrar:', err));
-            });
-        }
-    </script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').then((reg) => {
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
+            // Nova versão disponível, recarrega a página
+            if (confirm("Uma nova versão está disponível! Deseja atualizar?")) {
+              window.location.reload();
+            }
+          }
+        });
+      });
+    });
+  }
+</script>
+
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
