@@ -122,14 +122,15 @@
         mark.highlight { background-color: rgba(255, 213, 79, 0.3); color: #fff; padding: 0 2px; border-radius: 2px; }
 
         /* Logs Timeline & Pills */
-        .log-item { background: var(--surface-variant); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--shadow-sm); }
+        .log-item { background: var(--surface-variant); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--shadow-sm); transition: background-color 0.5s; }
         .log-header { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--on-surface-variant); border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; margin-bottom: 4px; }
         .log-text { font-size: 14px; line-height: 1.4; word-break: break-word; white-space: pre-wrap; }
         
         .log-links-bar { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.05); }
         .link-label { font-size: 12px; color: var(--on-surface-variant); display: flex; align-items: center; gap: 6px; font-weight: 500;}
         .pills-container { display: flex; flex-wrap: wrap; gap: 8px; }
-        .pill-dark { background: #333; color: #e2e2e6; padding: 6px 12px; border-radius: 20px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid #444; }
+        .pill-dark { background: #333; color: #e2e2e6; padding: 6px 12px; border-radius: 20px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid #444; cursor: pointer; transition: 0.2s;}
+        .pill-dark:active { transform: scale(0.95); }
         .pill-dark i { font-size: 14px; cursor: pointer; color: #aaa; transition: 0.2s; }
         .pill-dark i:hover { color: var(--danger); }
         .pill-dark.origin { border-color: var(--primary); }
@@ -365,23 +366,20 @@
     </div>
 </div>
 
-<div class="modal-overlay" id="linkModal">
-    <div class="modal-content">
-        <h2>Vincular Entidade</h2>
-        <div class="input-group">
-            <input type="text" id="addLinkSearchInput" class="input-field" placeholder="Buscar para vincular..." oninput="LinkModal.search()">
-            <div id="addLinkAutocomplete" class="autocomplete-dropdown"></div>
-        </div>
-        <div class="modal-actions">
-            <button class="btn btn-text" onclick="LinkModal.closeUI()">Fechar</button>
-        </div>
-    </div>
-</div>
-
 <div class="modal-overlay" id="logModal">
     <div class="modal-content">
-        <h2 id="logModalTitle">Registrar Evento</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h2 id="logModalTitle">Registrar Evento</h2>
+            <i class="material-icons action-icon danger" id="logModalDeleteBtn" onclick="LogModal.delete()" style="display:none;">delete</i>
+        </div>
         
+        <div class="input-group" id="logLinkContainer">
+            <label style="font-size: 13px; font-weight: 500; color: var(--on-surface-variant); margin-bottom: 8px; display: block;">Vincular a:</label>
+            <input type="text" id="logLinkInput" class="input-field" placeholder="Buscar entidade..." onfocus="LogModal.searchLinks()" oninput="LogModal.searchLinks()">
+            <div id="logLinkAutocomplete" class="autocomplete-dropdown"></div>
+            <div id="logLinkPills" class="pills-container" style="margin-top: 12px;"></div>
+        </div>
+
         <div class="input-group">
             <textarea id="logText" class="input-field" placeholder="Descreva o andamento, evento ou observação..."></textarea>
         </div>
@@ -409,7 +407,7 @@
 <div class="modal-overlay" id="taskCreateModal">
     <div class="modal-content">
         <h2>Nova Tarefa de Serviço</h2>
-        <div class="input-group">
+        <div class="input-group" style="margin-top: 16px;">
             <input type="text" id="taskNameInput" class="input-field" placeholder="Nome da Tarefa (Ex: Desmontagem)">
         </div>
         <div class="modal-actions">
@@ -656,7 +654,7 @@ var App = {
         document.getElementById('searchInput').value = ''; this.renderList(); history.pushState({ view: 'list' }, '');
     },
 
-    goToEntity: function(id, focusTerm = '') {
+    goToEntity: function(id, focusTerm = '', focusLogId = null) {
         const entity = db.entities.find(e => e.id === id); if(!entity) return;
         this.currentView = 'entity'; this.currentEntityId = id; this.searchFocusTerm = focusTerm;
         
@@ -673,6 +671,17 @@ var App = {
         else { document.getElementById('entitySearchWrapper').style.display = 'none'; }
         
         this.renderEntityLogs(); history.pushState({ view: 'entity', id: id }, '');
+
+        if(focusLogId) {
+            setTimeout(() => {
+                const el = document.getElementById('log-' + focusLogId);
+                if(el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.style.backgroundColor = 'rgba(168, 199, 250, 0.2)';
+                    setTimeout(() => el.style.backgroundColor = 'var(--surface-variant)', 1500);
+                }
+            }, 300);
+        }
     },
 
     goBack: function(fromPopState = false) {
@@ -775,36 +784,29 @@ var App = {
                 let mediaHtml = log.images && log.images.length > 0 ? renderStackedDeckHTML(log.images, log.id) : '';
                 
                 let isOrigin = log.originEntityId === this.currentEntityId;
-                let otherLinks = log.relatedEntities.filter(rel => rel.id !== this.currentEntityId && rel.id !== log.originEntityId);
+                let otherLinks = log.relatedEntities.filter(rel => rel.id !== log.originEntityId);
                 
                 let linksBarHtml = '';
                 if(isOrigin) {
-                    let pills = otherLinks.map(rel => {
-                        let linkedE = db.entities.find(e => e.id === rel.id); if(!linkedE) return '';
-                        return `<div class="pill-dark">${linkedE.name} <i class="material-icons" onclick="App.removeLogLink('${log.id}', '${linkedE.id}')">close</i></div>`;
-                    }).join('');
-                    linksBarHtml = `<div class="log-links-bar">
-                                        <div class="link-label">Vincular a: <i class="material-icons action-icon" style="font-size:16px;" onclick="LinkModal.open('${log.id}')">add_circle</i></div>
-                                        ${pills ? `<div class="pills-container">${pills}</div>` : ''}
-                                    </div>`;
+                    if (otherLinks.length > 0) {
+                        let pills = otherLinks.map(rel => {
+                            let linkedE = db.entities.find(e => e.id === rel.id); if(!linkedE) return '';
+                            return `<div class="pill-dark" onclick="App.goToEntity('${linkedE.id}', '', '${log.id}')">${linkedE.name} <i class="material-icons" style="font-size:14px; margin-left:4px;" title="Ir para Destino">arrow_forward</i></div>`;
+                        }).join('');
+                        linksBarHtml = `<div class="log-links-bar"><div class="link-label">Vinculado a:</div><div class="pills-container">${pills}</div></div>`;
+                    }
                 } else {
                     let originE = db.entities.find(e => e.id === log.originEntityId);
-                    let originPill = originE ? `<div class="pill-dark origin">${originE.name} <i class="material-icons" onclick="App.removeLogLink('${log.id}', '${originE.id}')">close</i></div>` : '';
-                    let otherPills = otherLinks.map(rel => {
-                        let linkedE = db.entities.find(e => e.id === rel.id); if(!linkedE) return '';
-                        return `<div class="pill-dark">${linkedE.name} <i class="material-icons" onclick="App.removeLogLink('${log.id}', '${linkedE.id}')">close</i></div>`;
-                    }).join('');
-                    
-                    linksBarHtml = `<div class="log-links-bar">
-                                        <div class="link-label">Vinculado de:</div>
-                                        <div class="pills-container">${originPill} ${otherPills}</div>
-                                    </div>`;
+                    if (originE) {
+                        let originPill = `<div class="pill-dark origin" onclick="App.goToEntity('${originE.id}', '', '${log.id}')">${originE.name} <i class="material-icons" style="font-size:14px; margin-left:4px;" title="Ir para Origem">arrow_forward</i></div>`;
+                        linksBarHtml = `<div class="log-links-bar"><div class="link-label">Vinculado de:</div><div class="pills-container">${originPill}</div></div>`;
+                    }
                 }
 
                 let displayedText = log.text; if(this.searchFocusTerm) displayedText = AppUtils.highlight(displayedText, this.searchFocusTerm);
                 
                 listEl.innerHTML += `
-                    <li class="log-item">
+                    <li class="log-item" id="log-${log.id}">
                         <div class="log-header">
                             <span><i class="material-icons" style="font-size:14px; vertical-align:middle;">schedule</i> ${AppUtils.formatDate(log.createdAt)}</span>
                             <div class="log-actions">
@@ -818,12 +820,6 @@ var App = {
                 `;
             });
         }
-    },
-
-    removeLogLink: function(logId, entityIdToRemove) {
-        const log = db.logs.find(l => l.id === logId); if(!log) return;
-        log.relatedEntities = log.relatedEntities.filter(rel => rel.id !== entityIdToRemove);
-        saveDB(); this.renderEntityLogs();
     },
 
     openPDF: function(base64) {
@@ -877,46 +873,89 @@ var TaskModal = {
     save: function() { const name = document.getElementById('taskNameInput').value.trim(); if(!name) return; App.createEntityOnTheFly(name, this.parentId); this.closeUI(); }
 };
 
-var LinkModal = {
-    el: document.getElementById('linkModal'), currentLogId: null,
-    open: function(logId) { this.currentLogId = logId; document.getElementById('addLinkSearchInput').value = ''; document.getElementById('addLinkAutocomplete').style.display = 'none'; AppState.openModal(this); },
-    closeUI: function() { AppState.closeModalUI(); },
-    search: function() {
-        const term = document.getElementById('addLinkSearchInput').value.toLowerCase().trim(); const dropdown = document.getElementById('addLinkAutocomplete');
-        if(!term) { dropdown.style.display = 'none'; return; }
-        const log = db.logs.find(l => l.id === this.currentLogId); if(!log) return;
-        let filtered = db.entities.filter(e => e.name.toLowerCase().includes(term) && !log.relatedEntities.some(rel => rel.id === e.id));
-        if(filtered.length === 0) { dropdown.style.display = 'none'; return; }
-        dropdown.innerHTML = filtered.slice(0, 5).map(e => `<div class="autocomplete-item" onclick="LinkModal.add('${e.id}')"><i class="material-icons" style="font-size:14px; opacity:0.6;">link</i> ${e.name}</div>`).join('');
-        dropdown.style.display = 'flex';
-    },
-    add: function(entityId) {
-        const log = db.logs.find(l => l.id === this.currentLogId); const e = db.entities.find(x => x.id === entityId);
-        if(log && e) { log.relatedEntities.push({ type: e.type, id: e.id }); saveDB(); App.renderEntityLogs(); }
-        this.closeUI();
-    }
-}
-
 var LogModal = {
-    el: document.getElementById('logModal'), editLogId: null, tempMedia: [],
+    el: document.getElementById('logModal'), editLogId: null, tempMedia: [], tempRelations: [], originId: null,
     open: function(logId = null) {
-        this.editLogId = logId; this.tempMedia = [];
+        this.editLogId = logId; this.tempMedia = []; 
         const textInput = document.getElementById('logText');
+        const currentEntity = db.entities.find(e => e.id === App.currentEntityId);
+
         if (logId) {
-            const log = db.logs.find(l => l.id === logId); textInput.value = log.text; this.tempMedia = [...(log.images || [])]; document.getElementById('logModalTitle').innerText = 'Editar Registro';
-        } else { textInput.value = ''; document.getElementById('logModalTitle').innerText = 'Registrar Evento'; }
+            const log = db.logs.find(l => l.id === logId); 
+            this.originId = log.originEntityId;
+            textInput.value = log.text; 
+            this.tempMedia = [...(log.images || [])]; 
+            this.tempRelations = log.relatedEntities.filter(rel => rel.id !== this.originId).map(rel => ({ id: rel.id, type: rel.type }));
+            document.getElementById('logModalTitle').innerText = 'Editar Registro';
+            document.getElementById('logModalDeleteBtn').style.display = 'block';
+        } else { 
+            this.originId = currentEntity.id;
+            textInput.value = ''; 
+            this.tempRelations = [];
+            document.getElementById('logModalTitle').innerText = 'Registrar Evento'; 
+            document.getElementById('logModalDeleteBtn').style.display = 'none';
+        }
+        
+        document.getElementById('logLinkInput').value = '';
+        document.getElementById('logLinkAutocomplete').style.display = 'none';
+        this.renderLinks();
         this.updateUI(); AppState.openModal(this);
     },
     closeUI: function() { AppState.closeModalUI(); },
+    searchLinks: function() {
+        const term = document.getElementById('logLinkInput').value.toLowerCase().trim();
+        const dropdown = document.getElementById('logLinkAutocomplete');
+        
+        let available = db.entities.filter(e => e.type !== 'tarefa' && e.id !== this.originId && !this.tempRelations.some(rel => rel.id === e.id));
+        if (term) available = available.filter(e => e.name.toLowerCase().includes(term));
+        
+        if (available.length === 0) { dropdown.style.display = 'none'; return; }
+        
+        dropdown.innerHTML = available.slice(0, 5).map(e => `<div class="autocomplete-item" onclick="LogModal.addLink('${e.id}')"><i class="material-icons" style="font-size:14px; opacity:0.6;">link</i> ${e.name}</div>`).join('');
+        dropdown.style.display = 'flex';
+    },
+    addLink: function(id) {
+        const e = db.entities.find(x => x.id === id);
+        if(e) this.tempRelations.push({ type: e.type, id: e.id });
+        document.getElementById('logLinkInput').value = '';
+        document.getElementById('logLinkAutocomplete').style.display = 'none';
+        this.renderLinks();
+    },
+    removeLink: function(id) {
+        this.tempRelations = this.tempRelations.filter(rel => rel.id !== id);
+        this.renderLinks();
+    },
+    renderLinks: function() {
+        const container = document.getElementById('logLinkPills');
+        container.innerHTML = this.tempRelations.map(rel => {
+            const e = db.entities.find(x => x.id === rel.id) || rel;
+            return `<div class="pill-dark">${e.name} <i class="material-icons" onclick="LogModal.removeLink('${e.id}')">close</i></div>`;
+        }).join('');
+    },
+    delete: async function() {
+        if(this.editLogId && await CustomDialog.confirm("Excluir permanentemente este registro?", "Excluir Log")) {
+            db.logs = db.logs.filter(l => l.id !== this.editLogId);
+            saveDB(); App.renderEntityLogs(); this.closeUI();
+        }
+    },
     save: async function() {
         const text = document.getElementById('logText').value.trim();
         if(!text && this.tempMedia.length === 0) { await CustomDialog.alert('Insira um texto ou anexe uma imagem/documento.', 'Aviso'); return; }
-        const currentEntity = db.entities.find(e => e.id === App.currentEntityId);
-        const coreRelation = { type: currentEntity.type, id: currentEntity.id };
+        
+        const originEntity = db.entities.find(e => e.id === this.originId);
+        const coreRelation = { type: originEntity.type, id: originEntity.id };
+        const finalRelations = [coreRelation, ...this.tempRelations.map(rel => ({ type: rel.type, id: rel.id }))];
+
         if (this.editLogId) {
-            const log = db.logs.find(l => l.id === this.editLogId); log.text = text; log.images = [...this.tempMedia];
+            const log = db.logs.find(l => l.id === this.editLogId); 
+            log.text = text; 
+            log.images = [...this.tempMedia];
+            log.relatedEntities = finalRelations;
         } else {
-            const newLog = { id: Date.now().toString(), text: text, images: [...this.tempMedia], createdAt: Date.now(), originEntityId: currentEntity.id, relatedEntities: [coreRelation] };
+            const newLog = { 
+                id: Date.now().toString(), text: text, images: [...this.tempMedia], createdAt: Date.now(), 
+                originEntityId: this.originId, relatedEntities: finalRelations 
+            };
             db.logs.push(newLog);
         }
         saveDB(); App.renderEntityLogs(); this.closeUI();
