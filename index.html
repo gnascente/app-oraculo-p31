@@ -102,48 +102,52 @@
         .search-box i.search-icon { position: absolute; left: 14px; color: var(--on-surface-variant); font-size: 20px; pointer-events: none; }
         .search-box input:focus { border-color: var(--primary); }
 
-        /* Lists */
-        .entity-list, .log-list { list-style: none; padding: 16px; display: flex; flex-direction: column; gap: 12px; flex-grow: 1; overflow-y: auto; }
+        /* Nested Task & Entity Cards */
+        .task-list { list-style: none; padding: 16px; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
         
-        .entity-item { 
-            background: var(--surface-variant); border-radius: 12px; padding: 16px; 
-            display: flex; flex-direction: column; gap: 8px; cursor: pointer; box-shadow: var(--shadow-sm); transition: transform 0.2s;
-        }
-        .entity-item:active { transform: scale(0.98); }
-        .entity-info { display: flex; align-items: center; gap: 12px; justify-content: space-between; }
-        .entity-name { font-size: 16px; font-weight: 500; flex-grow: 1; word-break: break-word; }
-        .entity-icon { width: 40px; height: 40px; border-radius: 8px; background: rgba(168, 199, 250, 0.1); display: grid; place-content: center; color: var(--primary); flex-shrink: 0;}
-        .entity-module-badge { font-size: 10px; background: var(--background); padding: 2px 6px; border-radius: 8px; color: var(--on-surface-variant); margin-top: 4px; display: inline-block; text-transform: uppercase; }
+        .task-item { background: var(--surface-variant); border-radius: 12px; padding: 16px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; transition: background-color 0.5s; border: 1px solid transparent; }
+        .task-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 12px; }
+        .task-header-title-wrapper { display: flex; align-items: center; gap: 12px; flex-grow: 1; }
+        .entity-icon { width: 36px; height: 36px; border-radius: 8px; background: rgba(168, 199, 250, 0.1); display: grid; place-content: center; color: var(--primary); flex-shrink: 0; }
+        .task-title { font-size: 18px; font-weight: 500; word-break: break-word; line-height: 1.3; color: #fff;}
+        .task-actions { display: flex; gap: 12px; flex-shrink: 0; align-items: center; }
 
-        .create-btn-dynamic { background: rgba(168, 199, 250, 0.1); border: 1px dashed var(--primary); border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; color: var(--primary); font-weight: 500; }
+        .create-btn-dynamic { background: rgba(168, 199, 250, 0.1); border: 1px dashed var(--primary); border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; color: var(--primary); font-weight: 500; margin-bottom: 16px; }
 
         .search-snippets { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px; }
         .snippet-item { font-size: 12px; color: var(--on-surface-variant); font-style: italic; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 6px; line-height: 1.3; }
         mark.highlight { background-color: rgba(255, 213, 79, 0.3); color: #fff; padding: 0 2px; border-radius: 2px; }
 
         /* Logs Timeline & Pills */
-        .log-item { background: var(--surface-variant); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--shadow-sm); transition: background-color 0.5s; }
-        .log-header { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--on-surface-variant); border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; margin-bottom: 4px; }
-        .log-text { font-size: 14px; line-height: 1.4; word-break: break-word; white-space: pre-wrap; }
+        .log-list { margin-top: 8px; padding-left: 12px; border-left: 2px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+        .log-item { font-size: 13px; color: var(--on-surface-variant); display: flex; flex-direction: column; gap: 6px; background: rgba(0,0,0,0.15); padding: 10px; border-radius: 8px; transition: background-color 0.5s; }
+        .log-header { display: flex; justify-content: space-between; align-items: center; font-size: 11px; opacity: 0.8; margin-bottom: 2px; }
+        .log-text { font-size: 14px; line-height: 1.4; word-break: break-word; white-space: pre-wrap; color: #e2e2e6; }
         
-        .log-links-bar { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.05); }
-        .link-label { font-size: 12px; color: var(--on-surface-variant); display: flex; align-items: center; gap: 6px; font-weight: 500;}
-        .pills-container { display: flex; flex-wrap: wrap; gap: 8px; }
-        .pill-dark { background: #333; color: #e2e2e6; padding: 6px 12px; border-radius: 20px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid #444; cursor: pointer; transition: 0.2s;}
+        .subtask-list { list-style: none; display: flex; flex-direction: column; gap: 12px; padding-top: 8px; }
+        .subtask-item { display: flex; flex-direction: column; gap: 8px; font-size: 14px; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; }
+        .subtask-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .subtask-text-wrapper { display: flex; align-items: center; gap: 8px; flex-grow: 1; }
+        .subtask-text { font-weight: 500; color: var(--primary); font-size: 15px; }
+        
+        .log-links-bar { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); }
+        .link-label { font-size: 11px; color: var(--on-surface-variant); display: flex; align-items: center; gap: 6px; font-weight: 500; text-transform: uppercase;}
+        .pills-container { display: flex; flex-wrap: wrap; gap: 6px; }
+        .pill-dark { background: #333; color: #e2e2e6; padding: 4px 10px; border-radius: 16px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px; border: 1px solid #444; cursor: pointer; transition: 0.2s;}
         .pill-dark:active { transform: scale(0.95); }
-        .pill-dark i { font-size: 14px; cursor: pointer; color: #aaa; transition: 0.2s; }
+        .pill-dark i { font-size: 12px; cursor: pointer; color: #aaa; transition: 0.2s; }
         .pill-dark i:hover { color: var(--danger); }
-        .pill-dark.origin { border-color: var(--primary); }
+        .pill-dark.origin { border-color: var(--primary); color: var(--primary); background: rgba(168, 199, 250, 0.1); }
 
         .action-icon { cursor: pointer; color: var(--on-surface-variant); transition: color 0.2s; font-size: 20px; }
         .action-icon:hover { color: var(--primary); }
         .action-icon.danger:hover { color: var(--danger); }
 
         /* Media Decks */
-        .stacked-deck { width: 100%; height: 180px; position: relative; margin-top: 8px; margin-bottom: 8px; cursor: pointer; display: block; transition: transform 0.2s; background: transparent; }
+        .stacked-deck { width: 100%; height: 160px; position: relative; margin-top: 8px; margin-bottom: 4px; cursor: pointer; display: block; transition: transform 0.2s; background: transparent; }
         .stacked-deck:active { transform: scale(0.98); }
         .deck-photo, .pdf-preview.deck-photo {
-            width: calc(100% - 20px); height: 100%; position: absolute; top: 0; left: 10px; object-fit: cover; border-radius: 12px; border: 2px solid var(--surface); box-shadow: var(--shadow-sm); transition: transform 0.2s;
+            width: calc(100% - 20px); height: 100%; position: absolute; top: 0; left: 10px; object-fit: cover; border-radius: 8px; border: 1px solid #555; box-shadow: var(--shadow-sm); transition: transform 0.2s;
         }
         .stacked-deck.single .deck-photo { width: 100%; left: 0; filter: none !important; transform: none !important; }
         .stacked-deck:not(.single) .deck-photo:nth-child(n+4) { display: none; }
@@ -175,7 +179,7 @@
         textarea.input-field { resize: vertical; min-height: 120px; }
 
         .autocomplete-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow); max-height: 180px; overflow-y: auto; z-index: 2000; display: none; flex-direction: column; margin-top: 4px; }
-        .autocomplete-item { padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        .autocomplete-item { padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 14px; }
         .autocomplete-item:hover { background: rgba(255,255,255,0.05); }
 
         .modal-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 24px; }
@@ -234,6 +238,9 @@
         .view-section.active { display: flex; }
         .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 24px; color: var(--on-surface-variant); gap: 16px; text-align: center; height: 100%; }
         .empty-state i { font-size: 56px; opacity: 0.3; }
+        
+        /* Utility link */
+        .module-link-badge { font-size: 10px; background: var(--background); padding: 2px 6px; border-radius: 8px; color: var(--on-surface-variant); display: inline-block; text-transform: uppercase; margin-left: 8px;}
     </style>
 </head>
 <body>
@@ -244,11 +251,10 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 1.3.0</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 2.0.0</span>
             </div>
         </h1>
         <div class="header-actions">
-            <i class="material-icons action-icon" id="btnEditEntity" style="display:none;" onclick="EntityModal.open()">edit</i>
             <i class="material-icons action-icon" id="btnBack" style="display:none;" onclick="App.goBack()">arrow_back</i>
             <div style="position: relative;" id="menuWrapper">
                 <i class="material-icons action-icon" onclick="App.toggleMenu(event)">more_vert</i>
@@ -287,7 +293,7 @@
                 <i class="material-icons">inventory_2</i><span>Materiais</span>
             </div>
         </div>
-        <ul class="entity-list" id="homeSearchList" style="display:none;"></ul>
+        <ul class="task-list" id="homeSearchList" style="display:none;"></ul>
     </div>
 
     <div id="viewList" class="view-section">
@@ -297,21 +303,11 @@
                 <input type="text" id="searchInput" placeholder="Buscar ou criar novo..." oninput="App.renderList()">
             </div>
         </div>
-        <ul class="entity-list" id="entityList"></ul>
-    </div>
-
-    <div id="viewEntity" class="view-section">
-        <div id="entitySearchWrapper" style="display:none; padding: 16px; border-bottom: 1px solid var(--surface-variant);">
-            <div class="search-box">
-                <i class="material-icons search-icon">search</i>
-                <input type="text" id="subEntitySearchInput" placeholder="Buscar ou criar tarefa..." oninput="App.renderEntityLogs()">
-            </div>
-        </div>
-        <ul class="log-list" id="logList"></ul>
+        <ul class="task-list" id="entityList"></ul>
     </div>
 </div>
 
-<button class="fab" id="mainFab" style="display:none;" onclick="App.fabAction()">
+<button class="fab" id="mainFab" style="display:none;" onclick="LogModal.open(null, App.currentEntityId)">
     <i class="material-icons">add</i>
 </button>
 
@@ -353,11 +349,11 @@
 <div class="modal-overlay" id="entityModal">
     <div class="modal-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <h2>Editar Entidade</h2>
+            <h2 id="entityModalTitle">Editar Entidade</h2>
             <i class="material-icons action-icon danger" onclick="EntityModal.delete()">delete</i>
         </div>
         <div class="input-group">
-            <input type="text" id="entityNameEditInput" class="input-field" placeholder="Nome da Entidade">
+            <input type="text" id="entityNameEditInput" class="input-field" placeholder="Nome">
         </div>
         <div class="modal-actions">
             <button class="btn btn-text" onclick="EntityModal.closeUI()">Cancelar</button>
@@ -375,7 +371,7 @@
         
         <div class="input-group" id="logLinkContainer">
             <label style="font-size: 13px; font-weight: 500; color: var(--on-surface-variant); margin-bottom: 8px; display: block;">Vincular a:</label>
-            <input type="text" id="logLinkInput" class="input-field" placeholder="Buscar entidade..." onfocus="LogModal.searchLinks()" oninput="LogModal.searchLinks()">
+            <input type="text" id="logLinkInput" class="input-field" placeholder="Buscar entidade primária..." onfocus="LogModal.searchLinks()" oninput="LogModal.searchLinks()">
             <div id="logLinkAutocomplete" class="autocomplete-dropdown"></div>
             <div id="logLinkPills" class="pills-container" style="margin-top: 12px;"></div>
         </div>
@@ -400,19 +396,6 @@
         <div class="modal-actions">
             <button class="btn btn-text" onclick="LogModal.closeUI()">Cancelar</button>
             <button class="btn btn-filled" onclick="LogModal.save()">Salvar Registro</button>
-        </div>
-    </div>
-</div>
-
-<div class="modal-overlay" id="taskCreateModal">
-    <div class="modal-content">
-        <h2>Nova Tarefa de Serviço</h2>
-        <div class="input-group" style="margin-top: 16px;">
-            <input type="text" id="taskNameInput" class="input-field" placeholder="Nome da Tarefa (Ex: Desmontagem)">
-        </div>
-        <div class="modal-actions">
-            <button class="btn btn-text" onclick="TaskModal.closeUI()">Cancelar</button>
-            <button class="btn btn-filled" onclick="TaskModal.save()">Criar Tarefa</button>
         </div>
     </div>
 </div>
@@ -558,11 +541,11 @@ function renderStackedDeckHTML(images, logId) {
     let countLabel = `+${images.length - 1}`; if (pdfCount > 0) countLabel += ` (${pdfCount} PDF)`;
 
     if (images.length === 1) {
-        if (images[0].data.startsWith('data:application/pdf')) return `<div class="pdf-preview deck-photo" style="position:relative; left:0; width:100%; height:auto; min-height:160px; padding:16px;" onclick="${clickHandler}"><i class="material-icons" style="font-size:48px;">picture_as_pdf</i><span style="font-size: 14px; margin-top: 8px; text-align:center;">${AppUtils.getPdfName(images[0].data)}</span></div>`;
+        if (images[0].data.startsWith('data:application/pdf')) return `<div class="pdf-preview deck-photo" style="position:relative; left:0; width:100%; height:auto; min-height:140px; padding:12px;" onclick="${clickHandler}"><i class="material-icons" style="font-size:32px;">picture_as_pdf</i><span style="font-size: 13px; margin-top: 8px; text-align:center;">${AppUtils.getPdfName(images[0].data)}</span></div>`;
         else return `<img src="${images[0].data}" class="image-preview" onclick="${clickHandler}" style="margin:0;">`;
     } else {
         const photosHtml = images.slice(0, 3).map(img => {
-            if (img.data.startsWith('data:application/pdf')) return `<div class="pdf-preview deck-photo"><i class="material-icons" style="font-size:32px;">picture_as_pdf</i><span style="font-size:10px; margin-top:4px;">PDF</span></div>`;
+            if (img.data.startsWith('data:application/pdf')) return `<div class="pdf-preview deck-photo"><i class="material-icons" style="font-size:24px;">picture_as_pdf</i><span style="font-size:9px; margin-top:4px;">PDF</span></div>`;
             return `<img src="${img.data}" class="deck-photo">`;
         }).join('');
         let countHtml = `<div style="position: absolute; bottom: 8px; right: 18px; background: rgba(0,0,0,0.7); color:white; padding: 4px 8px; border-radius: 12px; font-size:12px; z-index: 10; font-weight:bold;">${countLabel}</div>`;
@@ -571,7 +554,7 @@ function renderStackedDeckHTML(images, logId) {
 }
 
 // --- DATABASE ---
-const DB_KEY = 'oraculo_p31_v3';
+const DB_KEY = 'oraculo_p31_v4';
 let db = JSON.parse(localStorage.getItem(DB_KEY)) || { entities: [], logs: [] };
 db.entities.forEach(e => { if(e.parentId === undefined) e.parentId = null; });
 db.logs.forEach(l => { if(!l.relatedEntities) l.relatedEntities = []; if(!l.originEntityId) l.originEntityId = l.relatedEntities.length > 0 ? l.relatedEntities[0].id : null; });
@@ -588,9 +571,9 @@ var App = {
 
     goHome: function() {
         this.currentView = 'home';
-        document.getElementById('viewHome').classList.add('active'); document.getElementById('viewList').classList.remove('active'); document.getElementById('viewEntity').classList.remove('active');
-        document.getElementById('mainFab').style.display = 'none'; document.getElementById('headerIcon').innerText = 'oil_barrel'; document.getElementById('headerText').innerText = 'Oráculo P-31';
-        document.getElementById('btnBack').style.display = 'none'; document.getElementById('btnEditEntity').style.display = 'none'; document.getElementById('headerVersion').style.display = 'inline';
+        document.getElementById('viewHome').classList.add('active'); document.getElementById('viewList').classList.remove('active');
+        document.getElementById('headerIcon').innerText = 'oil_barrel'; document.getElementById('headerText').innerText = 'Oráculo P-31';
+        document.getElementById('btnBack').style.display = 'none'; document.getElementById('headerVersion').style.display = 'inline';
         
         document.getElementById('homeSearchInput').value = '';
         this.renderHomeSearch();
@@ -631,15 +614,14 @@ var App = {
             }
 
             list.innerHTML += `
-                <li class="entity-item" onclick="App.goToEntity('${e.id}', '${term}')">
-                    <div class="entity-info">
-                        <div class="entity-icon"><i class="material-icons">${modInfo[1]}</i></div>
-                        <div style="flex-grow:1; display:flex; flex-direction:column;">
-                            <span class="entity-name">${AppUtils.highlight(e.name, term)}</span>
-                            <span class="entity-module-badge">${modInfo[0]}</span>
+                <li class="task-item" style="cursor:pointer;" onclick="App.focusEntity('${e.id}', '${term}')">
+                    <div class="task-header" style="margin-bottom:4px;">
+                        <div class="task-header-title-wrapper">
+                            <div class="entity-icon" style="width:28px;height:28px;"><i class="material-icons" style="font-size:16px;">${modInfo[1]}</i></div>
+                            <span class="task-title" style="font-size:15px;">${AppUtils.highlight(e.name, term)}</span>
                         </div>
-                        <i class="material-icons" style="color:var(--border);">chevron_right</i>
                     </div>
+                    <span class="module-link-badge" style="align-self:flex-start; margin-left:0;">${modInfo[0]}</span>
                     ${snippetsHtml}
                 </li>
             `;
@@ -648,48 +630,39 @@ var App = {
 
     openModule: function(type, name, icon) {
         this.currentView = 'list'; this.moduleType = type; this.moduleName = name; this.moduleIcon = icon;
-        document.getElementById('viewHome').classList.remove('active'); document.getElementById('viewEntity').classList.remove('active'); document.getElementById('viewList').classList.add('active');
-        document.getElementById('mainFab').style.display = 'none'; document.getElementById('headerIcon').innerText = icon; document.getElementById('headerText').innerText = name;
-        document.getElementById('btnBack').style.display = 'block'; document.getElementById('btnEditEntity').style.display = 'none'; document.getElementById('headerVersion').style.display = 'none';
+        document.getElementById('viewHome').classList.remove('active'); document.getElementById('viewList').classList.add('active');
+        document.getElementById('headerIcon').innerText = icon; document.getElementById('headerText').innerText = name;
+        document.getElementById('btnBack').style.display = 'block'; document.getElementById('headerVersion').style.display = 'none';
         document.getElementById('searchInput').value = ''; this.renderList(); history.pushState({ view: 'list' }, '');
     },
 
-    goToEntity: function(id, focusTerm = '', focusLogId = null) {
+    focusEntity: function(id, focusTerm = '', focusLogId = null) {
         const entity = db.entities.find(e => e.id === id); if(!entity) return;
-        this.currentView = 'entity'; this.currentEntityId = id; this.searchFocusTerm = focusTerm;
+        this.searchFocusTerm = focusTerm;
         
+        let targetModuleType = entity.type; let targetModuleName = MODULE_MAPPING[entity.type][0]; let targetModuleIcon = MODULE_MAPPING[entity.type][1];
         if(entity.type === 'tarefa') {
             const parent = db.entities.find(e => e.id === entity.parentId);
-            if(parent) { this.moduleType = 'servico'; this.moduleName = 'Serviços'; this.moduleIcon = 'handyman'; }
-        } else { if(MODULE_MAPPING[entity.type]) { this.moduleType = entity.type; this.moduleName = MODULE_MAPPING[entity.type][0]; this.moduleIcon = MODULE_MAPPING[entity.type][1]; } }
-
-        document.getElementById('viewList').classList.remove('active'); document.getElementById('viewHome').classList.remove('active'); document.getElementById('viewEntity').classList.add('active');
-        document.getElementById('mainFab').style.display = 'grid'; document.getElementById('headerIcon').innerText = this.moduleIcon; document.getElementById('headerText').innerText = (entity.type === 'tarefa' ? 'Tarefa: ' : '') + entity.name;
-        document.getElementById('btnBack').style.display = 'block'; document.getElementById('btnEditEntity').style.display = 'block'; document.getElementById('headerVersion').style.display = 'none';
-
-        if(entity.type === 'servico') { document.getElementById('entitySearchWrapper').style.display = 'block'; document.getElementById('subEntitySearchInput').value = ''; } 
-        else { document.getElementById('entitySearchWrapper').style.display = 'none'; }
-        
-        this.renderEntityLogs(); history.pushState({ view: 'entity', id: id }, '');
-
-        if(focusLogId) {
-            setTimeout(() => {
-                const el = document.getElementById('log-' + focusLogId);
-                if(el) {
-                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    el.style.backgroundColor = 'rgba(168, 199, 250, 0.2)';
-                    setTimeout(() => el.style.backgroundColor = 'var(--surface-variant)', 1500);
-                }
-            }, 300);
+            if(parent) { targetModuleType = 'servico'; targetModuleName = 'Serviços'; targetModuleIcon = 'handyman'; }
+        } else {
+            if(MODULE_MAPPING[entity.type]) { targetModuleType = entity.type; targetModuleName = MODULE_MAPPING[entity.type][0]; targetModuleIcon = MODULE_MAPPING[entity.type][1]; }
         }
+
+        this.openModule(targetModuleType, targetModuleName, targetModuleIcon);
+
+        setTimeout(() => {
+            const elId = focusLogId ? 'log-' + focusLogId : 'entity-' + id;
+            const el = document.getElementById(elId);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.style.backgroundColor = 'rgba(168, 199, 250, 0.2)';
+                setTimeout(() => el.style.backgroundColor = 'var(--surface-variant)', 1500);
+            }
+        }, 300);
     },
 
     goBack: function(fromPopState = false) {
-        if(this.currentView === 'entity') {
-            const entity = db.entities.find(e => e.id === this.currentEntityId);
-            if(entity && entity.type === 'tarefa' && entity.parentId) { this.goToEntity(entity.parentId); if(!fromPopState) history.back(); } 
-            else { this.openModule(this.moduleType, this.moduleName, this.moduleIcon); if(!fromPopState) history.back(); }
-        } else if (this.currentView === 'list') { this.goHome(); if(!fromPopState) history.back(); }
+        if (this.currentView === 'list') { this.goHome(); if(!fromPopState) history.back(); }
     },
 
     createEntityOnTheFly: function(name, parentId = null) {
@@ -697,11 +670,10 @@ var App = {
         const newEntity = { id: Date.now().toString(), type: newType, name: name.trim(), createdAt: Date.now(), parentId: parentId };
         db.entities.push(newEntity); saveDB();
         
-        if(parentId) { document.getElementById('subEntitySearchInput').value = ''; this.renderEntityLogs(); } 
-        else { document.getElementById('searchInput').value = ''; this.goToEntity(newEntity.id); }
+        if(!parentId) { document.getElementById('searchInput').value = ''; }
+        this.renderList();
+        this.focusEntity(newEntity.id);
     },
-
-    fabAction: function() { const entity = db.entities.find(e => e.id === this.currentEntityId); if(entity && entity.type === 'servico') TaskModal.open(entity.id); else LogModal.open(); },
 
     renderList: function() {
         const rawSearchTerm = document.getElementById('searchInput').value; const searchTerm = rawSearchTerm.toLowerCase().trim(); const listEl = document.getElementById('entityList'); listEl.innerHTML = '';
@@ -713,113 +685,133 @@ var App = {
                 if(e.name.toLowerCase() === searchTerm) hasExactMatch = true;
                 let matchesName = e.name.toLowerCase().includes(searchTerm);
                 let relatedLogs = db.logs.filter(l => l.relatedEntities.some(rel => rel.id === e.id) && l.text && l.text.toLowerCase().includes(searchTerm));
-                if(matchesName || relatedLogs.length > 0) resultList.push({ entity: e, logsMatched: relatedLogs });
+                
+                // For Serviços, also search inside its Tarefas
+                let tasksMatched = [];
+                if(e.type === 'servico') {
+                    const servTasks = db.entities.filter(t => t.parentId === e.id && t.type === 'tarefa');
+                    servTasks.forEach(t => {
+                        let matchesTaskName = t.name.toLowerCase().includes(searchTerm);
+                        let taskRelatedLogs = db.logs.filter(l => l.relatedEntities.some(rel => rel.id === t.id) && l.text && l.text.toLowerCase().includes(searchTerm));
+                        if(matchesTaskName || taskRelatedLogs.length > 0) tasksMatched.push({ task: t, logsMatched: taskRelatedLogs });
+                    });
+                }
+
+                if(matchesName || relatedLogs.length > 0 || tasksMatched.length > 0) {
+                    resultList.push({ entity: e, logsMatched: relatedLogs, tasksMatched: tasksMatched });
+                }
             });
             filtered = resultList;
-            
             if (!hasExactMatch) { listEl.innerHTML += `<div class="create-btn-dynamic" onclick="App.createEntityOnTheFly('${rawSearchTerm.replace(/'/g, "\\'")}')"><i class="material-icons">add_circle_outline</i><span>Criar: <strong>${rawSearchTerm}</strong></span></div>`; }
-            
-            filtered.sort((a, b) => b.entity.createdAt - a.entity.createdAt).forEach(item => {
-                let e = item.entity; let snippetsHtml = '';
-                if(item.logsMatched.length > 0) {
-                    snippetsHtml = `<div class="search-snippets">`;
-                    item.logsMatched.forEach(l => {
-                        let text = l.text; let idx = text.toLowerCase().indexOf(searchTerm);
-                        let start = Math.max(0, idx - 25); let end = Math.min(text.length, idx + searchTerm.length + 25);
-                        let snippet = text.substring(start, end).replace(/\n/g, ' ');
-                        let highlightedSnippet = snippet.replace(new RegExp(searchTerm, 'gi'), match => `<mark class="highlight">${match}</mark>`);
-                        snippetsHtml += `<div class="snippet-item">...${highlightedSnippet}...</div>`;
-                    });
-                    snippetsHtml += `</div>`;
-                }
-                listEl.innerHTML += `<li class="entity-item" onclick="App.goToEntity('${e.id}', '${searchTerm}')"><div class="entity-info"><div class="entity-icon"><i class="material-icons">${this.moduleIcon}</i></div><span class="entity-name">${AppUtils.highlight(e.name, searchTerm)}</span><i class="material-icons" style="color:var(--border);">chevron_right</i></div>${snippetsHtml}</li>`;
-            });
-        } else {
-            if (filtered.length === 0) { listEl.innerHTML += `<div class="empty-state"><i class="material-icons">${this.moduleIcon}</i><p>Nenhum registro.<br>Busque para criar.</p></div>`; return; }
-            filtered.sort((a, b) => b.createdAt - a.createdAt).forEach(entity => { listEl.innerHTML += `<li class="entity-item" onclick="App.goToEntity('${entity.id}')"><div class="entity-info"><div class="entity-icon"><i class="material-icons">${this.moduleIcon}</i></div><span class="entity-name">${entity.name}</span><i class="material-icons" style="color:var(--border);">chevron_right</i></div></li>`; });
         }
+
+        if (filtered.length === 0 && !searchTerm) { listEl.innerHTML = `<div class="empty-state"><i class="material-icons">${this.moduleIcon}</i><p>Nenhum registro.<br>Busque para criar.</p></div>`; return; }
+
+        let iterator = searchTerm ? filtered.sort((a, b) => b.entity.createdAt - a.entity.createdAt) : filtered.sort((a, b) => b.createdAt - a.createdAt).map(e => ({entity: e}));
+
+        iterator.forEach(item => {
+            let e = item.entity;
+            
+            // Render Entity Card Header
+            let cardHtml = `
+            <li class="task-item" id="entity-${e.id}">
+                <div class="task-header">
+                    <div class="task-header-title-wrapper">
+                        <div class="entity-icon"><i class="material-icons">${this.moduleIcon}</i></div>
+                        <span class="task-title">${AppUtils.highlight(e.name, searchTerm)}</span>
+                    </div>
+                    <div class="task-actions">
+                        <i class="material-icons action-icon" title="Adicionar Evento" onclick="LogModal.open(null, '${e.id}')">post_add</i>
+                        ${e.type === 'servico' ? `<i class="material-icons action-icon" title="Adicionar Tarefa" onclick="EntityModal.openTaskPrompt('${e.id}')">add_task</i>` : ''}
+                        <i class="material-icons action-icon" title="Editar Nome/Excluir" onclick="EntityModal.open('${e.id}')">edit</i>
+                    </div>
+                </div>
+            `;
+
+            // Render Entity Logs
+            let entityLogs = db.logs.filter(log => log.relatedEntities.some(rel => rel.id === e.id));
+            if (entityLogs.length > 0) {
+                cardHtml += `<div class="log-list">`;
+                entityLogs.sort((a, b) => a.createdAt - b.createdAt).forEach(log => {
+                    cardHtml += App.renderLogItemHTML(log, e.id, searchTerm);
+                });
+                cardHtml += `</div>`;
+            }
+
+            // Render Sub-Tasks if it's a Serviço
+            if (e.type === 'servico') {
+                let tasks = db.entities.filter(t => t.parentId === e.id && t.type === 'tarefa');
+                if (tasks.length > 0) {
+                    cardHtml += `<div style="font-size:12px; font-weight:bold; color:var(--on-surface-variant); margin-top:20px; margin-bottom: 8px; text-transform:uppercase;">Tarefas do Serviço</div><ul class="subtask-list">`;
+                    tasks.sort((a, b) => a.createdAt - b.createdAt).forEach(t => {
+                        cardHtml += `
+                        <li class="subtask-item" id="entity-${t.id}">
+                            <div class="subtask-row">
+                                <div class="subtask-text-wrapper">
+                                    <i class="material-icons" style="font-size:18px; color:var(--on-surface-variant);">subdirectory_arrow_right</i>
+                                    <span class="subtask-text selectable-text">${AppUtils.highlight(t.name, searchTerm)}</span>
+                                </div>
+                                <div class="task-actions" style="gap:8px;">
+                                    <i class="material-icons action-icon" style="font-size:16px;" title="Adicionar Evento na Tarefa" onclick="LogModal.open(null, '${t.id}')">post_add</i>
+                                    <i class="material-icons action-icon" style="font-size:16px;" onclick="EntityModal.open('${t.id}')">edit</i>
+                                </div>
+                            </div>
+                        `;
+                        let taskLogs = db.logs.filter(log => log.relatedEntities.some(rel => rel.id === t.id));
+                        if (taskLogs.length > 0) {
+                            cardHtml += `<div class="log-list" style="margin-left: 26px;">`;
+                            taskLogs.sort((a, b) => a.createdAt - b.createdAt).forEach(log => {
+                                cardHtml += App.renderLogItemHTML(log, t.id, searchTerm);
+                            });
+                            cardHtml += `</div>`;
+                        }
+                        cardHtml += `</li>`;
+                    });
+                    cardHtml += `</ul>`;
+                }
+            }
+            cardHtml += `</li>`;
+            listEl.innerHTML += cardHtml;
+        });
     },
 
-    renderEntityLogs: function() {
-        const listEl = document.getElementById('logList'); listEl.innerHTML = '';
-        const entity = db.entities.find(e => e.id === this.currentEntityId); if(!entity) return;
-
-        if (entity.type === 'servico') {
-            const rawSearchTerm = document.getElementById('subEntitySearchInput').value; const searchTerm = rawSearchTerm.toLowerCase().trim();
-            let tasks = db.entities.filter(e => e.type === 'tarefa' && e.parentId === this.currentEntityId); let hasExactMatch = false;
-
-            if (searchTerm) {
-                let resultList = [];
-                tasks.forEach(t => {
-                    if(t.name.toLowerCase() === searchTerm) hasExactMatch = true;
-                    let matchesName = t.name.toLowerCase().includes(searchTerm);
-                    let relatedLogs = db.logs.filter(l => l.relatedEntities.some(rel => rel.id === t.id) && l.text && l.text.toLowerCase().includes(searchTerm));
-                    if(matchesName || relatedLogs.length > 0) resultList.push({ entity: t, logsMatched: relatedLogs });
-                });
-                if (!hasExactMatch) { listEl.innerHTML += `<div class="create-btn-dynamic" onclick="App.createEntityOnTheFly('${rawSearchTerm.replace(/'/g, "\\'")}', '${entity.id}')"><i class="material-icons">add_circle_outline</i><span>Nova Tarefa: <strong>${rawSearchTerm}</strong></span></div>`; }
-                resultList.sort((a, b) => b.entity.createdAt - a.entity.createdAt).forEach(item => {
-                    let t = item.entity; let snippetsHtml = '';
-                    if(item.logsMatched.length > 0) {
-                        snippetsHtml = `<div class="search-snippets">`;
-                        item.logsMatched.forEach(l => {
-                            let text = l.text; let idx = text.toLowerCase().indexOf(searchTerm);
-                            let start = Math.max(0, idx - 25); let end = Math.min(text.length, idx + searchTerm.length + 25);
-                            let snippet = text.substring(start, end).replace(/\n/g, ' ');
-                            let highlightedSnippet = snippet.replace(new RegExp(searchTerm, 'gi'), match => `<mark class="highlight">${match}</mark>`);
-                            snippetsHtml += `<div class="snippet-item">...${highlightedSnippet}...</div>`;
-                        });
-                        snippetsHtml += `</div>`;
-                    }
-                    listEl.innerHTML += `<li class="entity-item" onclick="App.goToEntity('${t.id}', '${searchTerm}')"><div class="entity-info"><div class="entity-icon" style="background:rgba(255,255,255,0.1); color:var(--on-surface);"><i class="material-icons">assignment</i></div><span class="entity-name">${AppUtils.highlight(t.name, searchTerm)}</span><i class="material-icons" style="color:var(--border);">chevron_right</i></div>${snippetsHtml}</li>`;
-                });
-            } else {
-                if(tasks.length === 0) { listEl.innerHTML = `<div class="empty-state"><i class="material-icons">assignment</i><p>Nenhuma tarefa neste serviço.<br>Use o <strong>+</strong> para criar.</p></div>`; return; }
-                tasks.sort((a, b) => b.createdAt - a.createdAt).forEach(t => { listEl.innerHTML += `<li class="entity-item" onclick="App.goToEntity('${t.id}')"><div class="entity-info"><div class="entity-icon" style="background:rgba(255,255,255,0.1); color:var(--on-surface);"><i class="material-icons">assignment</i></div><span class="entity-name">${t.name}</span><i class="material-icons" style="color:var(--border);">chevron_right</i></div></li>`; });
+    renderLogItemHTML: function(log, contextEntityId, searchTerm = '') {
+        let mediaHtml = log.images && log.images.length > 0 ? renderStackedDeckHTML(log.images, log.id) : '';
+        let isOrigin = log.originEntityId === contextEntityId;
+        let otherLinks = log.relatedEntities.filter(rel => rel.id !== log.originEntityId);
+        
+        let linksBarHtml = '';
+        if(isOrigin) {
+            if (otherLinks.length > 0) {
+                let pills = otherLinks.map(rel => {
+                    let linkedE = db.entities.find(e => e.id === rel.id); if(!linkedE) return '';
+                    return `<div class="pill-dark" onclick="App.focusEntity('${linkedE.id}', '', '${log.id}')">${linkedE.name} <i class="material-icons" style="font-size:12px; margin-left:4px;" title="Ir para Destino">arrow_forward</i></div>`;
+                }).join('');
+                linksBarHtml = `<div class="log-links-bar"><div class="link-label">Vinculado a:</div><div class="pills-container">${pills}</div></div>`;
             }
         } else {
-            let entityLogs = db.logs.filter(log => log.relatedEntities.some(rel => rel.id === this.currentEntityId));
-            if (entityLogs.length === 0) { listEl.innerHTML = `<div class="empty-state"><i class="material-icons">history</i><p>Nenhum log registrado.<br>Use o <strong>+</strong> para adicionar.</p></div>`; return; }
-
-            entityLogs.sort((a, b) => b.createdAt - a.createdAt).forEach(log => {
-                let mediaHtml = log.images && log.images.length > 0 ? renderStackedDeckHTML(log.images, log.id) : '';
-                
-                let isOrigin = log.originEntityId === this.currentEntityId;
-                let otherLinks = log.relatedEntities.filter(rel => rel.id !== log.originEntityId);
-                
-                let linksBarHtml = '';
-                if(isOrigin) {
-                    if (otherLinks.length > 0) {
-                        let pills = otherLinks.map(rel => {
-                            let linkedE = db.entities.find(e => e.id === rel.id); if(!linkedE) return '';
-                            return `<div class="pill-dark" onclick="App.goToEntity('${linkedE.id}', '', '${log.id}')">${linkedE.name} <i class="material-icons" style="font-size:14px; margin-left:4px;" title="Ir para Destino">arrow_forward</i></div>`;
-                        }).join('');
-                        linksBarHtml = `<div class="log-links-bar"><div class="link-label">Vinculado a:</div><div class="pills-container">${pills}</div></div>`;
-                    }
-                } else {
-                    let originE = db.entities.find(e => e.id === log.originEntityId);
-                    if (originE) {
-                        let originPill = `<div class="pill-dark origin" onclick="App.goToEntity('${originE.id}', '', '${log.id}')">${originE.name} <i class="material-icons" style="font-size:14px; margin-left:4px;" title="Ir para Origem">arrow_forward</i></div>`;
-                        linksBarHtml = `<div class="log-links-bar"><div class="link-label">Vinculado de:</div><div class="pills-container">${originPill}</div></div>`;
-                    }
-                }
-
-                let displayedText = log.text; if(this.searchFocusTerm) displayedText = AppUtils.highlight(displayedText, this.searchFocusTerm);
-                
-                listEl.innerHTML += `
-                    <li class="log-item" id="log-${log.id}">
-                        <div class="log-header">
-                            <span><i class="material-icons" style="font-size:14px; vertical-align:middle;">schedule</i> ${AppUtils.formatDate(log.createdAt)}</span>
-                            <div class="log-actions">
-                                <i class="material-icons action-icon" onclick="LogModal.open('${log.id}')">edit</i>
-                            </div>
-                        </div>
-                        ${log.text ? `<div class="log-text selectable-text">${displayedText}</div>` : ''}
-                        ${mediaHtml}
-                        ${linksBarHtml}
-                    </li>
-                `;
-            });
+            let originE = db.entities.find(e => e.id === log.originEntityId);
+            if (originE) {
+                let originPill = `<div class="pill-dark origin" onclick="App.focusEntity('${originE.id}', '', '${log.id}')">${originE.name} <i class="material-icons" style="font-size:12px; margin-left:4px;" title="Ir para Origem">arrow_forward</i></div>`;
+                linksBarHtml = `<div class="log-links-bar"><div class="link-label">Vinculado de:</div><div class="pills-container">${originPill}</div></div>`;
+            }
         }
+
+        let displayedText = log.text; if(searchTerm) displayedText = AppUtils.highlight(displayedText, searchTerm);
+        
+        return `
+            <div class="log-item" id="log-${log.id}">
+                <div class="log-header">
+                    <span><i class="material-icons" style="font-size:12px; vertical-align:middle;">schedule</i> ${AppUtils.formatDate(log.createdAt)}</span>
+                    <div class="log-actions">
+                        <i class="material-icons action-icon" style="font-size:14px;" onclick="LogModal.open('${log.id}', '${contextEntityId}')">edit</i>
+                    </div>
+                </div>
+                ${log.text ? `<div class="log-text selectable-text">${displayedText}</div>` : ''}
+                ${mediaHtml}
+                ${linksBarHtml}
+            </div>
+        `;
     },
 
     openPDF: function(base64) {
@@ -844,41 +836,43 @@ var BackupChoiceModal = { el: document.getElementById('backupChoiceModal'), open
 var BackupModal = { el: document.getElementById('backupModal'), open: function() { AppState.openModal(this); }, closeUI: function() { AppState.closeModalUI(); } };
 
 var EntityModal = {
-    el: document.getElementById('entityModal'),
-    open: function() { const entity = db.entities.find(e => e.id === App.currentEntityId); if(entity) { document.getElementById('entityNameEditInput').value = entity.name; AppState.openModal(this); } },
+    el: document.getElementById('entityModal'), currentTargetId: null,
+    open: function(id) { 
+        this.currentTargetId = id; const entity = db.entities.find(e => e.id === id); 
+        if(entity) { 
+            document.getElementById('entityModalTitle').innerText = entity.type === 'tarefa' ? 'Editar Tarefa' : 'Editar Entidade';
+            document.getElementById('entityNameEditInput').value = entity.name; AppState.openModal(this); 
+        } 
+    },
+    openTaskPrompt: async function(parentId) {
+        const name = await CustomDialog.prompt("Nome da Tarefa (Ex: Desmontagem)", "", "Nova Tarefa de Serviço");
+        if(name) { App.createEntityOnTheFly(name, parentId); }
+    },
     closeUI: function() { AppState.closeModalUI(); },
     save: function() {
         const val = document.getElementById('entityNameEditInput').value.trim(); if(!val) return;
-        const entity = db.entities.find(e => e.id === App.currentEntityId); if(entity) { entity.name = val; saveDB(); document.getElementById('headerText').innerText = (entity.type === 'tarefa' ? 'Tarefa: ' : '') + entity.name; }
+        const entity = db.entities.find(e => e.id === this.currentTargetId); if(entity) { entity.name = val; saveDB(); App.renderList(); }
         this.closeUI();
     },
     delete: async function() {
         if(await CustomDialog.confirm("Excluir esta entidade? TODOS os registros gerados nela e sub-tarefas serão apagados.", "Atenção (Cascata)")) {
-            const id = App.currentEntityId;
+            const id = this.currentTargetId;
             db.entities = db.entities.filter(e => e.parentId !== id && e.id !== id);
             db.logs = db.logs.filter(l => {
                 if (l.originEntityId === id) return false;
                 l.relatedEntities = l.relatedEntities.filter(rel => rel.id !== id);
                 return true;
             });
-            saveDB(); this.closeUI(); setTimeout(() => { App.goBack(); }, 100);
+            saveDB(); this.closeUI(); App.renderList();
         }
     }
 };
 
-var TaskModal = {
-    el: document.getElementById('taskCreateModal'), parentId: null,
-    open: function(parentId) { this.parentId = parentId; document.getElementById('taskNameInput').value = ''; AppState.openModal(this); },
-    closeUI: function() { AppState.closeModalUI(); },
-    save: function() { const name = document.getElementById('taskNameInput').value.trim(); if(!name) return; App.createEntityOnTheFly(name, this.parentId); this.closeUI(); }
-};
-
 var LogModal = {
     el: document.getElementById('logModal'), editLogId: null, tempMedia: [], tempRelations: [], originId: null,
-    open: function(logId = null) {
+    open: function(logId = null, targetEntityId = null) {
         this.editLogId = logId; this.tempMedia = []; 
         const textInput = document.getElementById('logText');
-        const currentEntity = db.entities.find(e => e.id === App.currentEntityId);
 
         if (logId) {
             const log = db.logs.find(l => l.id === logId); 
@@ -889,7 +883,7 @@ var LogModal = {
             document.getElementById('logModalTitle').innerText = 'Editar Registro';
             document.getElementById('logModalDeleteBtn').style.display = 'block';
         } else { 
-            this.originId = currentEntity.id;
+            this.originId = targetEntityId;
             textInput.value = ''; 
             this.tempRelations = [];
             document.getElementById('logModalTitle').innerText = 'Registrar Evento'; 
@@ -906,12 +900,13 @@ var LogModal = {
         const term = document.getElementById('logLinkInput').value.toLowerCase().trim();
         const dropdown = document.getElementById('logLinkAutocomplete');
         
+        // Impede vincular à própria entidade de origem e oculta Tarefas da listagem
         let available = db.entities.filter(e => e.type !== 'tarefa' && e.id !== this.originId && !this.tempRelations.some(rel => rel.id === e.id));
         if (term) available = available.filter(e => e.name.toLowerCase().includes(term));
         
         if (available.length === 0) { dropdown.style.display = 'none'; return; }
         
-        dropdown.innerHTML = available.slice(0, 5).map(e => `<div class="autocomplete-item" onclick="LogModal.addLink('${e.id}')"><i class="material-icons" style="font-size:14px; opacity:0.6;">link</i> ${e.name}</div>`).join('');
+        dropdown.innerHTML = available.slice(0, 5).map(e => `<div class="autocomplete-item" onclick="LogModal.addLink('${e.id}')"><i class="material-icons" style="font-size:16px; opacity:0.6;">link</i> ${e.name} <span style="font-size:10px; opacity:0.5; margin-left:auto;">${MODULE_MAPPING[e.type][0]}</span></div>`).join('');
         dropdown.style.display = 'flex';
     },
     addLink: function(id) {
@@ -935,7 +930,7 @@ var LogModal = {
     delete: async function() {
         if(this.editLogId && await CustomDialog.confirm("Excluir permanentemente este registro?", "Excluir Log")) {
             db.logs = db.logs.filter(l => l.id !== this.editLogId);
-            saveDB(); App.renderEntityLogs(); this.closeUI();
+            saveDB(); App.renderList(); this.closeUI();
         }
     },
     save: async function() {
@@ -958,7 +953,7 @@ var LogModal = {
             };
             db.logs.push(newLog);
         }
-        saveDB(); App.renderEntityLogs(); this.closeUI();
+        saveDB(); App.renderList(); this.closeUI();
     },
     updateUI: function() {
         const container = document.getElementById('logPreviewContainer'); const wrapper = document.getElementById('logMediaWrapper');
@@ -1048,7 +1043,7 @@ var Editor = {
         if(await CustomDialog.confirm("Excluir imagem permanentemente?", "Excluir")) {
             if (this.targetMode === 'db') {
                 const log = db.logs.find(l => l.id === this.logId); if(log) log.images.splice(this.dbIdx, 1);
-                saveDB(); App.renderEntityLogs();
+                saveDB(); App.renderList();
             } else if (this.targetMode === 'temp') {
                 LogModal.tempMedia.splice(this.dbIdx, 1); LogModal.updateUI();
             }
@@ -1079,7 +1074,7 @@ var Editor = {
             }
         }
         const dataUrl = this.canvas.toDataURL('image/jpeg', 0.8);
-        if (this.targetMode === 'db') { const log = db.logs.find(l => l.id === this.logId); if(log && log.images[this.dbIdx]) log.images[this.dbIdx].data = dataUrl; saveDB(); App.renderEntityLogs(); } 
+        if (this.targetMode === 'db') { const log = db.logs.find(l => l.id === this.logId); if(log && log.images[this.dbIdx]) log.images[this.dbIdx].data = dataUrl; saveDB(); App.renderList(); } 
         else if (this.targetMode === 'temp') { if(LogModal.tempMedia[this.dbIdx]) LogModal.tempMedia[this.dbIdx].data = dataUrl; LogModal.updateUI(); }
         if (CarouselModal.el.classList.contains('active') && CarouselModal.imagesArray[this.dbIdx]) { CarouselModal.imagesArray[this.dbIdx].data = dataUrl; CarouselModal.render(); CarouselModal.bindZoom(); }
         this.closeUI();
