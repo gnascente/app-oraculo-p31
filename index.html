@@ -2,15 +2,13 @@
 <html lang="pt-BR" translate="no">
 <head>
     <link rel="manifest" href="manifest.json">
-
     <link rel="apple-touch-icon" href="icon.png">
 
     <script>
-        // Registro do Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
-                    .then(() => console.log('Service Worker registrado com sucesso.'))
+                    .then(() => console.log('Service Worker registrado.'))
                     .catch((err) => console.log('Falha ao registrar:', err));
             });
         }
@@ -28,15 +26,12 @@
     
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
     <style>
         :root {
             --primary: #a8c7fa;
             --on-primary: #062e6f;
-            --primary-container: #0842a0;
-            --on-primary-container: #d3e3fd;
             --background: #111318;
             --surface: #1a1c1e;
             --surface-variant: #43474e;
@@ -48,46 +43,36 @@
             --shadow-sm: 0 1px 2px rgba(0,0,0,0.5);
         }
         
-        * { 
-            box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; 
-            -webkit-tap-highlight-color: transparent;
-        }
-        
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; -webkit-tap-highlight-color: transparent; }
         input, textarea { -webkit-user-select: auto; user-select: auto; }
         img { -webkit-user-drag: none; pointer-events: auto; }
 
         body { background-color: var(--background); color: var(--on-surface); display: flex; justify-content: center; padding: 16px; min-height: 100vh; overflow-x: hidden; overscroll-behavior-y: contain; outline: none; }
         
         h1, h2, h3, header, .action-icon, .fab, .btn, .badge, .carousel-btn, .carousel-nav-btn, 
-        .stacked-deck, .pdf-preview, .log-media-deck, .image-preview, 
-        .menu-item, .upload-btn, .carousel-touch-layer, .module-card, .tool-btn, .color-dot, .active-color-dot {
+        .stacked-deck, .pdf-preview, .image-preview, .menu-item, .upload-btn, .carousel-touch-layer, 
+        .module-card, .tool-btn, .color-dot, .active-color-dot, .pill-dark {
             -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
         }
 
         .selectable-text { -webkit-user-select: text; user-select: text; cursor: text; caret-color: transparent !important; outline: none !important; }
 
         .container { 
-            width: 100%; max-width: 480px; background: var(--surface); 
-            border-radius: 16px; box-shadow: var(--shadow-sm); 
-            display: flex; flex-direction: column; overflow: hidden; 
-            position: relative; padding-bottom: 80px; min-height: calc(100vh - 32px);
+            width: 100%; max-width: 480px; background: var(--surface); border-radius: 16px; box-shadow: var(--shadow-sm); 
+            display: flex; flex-direction: column; overflow: hidden; position: relative; padding-bottom: 80px; min-height: calc(100vh - 32px);
         }
         
         header { padding: 16px; display: flex; align-items: center; justify-content: space-between; position: relative; border-bottom: 1px solid var(--surface-variant); background: var(--surface); z-index: 10; }
-        header h1 { font-size: 20px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
-        .header-actions { display: flex; gap: 16px; align-items: center; }
+        header h1 { font-size: 20px; font-weight: 500; display: flex; align-items: center; gap: 8px; flex-grow: 1; overflow: hidden; }
+        header h1 span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .header-actions { display: flex; gap: 16px; align-items: center; flex-shrink: 0;}
 
-        /* Dashboard Grid */
-        .home-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
-            padding: 24px;
-        }
+        /* Dashboard Grid & Search */
+        .home-search-container { padding: 16px; background: var(--surface); border-bottom: 1px solid var(--surface-variant); }
+        .home-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; padding: 24px; }
         
         .module-card {
-            background: var(--surface-variant); border-radius: 16px; padding: 24px 16px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: var(--surface-variant); border-radius: 16px; padding: 24px 16px; display: flex; flex-direction: column; align-items: center; justify-content: center;
             gap: 12px; box-shadow: var(--shadow-sm); cursor: pointer; transition: transform 0.2s, background 0.2s; border: 1px solid transparent;
         }
         .module-card:active { transform: scale(0.96); }
@@ -97,24 +82,21 @@
 
         /* Dropdown Menu */
         .dropdown-menu {
-            position: absolute; right: 16px; top: 56px; background: var(--surface);
-            border: 1px solid var(--surface-variant); border-radius: 8px; box-shadow: var(--shadow);
-            display: none; flex-direction: column; min-width: 230px; z-index: 1000; overflow: hidden;
+            position: absolute; right: 16px; top: 56px; background: var(--surface); border: 1px solid var(--surface-variant); border-radius: 8px; box-shadow: var(--shadow);
+            display: none; flex-direction: column; min-width: 200px; z-index: 1000; overflow: hidden;
         }
         .dropdown-menu.show { display: flex; }
-        .menu-item {
-            padding: 14px 16px; display: flex; align-items: center; gap: 12px;
-            cursor: pointer; font-size: 15px; color: var(--on-surface); transition: background 0.2s;
-        }
+        .menu-item { padding: 14px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; font-size: 15px; color: var(--on-surface); transition: background 0.2s; }
         .menu-item:hover { background: var(--surface-variant); }
+        .menu-item.danger { color: var(--danger); }
+        .menu-item.danger .material-icons { color: var(--danger); }
         .menu-item .material-icons { font-size: 20px; color: var(--on-surface-variant); }
 
         /* Search Component */
         .search-container { padding: 16px; background: var(--surface); position: sticky; top: 0; z-index: 5; border-bottom: 1px solid var(--surface-variant); }
         .search-box { position: relative; display: flex; align-items: center; }
         .search-box input {
-            flex-grow: 1; background: var(--background); border: 1px solid var(--border);
-            color: var(--on-surface); padding: 12px 16px 12px 44px; border-radius: 24px;
+            flex-grow: 1; background: var(--background); border: 1px solid var(--border); color: var(--on-surface); padding: 12px 16px 12px 44px; border-radius: 24px;
             font-size: 15px; outline: none; width: 100%; transition: border-color 0.2s;
         }
         .search-box i.search-icon { position: absolute; left: 14px; color: var(--on-surface-variant); font-size: 20px; pointer-events: none; }
@@ -131,51 +113,46 @@
         .entity-info { display: flex; align-items: center; gap: 12px; justify-content: space-between; }
         .entity-name { font-size: 16px; font-weight: 500; flex-grow: 1; word-break: break-word; }
         .entity-icon { width: 40px; height: 40px; border-radius: 8px; background: rgba(168, 199, 250, 0.1); display: grid; place-content: center; color: var(--primary); flex-shrink: 0;}
+        .entity-module-badge { font-size: 10px; background: var(--background); padding: 2px 6px; border-radius: 8px; color: var(--on-surface-variant); margin-top: 4px; display: inline-block; text-transform: uppercase; }
 
-        .create-btn-dynamic {
-            background: rgba(168, 199, 250, 0.1); border: 1px dashed var(--primary); border-radius: 12px; padding: 16px;
-            display: flex; align-items: center; gap: 12px; cursor: pointer; color: var(--primary); font-weight: 500;
-        }
+        .create-btn-dynamic { background: rgba(168, 199, 250, 0.1); border: 1px dashed var(--primary); border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; color: var(--primary); font-weight: 500; }
 
         .search-snippets { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px; }
         .snippet-item { font-size: 12px; color: var(--on-surface-variant); font-style: italic; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 6px; line-height: 1.3; }
         mark.highlight { background-color: rgba(255, 213, 79, 0.3); color: #fff; padding: 0 2px; border-radius: 2px; }
 
-        /* Logs Timeline */
+        /* Logs Timeline & Pills */
         .log-item { background: var(--surface-variant); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--shadow-sm); }
         .log-header { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--on-surface-variant); border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; margin-bottom: 4px; }
         .log-text { font-size: 14px; line-height: 1.4; word-break: break-word; white-space: pre-wrap; }
-        .log-actions { display: flex; gap: 12px; }
-        .action-icon { cursor: pointer; color: var(--on-surface-variant); transition: color 0.2s; font-size: 18px; }
+        
+        .log-links-bar { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.05); }
+        .link-label { font-size: 12px; color: var(--on-surface-variant); display: flex; align-items: center; gap: 6px; font-weight: 500;}
+        .pills-container { display: flex; flex-wrap: wrap; gap: 8px; }
+        .pill-dark { background: #333; color: #e2e2e6; padding: 6px 12px; border-radius: 20px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid #444; }
+        .pill-dark i { font-size: 14px; cursor: pointer; color: #aaa; transition: 0.2s; }
+        .pill-dark i:hover { color: var(--danger); }
+        .pill-dark.origin { border-color: var(--primary); }
+
+        .action-icon { cursor: pointer; color: var(--on-surface-variant); transition: color 0.2s; font-size: 20px; }
         .action-icon:hover { color: var(--primary); }
         .action-icon.danger:hover { color: var(--danger); }
 
-        .crosslink-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-        .crosslink-chip { background: rgba(168, 199, 250, 0.1); color: var(--primary); padding: 4px 10px; border-radius: 16px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; border: 1px solid rgba(168, 199, 250, 0.3); }
-
-        /* Media Decks (Ported from Tarefas) */
-        .stacked-deck { width: 100%; height: 180px; position: relative; margin-top: 8px; margin-bottom: 8px; cursor: pointer; display: block; transition: transform 0.2s; }
+        /* Media Decks */
+        .stacked-deck { width: 100%; height: 180px; position: relative; margin-top: 8px; margin-bottom: 8px; cursor: pointer; display: block; transition: transform 0.2s; background: transparent; }
         .stacked-deck:active { transform: scale(0.98); }
         .deck-photo, .pdf-preview.deck-photo {
-            width: calc(100% - 20px); height: 100%; position: absolute; top: 0; left: 10px;
-            object-fit: cover; border-radius: 12px; border: 2px solid var(--border);
-            box-shadow: var(--shadow-sm); transition: transform 0.2s;
+            width: calc(100% - 20px); height: 100%; position: absolute; top: 0; left: 10px; object-fit: cover; border-radius: 12px; border: 2px solid var(--surface); box-shadow: var(--shadow-sm); transition: transform 0.2s;
         }
         .stacked-deck.single .deck-photo { width: 100%; left: 0; filter: none !important; transform: none !important; }
         .stacked-deck:not(.single) .deck-photo:nth-child(n+4) { display: none; }
         .stacked-deck:not(.single) .deck-photo:nth-child(1) { transform: rotate(-3deg); z-index: 3; }
         .stacked-deck:not(.single) .deck-photo:nth-child(2) { transform: rotate(1deg) translate(5px, 3px); z-index: 2; filter: grayscale(40%) brightness(0.8); }
         .stacked-deck:not(.single) .deck-photo:nth-child(3) { transform: rotate(4deg) translate(10px, 6px); z-index: 1; filter: grayscale(70%) brightness(0.6); }
-        
         .image-preview { width: 100%; max-height: 200px; object-fit: cover; border-radius: 12px; border: 1px solid var(--border); cursor: pointer; margin-top: 8px; margin-bottom: 8px; display: block; }
         .pdf-preview { display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 12px; color: var(--danger); cursor: pointer; }
 
-        .fab { 
-            position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); 
-            background-color: var(--primary); color: var(--on-primary); border: none; 
-            width: 56px; height: 56px; border-radius: 16px; box-shadow: var(--shadow); 
-            cursor: pointer; display: grid; place-content: center; z-index: 99; transition: transform 0.2s;
-        }
+        .fab { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); background-color: var(--primary); color: var(--on-primary); border: none; width: 56px; height: 56px; border-radius: 16px; box-shadow: var(--shadow); cursor: pointer; display: grid; place-content: center; z-index: 99; transition: transform 0.2s; }
         .fab:active { transform: translateX(-50%) scale(0.9); }
         @media (min-width: 500px) { .fab { left: calc(50% + 180px); } }
 
@@ -189,21 +166,16 @@
         .dialog-overlay.active { opacity: 1; pointer-events: auto; }
         .dialog-content { background: var(--surface); width: 100%; max-width: 340px; border-radius: 16px; padding: 24px; box-shadow: var(--shadow); transform: scale(0.9); opacity: 0; transition: transform 0.2s, opacity 0.2s; }
         .dialog-overlay.active .dialog-content { transform: scale(1); opacity: 1; }
+        .dialog-content h3 { margin-bottom: 16px; }
 
         .input-group { margin-bottom: 16px; position: relative;}
         .input-field { width: 100%; padding: 14px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; outline: none; background: var(--background); color: var(--on-surface); }
         .input-field:focus { border-color: var(--primary); }
         textarea.input-field { resize: vertical; min-height: 120px; }
 
-        .autocomplete-dropdown {
-            position: absolute; top: 100%; left: 0; right: 0; background: var(--surface);
-            border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow);
-            max-height: 180px; overflow-y: auto; z-index: 2000; display: none; flex-direction: column;
-            margin-top: 4px;
-        }
+        .autocomplete-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow); max-height: 180px; overflow-y: auto; z-index: 2000; display: none; flex-direction: column; margin-top: 4px; }
         .autocomplete-item { padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; display: flex; align-items: center; gap: 8px; }
         .autocomplete-item:hover { background: rgba(255,255,255,0.05); }
-        .autocomplete-item:last-child { border-bottom: none; }
 
         .modal-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 24px; }
         .btn { border: none; padding: 10px 18px; border-radius: 24px; font-weight: 500; cursor: pointer; font-size: 14px; white-space: nowrap; }
@@ -214,7 +186,7 @@
         .hidden-file { display: none; }
         .form-preview-container { position: relative; margin-bottom: 16px; display: none; width: 100%; margin-top: 8px; }
 
-        /* Carousel Modal */
+        /* Carousel */
         .carousel-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 1500; flex-direction: column; }
         .carousel-overlay.active { display: flex; }
         .carousel-header { position: absolute; top:0; left:0; width:100%; padding: 16px; display: flex; justify-content: space-between; align-items: flex-start; z-index: 1600; pointer-events: none; }
@@ -222,7 +194,6 @@
         .carousel-actions-global { display: flex; gap: 16px; background: rgba(0,0,0,0.5); padding: 8px 16px; border-radius: 30px; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.1); }
         .carousel-btn { width: 36px; height: 36px; border-radius: 50%; display: grid; place-content: center; cursor: pointer; transition: 0.2s; }
         .carousel-btn:active { transform: scale(0.9); }
-        .carousel-btn.delete { color: var(--danger); }
         .carousel-btn.edit { color: var(--primary); }
         .carousel-container { flex-grow: 1; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 16px; padding: 0 calc(7.5vw); scrollbar-width: none; align-items: center; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
         .carousel-container::-webkit-scrollbar { display: none; }
@@ -235,7 +206,7 @@
         .carousel-nav-btn.left { left: 8px; }
         .carousel-nav-btn.right { right: 8px; }
 
-        /* Editor Overlay */
+        /* Editor */
         .editor-overlay { position: fixed; inset: 0; background: #000; z-index: 2000; display: none; flex-direction: column; height: 100dvh; }
         .editor-overlay.active { display: flex; }
         .canvas-container { flex-grow: 1; display: flex; justify-content: center; align-items: center; background: #1a1a1a; overflow: hidden; touch-action: none; position: relative; }
@@ -249,6 +220,7 @@
         .tool-btn { background: #222; border: 2px solid transparent; border-radius: 8px; color: #fff; width: 36px; height: 36px; display: grid; place-content: center; cursor: pointer; flex-shrink: 0; }
         .tool-btn .material-icons { font-size: 20px; }
         .tool-btn.active { border-color: var(--primary); color: var(--primary); background: #001a40; }
+        .tool-btn.danger { color: var(--danger); }
         .editor-sep { width: 1px; height: 24px; background: #444; flex-shrink: 0; margin: 0 4px; }
         .size-slider { flex-grow: 1; min-width: 60px; max-width: 100px; accent-color: var(--primary); }
         .color-palette-container { position: relative; display: flex; align-items: center; }
@@ -257,10 +229,8 @@
         .color-popup.show { display: flex; }
         .color-dot { width: 24px; height: 24px; border-radius: 50%; cursor: pointer; border: 1px solid #555; flex-shrink: 0; }
 
-        /* Views management */
         .view-section { display: none; flex-direction: column; flex-grow: 1; }
         .view-section.active { display: flex; }
-        
         .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 24px; color: var(--on-surface-variant); gap: 16px; text-align: center; height: 100%; }
         .empty-state i { font-size: 56px; opacity: 0.3; }
     </style>
@@ -271,12 +241,13 @@
     <header id="mainHeader">
         <h1 id="headerTitle">
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
-            <div style="display:flex; flex-direction:column; line-height:1;">
+            <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 1.2.0</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 1.3.0</span>
             </div>
         </h1>
         <div class="header-actions">
+            <i class="material-icons action-icon" id="btnEditEntity" style="display:none;" onclick="EntityModal.open()">edit</i>
             <i class="material-icons action-icon" id="btnBack" style="display:none;" onclick="App.goBack()">arrow_back</i>
             <div style="position: relative;" id="menuWrapper">
                 <i class="material-icons action-icon" onclick="App.toggleMenu(event)">more_vert</i>
@@ -289,7 +260,13 @@
     </header>
 
     <div id="viewHome" class="view-section active">
-        <div class="home-grid">
+        <div class="home-search-container">
+            <div class="search-box">
+                <i class="material-icons search-icon">search</i>
+                <input type="text" id="homeSearchInput" placeholder="Busca global em tudo..." oninput="App.renderHomeSearch()">
+            </div>
+        </div>
+        <div class="home-grid" id="homeGrid">
             <div class="module-card" onclick="App.openModule('servico', 'Serviços', 'handyman')">
                 <i class="material-icons">handyman</i><span>Serviços</span>
             </div>
@@ -309,6 +286,7 @@
                 <i class="material-icons">inventory_2</i><span>Materiais</span>
             </div>
         </div>
+        <ul class="entity-list" id="homeSearchList" style="display:none;"></ul>
     </div>
 
     <div id="viewList" class="view-section">
@@ -338,7 +316,7 @@
 
 <div class="dialog-overlay" id="backupChoiceModal">
     <div class="dialog-content">
-        <h3>Exportar Backup</h3>
+        <h3 id="backupChoiceTitle">Exportar Backup</h3>
         <p style="margin-bottom: 24px;">Escolha onde deseja salvar seu backup:</p>
         <div class="modal-actions" style="margin-top: 24px; justify-content: flex-end;">
             <button class="btn btn-filled" style="background: var(--surface-variant); color: var(--on-surface); margin-right: 8px;" onclick="App.exportToLocal()">Local (ZIP)</button>
@@ -371,17 +349,39 @@
     </div>
 </div>
 
+<div class="modal-overlay" id="entityModal">
+    <div class="modal-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h2>Editar Entidade</h2>
+            <i class="material-icons action-icon danger" onclick="EntityModal.delete()">delete</i>
+        </div>
+        <div class="input-group">
+            <input type="text" id="entityNameEditInput" class="input-field" placeholder="Nome da Entidade">
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-text" onclick="EntityModal.closeUI()">Cancelar</button>
+            <button class="btn btn-filled" onclick="EntityModal.save()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="linkModal">
+    <div class="modal-content">
+        <h2>Vincular Entidade</h2>
+        <div class="input-group">
+            <input type="text" id="addLinkSearchInput" class="input-field" placeholder="Buscar para vincular..." oninput="LinkModal.search()">
+            <div id="addLinkAutocomplete" class="autocomplete-dropdown"></div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-text" onclick="LinkModal.closeUI()">Fechar</button>
+        </div>
+    </div>
+</div>
+
 <div class="modal-overlay" id="logModal">
     <div class="modal-content">
         <h2 id="logModalTitle">Registrar Evento</h2>
         
-        <div class="input-group">
-            <label style="font-size: 12px; color: var(--on-surface-variant); margin-bottom: 4px; display: block;">Vincular a outras entidades:</label>
-            <input type="text" id="linkSearchInput" class="input-field" placeholder="Buscar equipamento, pessoa, etc..." oninput="LogModal.searchEntities()">
-            <div id="linkAutocomplete" class="autocomplete-dropdown"></div>
-            <div id="linkedChipsContainer" class="crosslink-chips"></div>
-        </div>
-
         <div class="input-group">
             <textarea id="logText" class="input-field" placeholder="Descreva o andamento, evento ou observação..."></textarea>
         </div>
@@ -424,7 +424,6 @@
         <div style="width:32px;"></div>
         <div class="carousel-actions-global">
             <div class="carousel-btn edit" id="carouselEditBtn" onclick="CarouselModal.editCurrent()"><i class="material-icons">edit</i></div>
-            <div class="carousel-btn delete" onclick="CarouselModal.deleteCurrent()"><i class="material-icons">delete</i></div>
         </div>
         <i class="material-icons action-icon" style="color:white; font-size:32px;" onclick="CarouselModal.closeUI()">close</i>
     </div>
@@ -465,6 +464,7 @@
         <input type="range" id="editorSize" class="size-slider" min="2" max="9" step="0.5" value="3">
         <div class="editor-sep"></div>
         <button class="tool-btn" onclick="Editor.undo()"><i class="material-icons">undo</i></button>
+        <button class="tool-btn danger" onclick="Editor.deleteCurrent()" style="margin-left:8px;"><i class="material-icons">delete</i></button>
         <button class="tool-btn" onclick="Editor.save()" style="background: var(--primary); color: var(--on-primary); margin-left: auto;"><i class="material-icons">check</i></button>
     </div>
 </div>
@@ -473,20 +473,11 @@
 // --- CORE UTILS & STATE MANAGEMENT ---
 var AppState = {
     modals: [],
-    openModal: function(modalObj) {
-        modalObj.el.classList.add('active');
-        this.modals.push(modalObj);
-        history.pushState({ modalId: modalObj.el.id }, '');
-    },
+    openModal: function(modalObj) { modalObj.el.classList.add('active'); this.modals.push(modalObj); history.pushState({ modalId: modalObj.el.id }, ''); },
     closeModalUI: function() { if(this.modals.length > 0) history.back(); },
     handlePopState: function(e) {
-        if (this.modals.length > 0) {
-            let m = this.modals.pop();
-            m.el.classList.remove('active');
-            if(m.onHardwareBack) m.onHardwareBack();
-        } else if (App.currentView !== 'home') {
-            App.goBack(true);
-        }
+        if (this.modals.length > 0) { let m = this.modals.pop(); m.el.classList.remove('active'); if(m.onHardwareBack) m.onHardwareBack(); } 
+        else if (App.currentView !== 'home') { App.goBack(true); }
     }
 };
 window.addEventListener('popstate', (e) => AppState.handlePopState(e));
@@ -524,20 +515,12 @@ var MenuModal = {
 };
 window.addEventListener('click', (e) => { const menu = document.getElementById('mainMenu'); if (menu && menu.classList.contains('show') && !e.target.closest('#menuWrapper')) { MenuModal.closeUI(); } });
 
+const MODULE_MAPPING = { 'servico':['Serviços','handyman'], 'equipamento':['Equipamentos','precision_manufacturing'], 'pessoa':['Pessoas','people'], 'documento':['Documentos','description'], 'auditoria':['Auditorias','verified_user'], 'material':['Materiais','inventory_2'], 'tarefa':['Tarefa','assignment'] };
+
 var AppUtils = {
-    getPdfName: function(base64Str, defaultName = "Documento PDF") {
-        if(!base64Str) return defaultName; const match = base64Str.match(/name=([^;]+);/);
-        return match ? decodeURIComponent(match[1]) : defaultName;
-    },
-    formatDate: function(ts) {
-        if (!ts) return ""; const d = new Date(ts);
-        return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear().toString().slice(-2)} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-    },
-    highlight: function(text, term) {
-        if (!term) return text;
-        const regex = new RegExp(`(${term})`, 'gi');
-        return text.replace(regex, '<mark class="highlight">$1</mark>');
-    }
+    getPdfName: function(base64Str, defaultName = "Documento PDF") { if(!base64Str) return defaultName; const match = base64Str.match(/name=([^;]+);/); return match ? decodeURIComponent(match[1]) : defaultName; },
+    formatDate: function(ts) { if (!ts) return ""; const d = new Date(ts); return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear().toString().slice(-2)} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`; },
+    highlight: function(text, term) { if (!term) return text; const regex = new RegExp(`(${term})`, 'gi'); return text.replace(regex, '<mark class="highlight">$1</mark>'); }
 };
 
 async function processMultipleMedia(files, callback) {
@@ -551,23 +534,15 @@ async function processMultipleMedia(files, callback) {
             if (!customName) customName = file.name;
             const encodedName = encodeURIComponent(customName);
             const reader = new FileReader();
-            await new Promise((resolve) => {
-                reader.onload = (e) => {
-                    let base64 = e.target.result.replace('data:application/pdf;base64,', `data:application/pdf;name=${encodedName};base64,`);
-                    processedArray.push({ data: base64, createdAt: captureTime }); resolve();
-                }; reader.readAsDataURL(file);
-            });
+            await new Promise((resolve) => { reader.onload = (e) => { let base64 = e.target.result.replace('data:application/pdf;base64,', `data:application/pdf;name=${encodedName};base64,`); processedArray.push({ data: base64, createdAt: captureTime }); resolve(); }; reader.readAsDataURL(file); });
         } else if (file.type.startsWith('image/')) {
             const reader = new FileReader();
             await new Promise((resolve) => {
                 reader.onload = (e) => {
                     const img = new Image();
                     img.onload = () => {
-                        // Compressão Agressiva portada do App Tarefas
-                        const canvas = document.createElement('canvas'); const MAX_SIZE = 480; 
-                        let width = img.width, height = img.height;
-                        if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } 
-                        else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
+                        const canvas = document.createElement('canvas'); const MAX_SIZE = 480; let width = img.width, height = img.height;
+                        if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
                         canvas.width = width; canvas.height = height; canvas.getContext('2d').drawImage(img, 0, 0, width, height);
                         processedArray.push({ data: canvas.toDataURL('image/jpeg', 0.4), createdAt: captureTime }); resolve();
                     }; img.src = e.target.result;
@@ -581,17 +556,12 @@ async function processMultipleMedia(files, callback) {
 function renderStackedDeckHTML(images, logId) {
     if (!images || images.length === 0) return '';
     let clickHandler = `CarouselModal.open('${logId}')`;
-    
     let pdfCount = images.filter(img => img.data.startsWith('data:application/pdf')).length;
-    let countLabel = `+${images.length - 1}`;
-    if (pdfCount > 0) countLabel += ` (${pdfCount} PDF)`;
+    let countLabel = `+${images.length - 1}`; if (pdfCount > 0) countLabel += ` (${pdfCount} PDF)`;
 
     if (images.length === 1) {
-        if (images[0].data.startsWith('data:application/pdf')) {
-            return `<div class="pdf-preview deck-photo" style="position:relative; left:0; width:100%; height:auto; min-height:160px; padding:16px;" onclick="${clickHandler}"><i class="material-icons" style="font-size:48px;">picture_as_pdf</i><span style="font-size: 14px; margin-top: 8px; text-align:center;">${AppUtils.getPdfName(images[0].data)}</span></div>`;
-        } else {
-            return `<img src="${images[0].data}" class="image-preview" onclick="${clickHandler}" style="margin:0;">`;
-        }
+        if (images[0].data.startsWith('data:application/pdf')) return `<div class="pdf-preview deck-photo" style="position:relative; left:0; width:100%; height:auto; min-height:160px; padding:16px;" onclick="${clickHandler}"><i class="material-icons" style="font-size:48px;">picture_as_pdf</i><span style="font-size: 14px; margin-top: 8px; text-align:center;">${AppUtils.getPdfName(images[0].data)}</span></div>`;
+        else return `<img src="${images[0].data}" class="image-preview" onclick="${clickHandler}" style="margin:0;">`;
     } else {
         const photosHtml = images.slice(0, 3).map(img => {
             if (img.data.startsWith('data:application/pdf')) return `<div class="pdf-preview deck-photo"><i class="material-icons" style="font-size:32px;">picture_as_pdf</i><span style="font-size:10px; margin-top:4px;">PDF</span></div>`;
@@ -603,13 +573,10 @@ function renderStackedDeckHTML(images, logId) {
 }
 
 // --- DATABASE ---
-const DB_KEY = 'oraculo_p31_v2';
+const DB_KEY = 'oraculo_p31_v3';
 let db = JSON.parse(localStorage.getItem(DB_KEY)) || { entities: [], logs: [] };
-
-// Migração simples caso venha do v1 sem parentId
 db.entities.forEach(e => { if(e.parentId === undefined) e.parentId = null; });
-db.logs.forEach(l => { if(!l.relatedEntities) l.relatedEntities = []; });
-
+db.logs.forEach(l => { if(!l.relatedEntities) l.relatedEntities = []; if(!l.originEntityId) l.originEntityId = l.relatedEntities.length > 0 ? l.relatedEntities[0].id : null; });
 function saveDB() { localStorage.setItem(DB_KEY, JSON.stringify(db)); }
 
 // --- MAIN APPLICATION LOGIC ---
@@ -617,166 +584,134 @@ var App = {
     currentView: 'home', moduleType: null, moduleName: null, moduleIcon: null, currentEntityId: null, searchFocusTerm: '',
 
     init: function() { this.goHome(); },
-
     toggleMenu: (e) => { e.stopPropagation(); const menu = document.getElementById('mainMenu'); if (menu.classList.contains('show')) MenuModal.closeUI(); else MenuModal.open(); },
     menuAction: (actionName) => { const menu = document.getElementById('mainMenu'); if (menu.classList.contains('show')) { menu.classList.remove('show'); const idx = AppState.modals.indexOf(MenuModal); if (idx !== -1) AppState.modals.splice(idx, 1); const onPop = () => { window.removeEventListener('popstate', onPop); App.executeMenuAction(actionName); }; window.addEventListener('popstate', onPop); history.back(); } else { App.executeMenuAction(actionName); } },
-    executeMenuAction: (actionName) => {
-        if (actionName === 'cloud') App.listBackupsFromBlob();
-        else if (actionName === 'export') BackupChoiceModal.open();
-    },
+    executeMenuAction: (actionName) => { if (actionName === 'cloud') App.listBackupsFromBlob(); else if (actionName === 'export') BackupChoiceModal.open(); },
 
     goHome: function() {
         this.currentView = 'home';
-        document.getElementById('viewHome').classList.add('active');
-        document.getElementById('viewList').classList.remove('active');
-        document.getElementById('viewEntity').classList.remove('active');
-        document.getElementById('mainFab').style.display = 'none';
+        document.getElementById('viewHome').classList.add('active'); document.getElementById('viewList').classList.remove('active'); document.getElementById('viewEntity').classList.remove('active');
+        document.getElementById('mainFab').style.display = 'none'; document.getElementById('headerIcon').innerText = 'oil_barrel'; document.getElementById('headerText').innerText = 'Oráculo P-31';
+        document.getElementById('btnBack').style.display = 'none'; document.getElementById('btnEditEntity').style.display = 'none'; document.getElementById('headerVersion').style.display = 'inline';
         
-        document.getElementById('headerIcon').innerText = 'oil_barrel';
-        document.getElementById('headerText').innerText = 'Oráculo P-31';
-        document.getElementById('btnBack').style.display = 'none';
-        
-        // Exibe a versão na Home
-        document.getElementById('headerVersion').style.display = 'inline';
+        document.getElementById('homeSearchInput').value = '';
+        this.renderHomeSearch();
         
         history.replaceState({ view: 'home' }, '');
     },
 
+    renderHomeSearch: function() {
+        const term = document.getElementById('homeSearchInput').value.toLowerCase().trim();
+        const grid = document.getElementById('homeGrid');
+        const list = document.getElementById('homeSearchList');
+        
+        if(!term) { grid.style.display = 'grid'; list.style.display = 'none'; return; }
+        grid.style.display = 'none'; list.style.display = 'flex'; list.innerHTML = '';
+        
+        let resultList = [];
+        db.entities.forEach(e => {
+            let matchesName = e.name.toLowerCase().includes(term);
+            let relatedLogs = db.logs.filter(l => l.relatedEntities.some(rel => rel.id === e.id) && l.text && l.text.toLowerCase().includes(term));
+            if(matchesName || relatedLogs.length > 0) resultList.push({ entity: e, logsMatched: relatedLogs });
+        });
+
+        if (resultList.length === 0) { list.innerHTML = `<div class="empty-state"><i class="material-icons">search_off</i><p>Nenhum resultado encontrado.</p></div>`; return; }
+
+        resultList.sort((a, b) => b.entity.createdAt - a.entity.createdAt).forEach(item => {
+            let e = item.entity; let modInfo = MODULE_MAPPING[e.type] || ['Desconhecido', 'help'];
+            let snippetsHtml = '';
+            if(item.logsMatched.length > 0) {
+                snippetsHtml = `<div class="search-snippets">`;
+                item.logsMatched.forEach(l => {
+                    let text = l.text; let idx = text.toLowerCase().indexOf(term);
+                    let start = Math.max(0, idx - 25); let end = Math.min(text.length, idx + term.length + 25);
+                    let snippet = text.substring(start, end).replace(/\n/g, ' ');
+                    let highlightedSnippet = snippet.replace(new RegExp(term, 'gi'), match => `<mark class="highlight">${match}</mark>`);
+                    snippetsHtml += `<div class="snippet-item">...${highlightedSnippet}...</div>`;
+                });
+                snippetsHtml += `</div>`;
+            }
+
+            list.innerHTML += `
+                <li class="entity-item" onclick="App.goToEntity('${e.id}', '${term}')">
+                    <div class="entity-info">
+                        <div class="entity-icon"><i class="material-icons">${modInfo[1]}</i></div>
+                        <div style="flex-grow:1; display:flex; flex-direction:column;">
+                            <span class="entity-name">${AppUtils.highlight(e.name, term)}</span>
+                            <span class="entity-module-badge">${modInfo[0]}</span>
+                        </div>
+                        <i class="material-icons" style="color:var(--border);">chevron_right</i>
+                    </div>
+                    ${snippetsHtml}
+                </li>
+            `;
+        });
+    },
+
     openModule: function(type, name, icon) {
         this.currentView = 'list'; this.moduleType = type; this.moduleName = name; this.moduleIcon = icon;
-        
-        document.getElementById('viewHome').classList.remove('active');
-        document.getElementById('viewEntity').classList.remove('active');
-        document.getElementById('viewList').classList.add('active');
-        document.getElementById('mainFab').style.display = 'none';
-        
-        document.getElementById('headerIcon').innerText = icon;
-        document.getElementById('headerText').innerText = name;
-        document.getElementById('btnBack').style.display = 'block';
-        
-        // Oculta a versão
-        document.getElementById('headerVersion').style.display = 'none';
-        
-        document.getElementById('searchInput').value = '';
-        this.renderList();
-        history.pushState({ view: 'list' }, '');
+        document.getElementById('viewHome').classList.remove('active'); document.getElementById('viewEntity').classList.remove('active'); document.getElementById('viewList').classList.add('active');
+        document.getElementById('mainFab').style.display = 'none'; document.getElementById('headerIcon').innerText = icon; document.getElementById('headerText').innerText = name;
+        document.getElementById('btnBack').style.display = 'block'; document.getElementById('btnEditEntity').style.display = 'none'; document.getElementById('headerVersion').style.display = 'none';
+        document.getElementById('searchInput').value = ''; this.renderList(); history.pushState({ view: 'list' }, '');
     },
 
     goToEntity: function(id, focusTerm = '') {
-        const entity = db.entities.find(e => e.id === id);
-        if(!entity) return;
-        
+        const entity = db.entities.find(e => e.id === id); if(!entity) return;
         this.currentView = 'entity'; this.currentEntityId = id; this.searchFocusTerm = focusTerm;
         
-        // Atualiza module config if coming from cross-link
         if(entity.type === 'tarefa') {
             const parent = db.entities.find(e => e.id === entity.parentId);
             if(parent) { this.moduleType = 'servico'; this.moduleName = 'Serviços'; this.moduleIcon = 'handyman'; }
-        } else {
-            const mapping = { 'servico':['Serviços','handyman'], 'equipamento':['Equipamentos','precision_manufacturing'], 'pessoa':['Pessoas','people'], 'documento':['Documentos','description'], 'auditoria':['Auditorias','verified_user'], 'material':['Materiais','inventory_2'] };
-            if(mapping[entity.type]) { this.moduleType = entity.type; this.moduleName = mapping[entity.type][0]; this.moduleIcon = mapping[entity.type][1]; }
-        }
+        } else { if(MODULE_MAPPING[entity.type]) { this.moduleType = entity.type; this.moduleName = MODULE_MAPPING[entity.type][0]; this.moduleIcon = MODULE_MAPPING[entity.type][1]; } }
 
-        document.getElementById('viewList').classList.remove('active');
-        document.getElementById('viewEntity').classList.add('active');
-        document.getElementById('mainFab').style.display = 'grid';
-        
-        let headerPrefix = '';
-        if(entity.type === 'tarefa') headerPrefix = 'Tarefa: ';
-        
-        document.getElementById('headerIcon').innerText = this.moduleIcon;
-        document.getElementById('headerText').innerText = headerPrefix + entity.name;
-        document.getElementById('btnBack').style.display = 'block';
-        document.getElementById('headerVersion').style.display = 'none';
+        document.getElementById('viewList').classList.remove('active'); document.getElementById('viewHome').classList.remove('active'); document.getElementById('viewEntity').classList.add('active');
+        document.getElementById('mainFab').style.display = 'grid'; document.getElementById('headerIcon').innerText = this.moduleIcon; document.getElementById('headerText').innerText = (entity.type === 'tarefa' ? 'Tarefa: ' : '') + entity.name;
+        document.getElementById('btnBack').style.display = 'block'; document.getElementById('btnEditEntity').style.display = 'block'; document.getElementById('headerVersion').style.display = 'none';
 
-        if(entity.type === 'servico') {
-            document.getElementById('entitySearchWrapper').style.display = 'block';
-            document.getElementById('subEntitySearchInput').value = '';
-        } else {
-            document.getElementById('entitySearchWrapper').style.display = 'none';
-        }
+        if(entity.type === 'servico') { document.getElementById('entitySearchWrapper').style.display = 'block'; document.getElementById('subEntitySearchInput').value = ''; } 
+        else { document.getElementById('entitySearchWrapper').style.display = 'none'; }
         
-        this.renderEntityLogs();
-        history.pushState({ view: 'entity', id: id }, '');
+        this.renderEntityLogs(); history.pushState({ view: 'entity', id: id }, '');
     },
 
     goBack: function(fromPopState = false) {
         if(this.currentView === 'entity') {
             const entity = db.entities.find(e => e.id === this.currentEntityId);
-            if(entity && entity.type === 'tarefa' && entity.parentId) {
-                this.goToEntity(entity.parentId);
-                if(!fromPopState) history.back();
-            } else {
-                this.openModule(this.moduleType, this.moduleName, this.moduleIcon);
-                if(!fromPopState) history.back();
-            }
-        } else if (this.currentView === 'list') {
-            this.goHome();
-            if(!fromPopState) history.back();
-        }
+            if(entity && entity.type === 'tarefa' && entity.parentId) { this.goToEntity(entity.parentId); if(!fromPopState) history.back(); } 
+            else { this.openModule(this.moduleType, this.moduleName, this.moduleIcon); if(!fromPopState) history.back(); }
+        } else if (this.currentView === 'list') { this.goHome(); if(!fromPopState) history.back(); }
     },
 
     createEntityOnTheFly: function(name, parentId = null) {
-        if(!name.trim()) return;
-        const newType = parentId ? 'tarefa' : this.moduleType;
+        if(!name.trim()) return; const newType = parentId ? 'tarefa' : this.moduleType;
         const newEntity = { id: Date.now().toString(), type: newType, name: name.trim(), createdAt: Date.now(), parentId: parentId };
         db.entities.push(newEntity); saveDB();
         
-        if(parentId) {
-            document.getElementById('subEntitySearchInput').value = '';
-            this.renderEntityLogs();
-        } else {
-            document.getElementById('searchInput').value = '';
-            this.goToEntity(newEntity.id);
-        }
+        if(parentId) { document.getElementById('subEntitySearchInput').value = ''; this.renderEntityLogs(); } 
+        else { document.getElementById('searchInput').value = ''; this.goToEntity(newEntity.id); }
     },
 
-    fabAction: function() {
-        const entity = db.entities.find(e => e.id === this.currentEntityId);
-        if(entity && entity.type === 'servico') {
-            TaskModal.open(entity.id);
-        } else {
-            LogModal.open();
-        }
-    },
+    fabAction: function() { const entity = db.entities.find(e => e.id === this.currentEntityId); if(entity && entity.type === 'servico') TaskModal.open(entity.id); else LogModal.open(); },
 
     renderList: function() {
-        const rawSearchTerm = document.getElementById('searchInput').value;
-        const searchTerm = rawSearchTerm.toLowerCase().trim();
-        const listEl = document.getElementById('entityList'); listEl.innerHTML = '';
-        
-        let filtered = db.entities.filter(e => e.type === this.moduleType && e.parentId === null);
-        let hasExactMatch = false;
+        const rawSearchTerm = document.getElementById('searchInput').value; const searchTerm = rawSearchTerm.toLowerCase().trim(); const listEl = document.getElementById('entityList'); listEl.innerHTML = '';
+        let filtered = db.entities.filter(e => e.type === this.moduleType && e.parentId === null); let hasExactMatch = false;
 
         if (searchTerm) {
             let resultList = [];
             filtered.forEach(e => {
                 if(e.name.toLowerCase() === searchTerm) hasExactMatch = true;
-                
                 let matchesName = e.name.toLowerCase().includes(searchTerm);
-                
-                // Deep Search em Logs
                 let relatedLogs = db.logs.filter(l => l.relatedEntities.some(rel => rel.id === e.id) && l.text && l.text.toLowerCase().includes(searchTerm));
-                
-                if(matchesName || relatedLogs.length > 0) {
-                    resultList.push({ entity: e, logsMatched: relatedLogs });
-                }
+                if(matchesName || relatedLogs.length > 0) resultList.push({ entity: e, logsMatched: relatedLogs });
             });
             filtered = resultList;
             
-            // Create on the fly option usa o rawSearchTerm (respeita Caps Lock)
-            if (!hasExactMatch) {
-                listEl.innerHTML += `
-                    <div class="create-btn-dynamic" onclick="App.createEntityOnTheFly('${rawSearchTerm.replace(/'/g, "\\'")}')">
-                        <i class="material-icons">add_circle_outline</i>
-                        <span>Criar: <strong>${rawSearchTerm}</strong></span>
-                    </div>
-                `;
-            }
+            if (!hasExactMatch) { listEl.innerHTML += `<div class="create-btn-dynamic" onclick="App.createEntityOnTheFly('${rawSearchTerm.replace(/'/g, "\\'")}')"><i class="material-icons">add_circle_outline</i><span>Criar: <strong>${rawSearchTerm}</strong></span></div>`; }
             
             filtered.sort((a, b) => b.entity.createdAt - a.entity.createdAt).forEach(item => {
-                let e = item.entity;
-                let snippetsHtml = '';
+                let e = item.entity; let snippetsHtml = '';
                 if(item.logsMatched.length > 0) {
                     snippetsHtml = `<div class="search-snippets">`;
                     item.logsMatched.forEach(l => {
@@ -788,49 +723,21 @@ var App = {
                     });
                     snippetsHtml += `</div>`;
                 }
-
-                listEl.innerHTML += `
-                    <li class="entity-item" onclick="App.goToEntity('${e.id}', '${searchTerm}')">
-                        <div class="entity-info">
-                            <div class="entity-icon"><i class="material-icons">${this.moduleIcon}</i></div>
-                            <span class="entity-name">${AppUtils.highlight(e.name, searchTerm)}</span>
-                            <i class="material-icons" style="color:var(--border);">chevron_right</i>
-                        </div>
-                        ${snippetsHtml}
-                    </li>
-                `;
+                listEl.innerHTML += `<li class="entity-item" onclick="App.goToEntity('${e.id}', '${searchTerm}')"><div class="entity-info"><div class="entity-icon"><i class="material-icons">${this.moduleIcon}</i></div><span class="entity-name">${AppUtils.highlight(e.name, searchTerm)}</span><i class="material-icons" style="color:var(--border);">chevron_right</i></div>${snippetsHtml}</li>`;
             });
         } else {
-            if (filtered.length === 0) {
-                listEl.innerHTML += `<div class="empty-state"><i class="material-icons">${this.moduleIcon}</i><p>Nenhum registro.<br>Busque para criar.</p></div>`;
-                return;
-            }
-            filtered.sort((a, b) => b.createdAt - a.createdAt).forEach(entity => {
-                listEl.innerHTML += `
-                    <li class="entity-item" onclick="App.goToEntity('${entity.id}')">
-                        <div class="entity-info">
-                            <div class="entity-icon"><i class="material-icons">${this.moduleIcon}</i></div>
-                            <span class="entity-name">${entity.name}</span>
-                            <i class="material-icons" style="color:var(--border);">chevron_right</i>
-                        </div>
-                    </li>
-                `;
-            });
+            if (filtered.length === 0) { listEl.innerHTML += `<div class="empty-state"><i class="material-icons">${this.moduleIcon}</i><p>Nenhum registro.<br>Busque para criar.</p></div>`; return; }
+            filtered.sort((a, b) => b.createdAt - a.createdAt).forEach(entity => { listEl.innerHTML += `<li class="entity-item" onclick="App.goToEntity('${entity.id}')"><div class="entity-info"><div class="entity-icon"><i class="material-icons">${this.moduleIcon}</i></div><span class="entity-name">${entity.name}</span><i class="material-icons" style="color:var(--border);">chevron_right</i></div></li>`; });
         }
     },
 
     renderEntityLogs: function() {
         const listEl = document.getElementById('logList'); listEl.innerHTML = '';
-        const entity = db.entities.find(e => e.id === this.currentEntityId);
-        if(!entity) return;
+        const entity = db.entities.find(e => e.id === this.currentEntityId); if(!entity) return;
 
         if (entity.type === 'servico') {
-            // Render Tasks
-            const rawSearchTerm = document.getElementById('subEntitySearchInput').value;
-            const searchTerm = rawSearchTerm.toLowerCase().trim();
-            
-            let tasks = db.entities.filter(e => e.type === 'tarefa' && e.parentId === this.currentEntityId);
-            let hasExactMatch = false;
+            const rawSearchTerm = document.getElementById('subEntitySearchInput').value; const searchTerm = rawSearchTerm.toLowerCase().trim();
+            let tasks = db.entities.filter(e => e.type === 'tarefa' && e.parentId === this.currentEntityId); let hasExactMatch = false;
 
             if (searchTerm) {
                 let resultList = [];
@@ -840,16 +747,7 @@ var App = {
                     let relatedLogs = db.logs.filter(l => l.relatedEntities.some(rel => rel.id === t.id) && l.text && l.text.toLowerCase().includes(searchTerm));
                     if(matchesName || relatedLogs.length > 0) resultList.push({ entity: t, logsMatched: relatedLogs });
                 });
-                
-                if (!hasExactMatch) {
-                    listEl.innerHTML += `
-                        <div class="create-btn-dynamic" onclick="App.createEntityOnTheFly('${rawSearchTerm.replace(/'/g, "\\'")}', '${entity.id}')">
-                            <i class="material-icons">add_circle_outline</i>
-                            <span>Nova Tarefa: <strong>${rawSearchTerm}</strong></span>
-                        </div>
-                    `;
-                }
-
+                if (!hasExactMatch) { listEl.innerHTML += `<div class="create-btn-dynamic" onclick="App.createEntityOnTheFly('${rawSearchTerm.replace(/'/g, "\\'")}', '${entity.id}')"><i class="material-icons">add_circle_outline</i><span>Nova Tarefa: <strong>${rawSearchTerm}</strong></span></div>`; }
                 resultList.sort((a, b) => b.entity.createdAt - a.entity.createdAt).forEach(item => {
                     let t = item.entity; let snippetsHtml = '';
                     if(item.logsMatched.length > 0) {
@@ -863,91 +761,75 @@ var App = {
                         });
                         snippetsHtml += `</div>`;
                     }
-                    listEl.innerHTML += `
-                        <li class="entity-item" onclick="App.goToEntity('${t.id}', '${searchTerm}')">
-                            <div class="entity-info">
-                                <div class="entity-icon" style="background:rgba(255,255,255,0.1); color:var(--on-surface);"><i class="material-icons">assignment</i></div>
-                                <span class="entity-name">${AppUtils.highlight(t.name, searchTerm)}</span>
-                                <i class="material-icons" style="color:var(--border);">chevron_right</i>
-                            </div>
-                            ${snippetsHtml}
-                        </li>
-                    `;
+                    listEl.innerHTML += `<li class="entity-item" onclick="App.goToEntity('${t.id}', '${searchTerm}')"><div class="entity-info"><div class="entity-icon" style="background:rgba(255,255,255,0.1); color:var(--on-surface);"><i class="material-icons">assignment</i></div><span class="entity-name">${AppUtils.highlight(t.name, searchTerm)}</span><i class="material-icons" style="color:var(--border);">chevron_right</i></div>${snippetsHtml}</li>`;
                 });
             } else {
-                if(tasks.length === 0) {
-                    listEl.innerHTML = `<div class="empty-state"><i class="material-icons">assignment</i><p>Nenhuma tarefa neste serviço.<br>Use o <strong>+</strong> para criar.</p></div>`;
-                    return;
-                }
-                tasks.sort((a, b) => b.createdAt - a.createdAt).forEach(t => {
-                    listEl.innerHTML += `
-                        <li class="entity-item" onclick="App.goToEntity('${t.id}')">
-                            <div class="entity-info">
-                                <div class="entity-icon" style="background:rgba(255,255,255,0.1); color:var(--on-surface);"><i class="material-icons">assignment</i></div>
-                                <span class="entity-name">${t.name}</span>
-                                <i class="material-icons" style="color:var(--border);">chevron_right</i>
-                            </div>
-                        </li>
-                    `;
-                });
+                if(tasks.length === 0) { listEl.innerHTML = `<div class="empty-state"><i class="material-icons">assignment</i><p>Nenhuma tarefa neste serviço.<br>Use o <strong>+</strong> para criar.</p></div>`; return; }
+                tasks.sort((a, b) => b.createdAt - a.createdAt).forEach(t => { listEl.innerHTML += `<li class="entity-item" onclick="App.goToEntity('${t.id}')"><div class="entity-info"><div class="entity-icon" style="background:rgba(255,255,255,0.1); color:var(--on-surface);"><i class="material-icons">assignment</i></div><span class="entity-name">${t.name}</span><i class="material-icons" style="color:var(--border);">chevron_right</i></div></li>`; });
             }
         } else {
-            // Render Logs (Normal ou Tarefa)
             let entityLogs = db.logs.filter(log => log.relatedEntities.some(rel => rel.id === this.currentEntityId));
-            
-            if (entityLogs.length === 0) {
-                listEl.innerHTML = `<div class="empty-state"><i class="material-icons">history</i><p>Nenhum log registrado.<br>Use o <strong>+</strong> para adicionar.</p></div>`;
-                return;
-            }
+            if (entityLogs.length === 0) { listEl.innerHTML = `<div class="empty-state"><i class="material-icons">history</i><p>Nenhum log registrado.<br>Use o <strong>+</strong> para adicionar.</p></div>`; return; }
 
             entityLogs.sort((a, b) => b.createdAt - a.createdAt).forEach(log => {
                 let mediaHtml = log.images && log.images.length > 0 ? renderStackedDeckHTML(log.images, log.id) : '';
                 
-                // Cross-link chips
-                let crosslinks = log.relatedEntities.filter(rel => rel.id !== this.currentEntityId);
-                let chipsHtml = '';
-                if(crosslinks.length > 0) {
-                    chipsHtml = `<div class="crosslink-chips">` + crosslinks.map(rel => {
-                        let linkedE = db.entities.find(e => e.id === rel.id);
-                        if(!linkedE) return '';
-                        let iconMapping = { 'servico':'handyman', 'equipamento':'precision_manufacturing', 'pessoa':'people', 'documento':'description', 'auditoria':'verified_user', 'material':'inventory_2', 'tarefa':'assignment' };
-                        return `<div class="crosslink-chip" onclick="App.goToEntity('${linkedE.id}')"><i class="material-icons" style="font-size:12px;">${iconMapping[linkedE.type] || 'link'}</i> ${linkedE.name}</div>`;
-                    }).join('') + `</div>`;
+                let isOrigin = log.originEntityId === this.currentEntityId;
+                let otherLinks = log.relatedEntities.filter(rel => rel.id !== this.currentEntityId && rel.id !== log.originEntityId);
+                
+                let linksBarHtml = '';
+                if(isOrigin) {
+                    let pills = otherLinks.map(rel => {
+                        let linkedE = db.entities.find(e => e.id === rel.id); if(!linkedE) return '';
+                        return `<div class="pill-dark">${linkedE.name} <i class="material-icons" onclick="App.removeLogLink('${log.id}', '${linkedE.id}')">close</i></div>`;
+                    }).join('');
+                    linksBarHtml = `<div class="log-links-bar">
+                                        <div class="link-label">Vincular a: <i class="material-icons action-icon" style="font-size:16px;" onclick="LinkModal.open('${log.id}')">add_circle</i></div>
+                                        ${pills ? `<div class="pills-container">${pills}</div>` : ''}
+                                    </div>`;
+                } else {
+                    let originE = db.entities.find(e => e.id === log.originEntityId);
+                    let originPill = originE ? `<div class="pill-dark origin">${originE.name} <i class="material-icons" onclick="App.removeLogLink('${log.id}', '${originE.id}')">close</i></div>` : '';
+                    let otherPills = otherLinks.map(rel => {
+                        let linkedE = db.entities.find(e => e.id === rel.id); if(!linkedE) return '';
+                        return `<div class="pill-dark">${linkedE.name} <i class="material-icons" onclick="App.removeLogLink('${log.id}', '${linkedE.id}')">close</i></div>`;
+                    }).join('');
+                    
+                    linksBarHtml = `<div class="log-links-bar">
+                                        <div class="link-label">Vinculado de:</div>
+                                        <div class="pills-container">${originPill} ${otherPills}</div>
+                                    </div>`;
                 }
 
-                let displayedText = log.text;
-                if(this.searchFocusTerm) displayedText = AppUtils.highlight(displayedText, this.searchFocusTerm);
-
+                let displayedText = log.text; if(this.searchFocusTerm) displayedText = AppUtils.highlight(displayedText, this.searchFocusTerm);
+                
                 listEl.innerHTML += `
                     <li class="log-item">
                         <div class="log-header">
                             <span><i class="material-icons" style="font-size:14px; vertical-align:middle;">schedule</i> ${AppUtils.formatDate(log.createdAt)}</span>
                             <div class="log-actions">
                                 <i class="material-icons action-icon" onclick="LogModal.open('${log.id}')">edit</i>
-                                <i class="material-icons action-icon danger" onclick="App.deleteLog('${log.id}')">delete</i>
                             </div>
                         </div>
                         ${log.text ? `<div class="log-text selectable-text">${displayedText}</div>` : ''}
                         ${mediaHtml}
-                        ${chipsHtml}
+                        ${linksBarHtml}
                     </li>
                 `;
             });
         }
     },
 
-    deleteLog: async function(logId) {
-        if(await CustomDialog.confirm("Excluir este log de TODAS as entidades vinculadas?", "Excluir Registro")) {
-            db.logs = db.logs.filter(l => l.id !== logId);
-            saveDB(); this.renderEntityLogs();
-        }
+    removeLogLink: function(logId, entityIdToRemove) {
+        const log = db.logs.find(l => l.id === logId); if(!log) return;
+        log.relatedEntities = log.relatedEntities.filter(rel => rel.id !== entityIdToRemove);
+        saveDB(); this.renderEntityLogs();
     },
-    
+
     openPDF: function(base64) {
         try {
             const arr = base64.split(','); const mimePart = arr[0]; const mime = mimePart.match(/:(.*?);/)[1]; 
-            let fileName = "documento.pdf"; const nameMatch = mimePart.match(/name=([^;]+)/);
-            if (nameMatch) fileName = decodeURIComponent(nameMatch[1]);
+            let fileName = "documento.pdf"; const nameMatch = mimePart.match(/name=([^;]+)/); if (nameMatch) fileName = decodeURIComponent(nameMatch[1]);
             const bstr = atob(arr[1]); let n = bstr.length; const u8arr = new Uint8Array(n); while(n--) u8arr[n] = bstr.charCodeAt(n);
             const blob = new Blob([u8arr], {type: mime}); const url = URL.createObjectURL(blob);
             const a = document.createElement('a'); a.href = url; a.target = "_blank"; a.download = fileName;
@@ -955,166 +837,88 @@ var App = {
         } catch(e) { CustomDialog.alert("Não foi possível abrir o PDF.", "Erro"); }
     },
 
-    // BACKUP LOGIC PORTED FROM TAREFAS
-    exportToLocal: async () => {
-        BackupChoiceModal.closeUI();
-        setTimeout(async () => {
-            if (typeof JSZip === 'undefined') { await CustomDialog.alert("Aguarde a biblioteca carregar.", "Aviso"); return; }
-            CustomDialog.alert("Gerando backup local...", "Aguarde");
-            const zip = new JSZip(); const dbString = localStorage.getItem(DB_KEY) || "{}";
-            zip.file("dados_oraculo.json", dbString);
-            const zipBlob = await zip.generateAsync({type:"blob"}); const filename = `backup_oraculo_${Date.now()}.zip`;
-            const url = URL.createObjectURL(zipBlob); const a = document.createElement('a'); a.href = url; a.download = filename;
-            document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-            setTimeout(() => { AppState.closeModalUI(); }, 1500);
-        }, 100);
-    },
-
-    exportToBlob: async () => {
-        BackupChoiceModal.closeUI();
-        setTimeout(async () => {
-            if (typeof JSZip === 'undefined') { await CustomDialog.alert("Aguarde a biblioteca carregar.", "Aviso"); return; }
-            CustomDialog.alert("Enviando para a nuvem...", "Aguarde");
-            const zip = new JSZip(); zip.file("dados_oraculo.json", localStorage.getItem(DB_KEY) || "{}");
-            const zipBlob = await zip.generateAsync({type:"blob"}); const filename = `backup_oraculo_${Date.now()}.zip`;
-            try {
-                const res = await fetch(`/api/backup?filename=${filename}`, { method: 'POST', body: zipBlob });
-                if(res.ok) { await CustomDialog.alert(`Salvo na nuvem com sucesso!\nArquivo: ${filename}`, "Sucesso"); } 
-                else { throw new Error("API Falhou"); }
-            } catch(e) { 
-                const url = URL.createObjectURL(zipBlob); const a = document.createElement('a'); a.href = url; a.download = filename;
-                document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-                await CustomDialog.alert("A nuvem falhou. O arquivo foi baixado no seu dispositivo.", "Salvo Localmente");
-            }
-        }, 100);
-    },
-
-    listBackupsFromBlob: async () => {
-        document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">Buscando... ⏳</div>';
-        BackupModal.open();
-        try {
-            const res = await fetch('/api/backup');
-            if(res.ok) {
-                const data = await res.json();
-                const zips = (data.blobs || []).filter(b => b.pathname.endsWith('.zip')).sort((a,b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-                if(zips.length === 0) { document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">Nenhum backup.</div>'; return; }
-                document.getElementById('backupList').innerHTML = zips.map(b => `<div style="background:var(--surface-variant); padding:12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;"><div style="flex-grow: 1; cursor:pointer;" onclick="App.restoreFromBlob('${b.url}')"><div style="font-weight:500; font-size:14px; color:var(--on-surface); word-break: break-all;">${b.pathname}</div><div style="font-size:12px; color:var(--on-surface-variant); margin-top:4px;">${new Date(b.uploadedAt).toLocaleString('pt-BR')} • ${(b.size / (1024*1024)).toFixed(2)} MB</div></div><div style="display: flex; gap: 16px; margin-left: 12px; border-left: 1px solid var(--border); padding-left: 12px;"><i class="material-icons" style="color:var(--primary); font-size: 24px; cursor:pointer;" onclick="App.restoreFromBlob('${b.url}')">cloud_download</i><i class="material-icons danger" style="font-size: 24px; cursor:pointer;" onclick="App.deleteFromBlob('${b.url}')">delete</i></div></div>`).join('');
-            } else document.getElementById('backupList').innerHTML = `<div style="color:var(--danger); padding:20px;">Erro Servidor</div>`;
-        } catch(e) { document.getElementById('backupList').innerHTML = `<div style="color:var(--danger); padding:20px; text-align:center;">Erro Conexão</div>`; }
-    },
-
-    deleteFromBlob: async (blobUrl) => {
-        if(!await CustomDialog.confirm("DELETAR PERMANENTEMENTE da nuvem?", "Deletar")) return;
-        try {
-            document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">Apagando...</div>';
-            const res = await fetch(`/api/backup?url=${encodeURIComponent(blobUrl)}`, { method: 'DELETE' });
-            if(res.ok) { await CustomDialog.alert("Apagado com sucesso!", "Sucesso"); App.listBackupsFromBlob(); } else { await CustomDialog.alert("Erro ao apagar.", "Erro"); App.listBackupsFromBlob(); }
-        } catch(e) { await CustomDialog.alert("Erro de conexão.", "Erro"); App.listBackupsFromBlob(); }
-    },
-
-    restoreFromBlob: async (url) => {
-        if(!await CustomDialog.confirm("Isso apagará e substituirá TODOS os dados pelo backup. Continuar?", "Aviso Crítico")) return;
-        BackupModal.closeUI(); CustomDialog.alert("Restaurando...", "Aguarde");
-        try {
-            const res = await fetch(url); const blob = await res.blob(); const zip = new JSZip(); const contents = await zip.loadAsync(blob);
-            if(contents.files["dados_oraculo.json"]) {
-                const data = await contents.files["dados_oraculo.json"].async("string");
-                try { JSON.parse(data); localStorage.setItem(DB_KEY, data); db = JSON.parse(data); App.goHome(); await CustomDialog.alert("Restaurado!", "Sucesso"); } catch(e) { await CustomDialog.alert("Arquivo corrompido.", "Erro"); }
-            } else { await CustomDialog.alert("Arquivo inválido.", "Erro"); }
-        } catch(e) { await CustomDialog.alert("Erro ao baixar nuvem.", "Erro"); }
-    }
+    exportToLocal: async () => { BackupChoiceModal.closeUI(); setTimeout(async () => { if (typeof JSZip === 'undefined') { await CustomDialog.alert("Aguarde a biblioteca carregar.", "Aviso"); return; } CustomDialog.alert("Gerando backup local...", "Aguarde"); const zip = new JSZip(); const dbString = localStorage.getItem(DB_KEY) || "{}"; zip.file("dados_oraculo.json", dbString); const zipBlob = await zip.generateAsync({type:"blob"}); const filename = `backup_oraculo_${Date.now()}.zip`; const url = URL.createObjectURL(zipBlob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); setTimeout(() => { AppState.closeModalUI(); }, 1500); }, 100); },
+    exportToBlob: async () => { BackupChoiceModal.closeUI(); setTimeout(async () => { if (typeof JSZip === 'undefined') { await CustomDialog.alert("Aguarde a biblioteca carregar.", "Aviso"); return; } CustomDialog.alert("Enviando para a nuvem...", "Aguarde"); const zip = new JSZip(); zip.file("dados_oraculo.json", localStorage.getItem(DB_KEY) || "{}"); const zipBlob = await zip.generateAsync({type:"blob"}); const filename = `backup_oraculo_${Date.now()}.zip`; try { const res = await fetch(`/api/backup?filename=${filename}`, { method: 'POST', body: zipBlob }); if(res.ok) { await CustomDialog.alert(`Salvo na nuvem com sucesso!\nArquivo: ${filename}`, "Sucesso"); } else { throw new Error("API Falhou"); } } catch(e) { const url = URL.createObjectURL(zipBlob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); await CustomDialog.alert("A nuvem falhou. O arquivo foi baixado no seu dispositivo.", "Salvo Localmente"); } }, 100); },
+    listBackupsFromBlob: async () => { document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">Buscando... ⏳</div>'; BackupModal.open(); try { const res = await fetch('/api/backup'); if(res.ok) { const data = await res.json(); const zips = (data.blobs || []).filter(b => b.pathname.endsWith('.zip')).sort((a,b) => new Date(b.uploadedAt) - new Date(a.uploadedAt)); if(zips.length === 0) { document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">Nenhum backup.</div>'; return; } document.getElementById('backupList').innerHTML = zips.map(b => `<div style="background:var(--surface-variant); padding:12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;"><div style="flex-grow: 1; cursor:pointer;" onclick="App.restoreFromBlob('${b.url}')"><div style="font-weight:500; font-size:14px; color:var(--on-surface); word-break: break-all;">${b.pathname}</div><div style="font-size:12px; color:var(--on-surface-variant); margin-top:4px;">${new Date(b.uploadedAt).toLocaleString('pt-BR')} • ${(b.size / (1024*1024)).toFixed(2)} MB</div></div><div style="display: flex; gap: 16px; margin-left: 12px; border-left: 1px solid var(--border); padding-left: 12px;"><i class="material-icons" style="color:var(--primary); font-size: 24px; cursor:pointer;" onclick="App.restoreFromBlob('${b.url}')">cloud_download</i><i class="material-icons danger" style="font-size: 24px; cursor:pointer;" onclick="App.deleteFromBlob('${b.url}')">delete</i></div></div>`).join(''); } else document.getElementById('backupList').innerHTML = `<div style="color:var(--danger); padding:20px;">Erro Servidor</div>`; } catch(e) { document.getElementById('backupList').innerHTML = `<div style="color:var(--danger); padding:20px; text-align:center;">Erro Conexão</div>`; } },
+    deleteFromBlob: async (blobUrl) => { if(!await CustomDialog.confirm("DELETAR PERMANENTEMENTE da nuvem?", "Deletar")) return; try { document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">Apagando...</div>'; const res = await fetch(`/api/backup?url=${encodeURIComponent(blobUrl)}`, { method: 'DELETE' }); if(res.ok) { await CustomDialog.alert("Apagado com sucesso!", "Sucesso"); App.listBackupsFromBlob(); } else { await CustomDialog.alert("Erro ao apagar.", "Erro"); App.listBackupsFromBlob(); } } catch(e) { await CustomDialog.alert("Erro de conexão.", "Erro"); App.listBackupsFromBlob(); } },
+    restoreFromBlob: async (url) => { if(!await CustomDialog.confirm("Isso apagará e substituirá TODOS os dados pelo backup. Continuar?", "Aviso Crítico")) return; BackupModal.closeUI(); CustomDialog.alert("Restaurando...", "Aguarde"); try { const res = await fetch(url); const blob = await res.blob(); const zip = new JSZip(); const contents = await zip.loadAsync(blob); if(contents.files["dados_oraculo.json"]) { const data = await contents.files["dados_oraculo.json"].async("string"); try { JSON.parse(data); localStorage.setItem(DB_KEY, data); db = JSON.parse(data); App.goHome(); await CustomDialog.alert("Restaurado!", "Sucesso"); } catch(e) { await CustomDialog.alert("Arquivo corrompido.", "Erro"); } } else { await CustomDialog.alert("Arquivo inválido.", "Erro"); } } catch(e) { await CustomDialog.alert("Erro ao baixar nuvem.", "Erro"); } }
 };
 
 var BackupChoiceModal = { el: document.getElementById('backupChoiceModal'), open: function() { AppState.openModal(this); }, closeUI: function() { AppState.closeModalUI(); } };
 var BackupModal = { el: document.getElementById('backupModal'), open: function() { AppState.openModal(this); }, closeUI: function() { AppState.closeModalUI(); } };
 
+var EntityModal = {
+    el: document.getElementById('entityModal'),
+    open: function() { const entity = db.entities.find(e => e.id === App.currentEntityId); if(entity) { document.getElementById('entityNameEditInput').value = entity.name; AppState.openModal(this); } },
+    closeUI: function() { AppState.closeModalUI(); },
+    save: function() {
+        const val = document.getElementById('entityNameEditInput').value.trim(); if(!val) return;
+        const entity = db.entities.find(e => e.id === App.currentEntityId); if(entity) { entity.name = val; saveDB(); document.getElementById('headerText').innerText = (entity.type === 'tarefa' ? 'Tarefa: ' : '') + entity.name; }
+        this.closeUI();
+    },
+    delete: async function() {
+        if(await CustomDialog.confirm("Excluir esta entidade? TODOS os registros gerados nela e sub-tarefas serão apagados.", "Atenção (Cascata)")) {
+            const id = App.currentEntityId;
+            db.entities = db.entities.filter(e => e.parentId !== id && e.id !== id);
+            db.logs = db.logs.filter(l => {
+                if (l.originEntityId === id) return false;
+                l.relatedEntities = l.relatedEntities.filter(rel => rel.id !== id);
+                return true;
+            });
+            saveDB(); this.closeUI(); setTimeout(() => { App.goBack(); }, 100);
+        }
+    }
+};
+
 var TaskModal = {
     el: document.getElementById('taskCreateModal'), parentId: null,
     open: function(parentId) { this.parentId = parentId; document.getElementById('taskNameInput').value = ''; AppState.openModal(this); },
     closeUI: function() { AppState.closeModalUI(); },
-    save: function() {
-        const name = document.getElementById('taskNameInput').value.trim();
-        if(!name) return;
-        App.createEntityOnTheFly(name, this.parentId);
-        this.closeUI();
-    }
+    save: function() { const name = document.getElementById('taskNameInput').value.trim(); if(!name) return; App.createEntityOnTheFly(name, this.parentId); this.closeUI(); }
 };
 
-var LogModal = {
-    el: document.getElementById('logModal'), editLogId: null, tempMedia: [], tempRelations: [],
-    
-    searchEntities: function() {
-        const term = document.getElementById('linkSearchInput').value.toLowerCase().trim();
-        const dropdown = document.getElementById('linkAutocomplete');
+var LinkModal = {
+    el: document.getElementById('linkModal'), currentLogId: null,
+    open: function(logId) { this.currentLogId = logId; document.getElementById('addLinkSearchInput').value = ''; document.getElementById('addLinkAutocomplete').style.display = 'none'; AppState.openModal(this); },
+    closeUI: function() { AppState.closeModalUI(); },
+    search: function() {
+        const term = document.getElementById('addLinkSearchInput').value.toLowerCase().trim(); const dropdown = document.getElementById('addLinkAutocomplete');
         if(!term) { dropdown.style.display = 'none'; return; }
-        
-        let filtered = db.entities.filter(e => e.id !== App.currentEntityId && e.name.toLowerCase().includes(term) && !this.tempRelations.some(rel => rel.id === e.id));
+        const log = db.logs.find(l => l.id === this.currentLogId); if(!log) return;
+        let filtered = db.entities.filter(e => e.name.toLowerCase().includes(term) && !log.relatedEntities.some(rel => rel.id === e.id));
         if(filtered.length === 0) { dropdown.style.display = 'none'; return; }
-        
-        dropdown.innerHTML = filtered.slice(0, 5).map(e => `<div class="autocomplete-item" onclick="LogModal.addRelation('${e.id}')"><i class="material-icons" style="font-size:14px; opacity:0.6;">link</i> ${e.name}</div>`).join('');
+        dropdown.innerHTML = filtered.slice(0, 5).map(e => `<div class="autocomplete-item" onclick="LinkModal.add('${e.id}')"><i class="material-icons" style="font-size:14px; opacity:0.6;">link</i> ${e.name}</div>`).join('');
         dropdown.style.display = 'flex';
     },
-    addRelation: function(id) {
-        const e = db.entities.find(x => x.id === id);
-        if(e) this.tempRelations.push({ type: e.type, id: e.id });
-        document.getElementById('linkSearchInput').value = '';
-        document.getElementById('linkAutocomplete').style.display = 'none';
-        this.renderChips();
-    },
-    removeRelation: function(id) {
-        this.tempRelations = this.tempRelations.filter(rel => rel.id !== id);
-        this.renderChips();
-    },
-    renderChips: function() {
-        const container = document.getElementById('linkedChipsContainer');
-        container.innerHTML = this.tempRelations.map(rel => {
-            const e = db.entities.find(x => x.id === rel.id);
-            return e ? `<div class="crosslink-chip">${e.name} <i class="material-icons" style="font-size:12px; margin-left:4px;" onclick="LogModal.removeRelation('${e.id}')">close</i></div>` : '';
-        }).join('');
-    },
+    add: function(entityId) {
+        const log = db.logs.find(l => l.id === this.currentLogId); const e = db.entities.find(x => x.id === entityId);
+        if(log && e) { log.relatedEntities.push({ type: e.type, id: e.id }); saveDB(); App.renderEntityLogs(); }
+        this.closeUI();
+    }
+}
 
+var LogModal = {
+    el: document.getElementById('logModal'), editLogId: null, tempMedia: [],
     open: function(logId = null) {
-        this.editLogId = logId; this.tempMedia = []; this.tempRelations = [];
+        this.editLogId = logId; this.tempMedia = [];
         const textInput = document.getElementById('logText');
-        document.getElementById('linkSearchInput').value = '';
-        document.getElementById('linkAutocomplete').style.display = 'none';
-        
-        const currentEntity = db.entities.find(e => e.id === App.currentEntityId);
-        
         if (logId) {
-            const log = db.logs.find(l => l.id === logId);
-            textInput.value = log.text;
-            this.tempMedia = [...(log.images || [])];
-            this.tempRelations = log.relatedEntities.filter(rel => rel.id !== App.currentEntityId);
-            document.getElementById('logModalTitle').innerText = 'Editar Registro';
-        } else {
-            textInput.value = '';
-            document.getElementById('logModalTitle').innerText = 'Registrar Evento';
-        }
-        
-        this.renderChips(); this.updateUI(); AppState.openModal(this);
+            const log = db.logs.find(l => l.id === logId); textInput.value = log.text; this.tempMedia = [...(log.images || [])]; document.getElementById('logModalTitle').innerText = 'Editar Registro';
+        } else { textInput.value = ''; document.getElementById('logModalTitle').innerText = 'Registrar Evento'; }
+        this.updateUI(); AppState.openModal(this);
     },
     closeUI: function() { AppState.closeModalUI(); },
     save: async function() {
         const text = document.getElementById('logText').value.trim();
         if(!text && this.tempMedia.length === 0) { await CustomDialog.alert('Insira um texto ou anexe uma imagem/documento.', 'Aviso'); return; }
-        
         const currentEntity = db.entities.find(e => e.id === App.currentEntityId);
         const coreRelation = { type: currentEntity.type, id: currentEntity.id };
-        
         if (this.editLogId) {
-            const log = db.logs.find(l => l.id === this.editLogId);
-            log.text = text; log.images = [...this.tempMedia];
-            // Preserve current entity relation, update others
-            log.relatedEntities = [coreRelation, ...this.tempRelations];
+            const log = db.logs.find(l => l.id === this.editLogId); log.text = text; log.images = [...this.tempMedia];
         } else {
-            const newLog = {
-                id: Date.now().toString(), text: text, images: [...this.tempMedia], createdAt: Date.now(),
-                relatedEntities: [coreRelation, ...this.tempRelations]
-            };
+            const newLog = { id: Date.now().toString(), text: text, images: [...this.tempMedia], createdAt: Date.now(), originEntityId: currentEntity.id, relatedEntities: [coreRelation] };
             db.logs.push(newLog);
         }
-        
         saveDB(); App.renderEntityLogs(); this.closeUI();
     },
     updateUI: function() {
@@ -1128,85 +932,36 @@ const handleLogMedia = async (e) => { await processMultipleMedia(e.target.files,
 document.getElementById('logCam').addEventListener('change', handleLogMedia); document.getElementById('logGal').addEventListener('change', handleLogMedia);
 
 var CarouselModal = {
-    el: document.getElementById('carouselModal'), container: document.getElementById('carouselContainer'),
-    currentLogId: null, imagesArray: [], currentIndex: 0,
-
+    el: document.getElementById('carouselModal'), container: document.getElementById('carouselContainer'), currentLogId: null, imagesArray: [], currentIndex: 0,
     open: function(logId, startIndex = 0) {
         this.currentLogId = logId;
-        if (logId === 'temp') this.imagesArray = LogModal.tempMedia;
-        else { const log = db.logs.find(l => l.id === logId); this.imagesArray = log ? log.images : []; }
-        
+        if (logId === 'temp') this.imagesArray = LogModal.tempMedia; else { const log = db.logs.find(l => l.id === logId); this.imagesArray = log ? log.images : []; }
         if (!this.imagesArray || this.imagesArray.length === 0) return;
-        this.currentIndex = startIndex || 0;
-        
-        this.render(); AppState.openModal(this); this.bindZoom();
-        
+        this.currentIndex = startIndex || 0; this.render(); AppState.openModal(this); this.bindZoom();
         const navLeft = document.getElementById('carouselNavLeft'); const navRight = document.getElementById('carouselNavRight');
-        if(this.imagesArray.length > 1) { navLeft.style.display = 'grid'; navRight.style.display = 'grid'; } 
-        else { navLeft.style.display = 'none'; navRight.style.display = 'none'; }
-        
+        if(this.imagesArray.length > 1) { navLeft.style.display = 'grid'; navRight.style.display = 'grid'; } else { navLeft.style.display = 'none'; navRight.style.display = 'none'; }
         this.updateGlobalActions();
-
-        this.container.addEventListener('scroll', () => {
-            const itemW = window.innerWidth * 0.85 + 16; 
-            this.currentIndex = Math.round(this.container.scrollLeft / itemW);
-            this.updateGlobalActions();
-        }, {passive: true});
-
+        this.container.addEventListener('scroll', () => { const itemW = window.innerWidth * 0.85 + 16; this.currentIndex = Math.round(this.container.scrollLeft / itemW); this.updateGlobalActions(); }, {passive: true});
         setTimeout(() => { const itemW = window.innerWidth * 0.85 + 16; this.container.scrollLeft = this.currentIndex * itemW; }, 50);
     },
     closeUI: function() { AppState.closeModalUI(); },
     next: function() { const itemW = window.innerWidth * 0.85 + 16; this.container.scrollBy({ left: itemW, behavior: 'smooth' }); },
     prev: function() { const itemW = window.innerWidth * 0.85 + 16; this.container.scrollBy({ left: -itemW, behavior: 'smooth' }); },
-    
-    updateGlobalActions: function() {
-        const img = this.imagesArray[this.currentIndex];
-        const editBtn = document.getElementById('carouselEditBtn');
-        if (img && img.data.startsWith('data:application/pdf')) editBtn.style.display = 'none'; else editBtn.style.display = 'grid';
-    },
-
+    updateGlobalActions: function() { const img = this.imagesArray[this.currentIndex]; const editBtn = document.getElementById('carouselEditBtn'); if (img && img.data.startsWith('data:application/pdf')) editBtn.style.display = 'none'; else editBtn.style.display = 'grid'; },
     render: function() {
         this.container.innerHTML = this.imagesArray.map((img, idx) => {
             let media = '';
-            if (img.data.startsWith('data:application/pdf')) { 
-                media = `<div class="carousel-pdf" onclick="App.openPDF('${img.data}')"><i class="material-icons" style="font-size:48px; color:var(--danger)">picture_as_pdf</i><span style="color:#fff; font-size:14px; margin-top:12px; text-align:center;">${AppUtils.getPdfName(img.data)}</span></div>`; 
-            } else { 
-                media = `<div class="carousel-img-wrapper"><img src="${img.data}" class="carousel-img"><div class="carousel-touch-layer"></div></div>`; 
-            }
+            if (img.data.startsWith('data:application/pdf')) { media = `<div class="carousel-pdf" onclick="App.openPDF('${img.data}')"><i class="material-icons" style="font-size:48px; color:var(--danger)">picture_as_pdf</i><span style="color:#fff; font-size:14px; margin-top:12px; text-align:center;">${AppUtils.getPdfName(img.data)}</span></div>`; } 
+            else { media = `<div class="carousel-img-wrapper"><img src="${img.data}" class="carousel-img"><div class="carousel-touch-layer"></div></div>`; }
             return `<div class="carousel-item">${media}</div>`;
         }).join('');
     },
-    
-    editCurrent: function() {
-        let img = this.imagesArray[this.currentIndex];
-        if (this.currentLogId === 'temp') {
-            Editor.openForTemp(img.data, this.currentIndex);
-        } else {
-            Editor.openForDBLog(this.currentLogId, img.data, this.currentIndex);
-        }
-    },
-
-    deleteCurrent: async function() {
-        if(await CustomDialog.confirm("Remover esta mídia permanentemente?", "Excluir")) {
-            this.imagesArray.splice(this.currentIndex, 1);
-            if(this.currentLogId === 'temp') LogModal.updateUI(); else { saveDB(); App.renderEntityLogs(); }
-            
-            if(this.imagesArray.length === 0) this.closeUI(); else { 
-                this.render(); this.bindZoom(); 
-                this.currentIndex = Math.min(this.currentIndex, this.imagesArray.length - 1);
-                this.container.scrollLeft = this.currentIndex * (window.innerWidth * 0.85 + 16);
-                if(this.imagesArray.length <= 1) { document.getElementById('carouselNavLeft').style.display = 'none'; document.getElementById('carouselNavRight').style.display = 'none'; }
-                this.updateGlobalActions();
-            }
-        }
-    },
-    
+    editCurrent: function() { let img = this.imagesArray[this.currentIndex]; if (this.currentLogId === 'temp') { Editor.openForTemp(img.data, this.currentIndex); } else { Editor.openForDBLog(this.currentLogId, img.data, this.currentIndex); } },
     bindZoom: function() {
         const wrappers = this.container.querySelectorAll('.carousel-img-wrapper');
         wrappers.forEach(wrapper => {
             const touchLayer = wrapper.querySelector('.carousel-touch-layer'); const img = wrapper.querySelector('.carousel-img');
-            let scale = 1, currentX = 0, currentY = 0, startX = 0, startY = 0, initialDist = 0, initialScale = 1;
-            let lastTap = 0, isPinching = false, isMoving = false;
+            let scale = 1, currentX = 0, currentY = 0, startX = 0, startY = 0, initialDist = 0, initialScale = 1; let lastTap = 0, isPinching = false, isMoving = false;
             touchLayer.addEventListener('touchstart', (e) => {
                 img.style.transition = 'none';
                 if (e.touches.length === 2) { e.preventDefault(); e.stopPropagation(); isPinching = true; isMoving = true; initialDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); initialScale = scale; } 
@@ -1229,11 +984,8 @@ var CarouselModal = {
     }
 };
 
-// --- EDITOR DO APP TAREFAS ---
 var Editor = {
-    overlay: document.getElementById('editorOverlay'), canvas: document.getElementById('mainCanvas'), ctx: document.getElementById('mainCanvas').getContext('2d'), sizeInput: document.getElementById('editorSize'),
-    activeColor: '#ff3333', activeTool: 'pen', activeText: null, isDrawing: false, lastPos: {x: 0, y: 0}, undoStack: [], isDraggingText: false, dragStartX: 0, dragStartY: 0, dragStartLeft: 0, dragStartTop: 0,
-    targetMode: null, logId: null, dbIdx: null, el: document.getElementById('editorOverlay'),
+    overlay: document.getElementById('editorOverlay'), canvas: document.getElementById('mainCanvas'), ctx: document.getElementById('mainCanvas').getContext('2d'), sizeInput: document.getElementById('editorSize'), activeColor: '#ff3333', activeTool: 'pen', activeText: null, isDrawing: false, lastPos: {x: 0, y: 0}, undoStack: [], isDraggingText: false, dragStartX: 0, dragStartY: 0, dragStartLeft: 0, dragStartTop: 0, targetMode: null, logId: null, dbIdx: null, el: document.getElementById('editorOverlay'),
     
     openForDBLog: function(logId, imgSrc, photoIdx = 0) { this.targetMode = 'db'; this.logId = logId; this.dbIdx = photoIdx; this._initCanvas(imgSrc); },
     openForTemp: function(imgSrc, photoIdx = 0) { this.targetMode = 'temp'; this.dbIdx = photoIdx; this._initCanvas(imgSrc); },
@@ -1245,18 +997,36 @@ var Editor = {
             this.canvas.width = img.width; this.canvas.height = img.height; this.ctx.drawImage(img, 0, 0);
             let currentPhotoObj = this.targetMode === 'db' ? db.logs.find(l => l.id === this.logId).images[this.dbIdx] : LogModal.tempMedia[this.dbIdx];
             const dateStr = currentPhotoObj ? AppUtils.formatDate(currentPhotoObj.createdAt) : '';
-            if (dateStr) {
-                const fs = Math.max(12, this.canvas.width / 40);
-                this.ctx.font = `bold ${fs}px Roboto`; this.ctx.textBaseline = 'bottom';
-                this.ctx.fillStyle = 'rgba(0,0,0,0.6)'; this.ctx.fillText(`Registrada: ${dateStr}`, 10 + 2, this.canvas.height - 10 + 2);
-                this.ctx.fillStyle = '#fff'; this.ctx.fillText(`Registrada: ${dateStr}`, 10, this.canvas.height - 10);
-            }
+            if (dateStr) { const fs = Math.max(12, this.canvas.width / 40); this.ctx.font = `bold ${fs}px Roboto`; this.ctx.textBaseline = 'bottom'; this.ctx.fillStyle = 'rgba(0,0,0,0.6)'; this.ctx.fillText(`Registrada: ${dateStr}`, 10 + 2, this.canvas.height - 10 + 2); this.ctx.fillStyle = '#fff'; this.ctx.fillText(`Registrada: ${dateStr}`, 10, this.canvas.height - 10); }
             this.saveState(); AppState.openModal(this);
         };
         img.src = imgSrc;
     },
     closeUI: function() { AppState.closeModalUI(); },
     onHardwareBack: function() { document.getElementById('textOverlay').innerHTML = ''; document.getElementById('colorPopup').classList.remove('show'); this.isDraggingText = false; },
+    
+    deleteCurrent: async function() {
+        if(await CustomDialog.confirm("Excluir imagem permanentemente?", "Excluir")) {
+            if (this.targetMode === 'db') {
+                const log = db.logs.find(l => l.id === this.logId); if(log) log.images.splice(this.dbIdx, 1);
+                saveDB(); App.renderEntityLogs();
+            } else if (this.targetMode === 'temp') {
+                LogModal.tempMedia.splice(this.dbIdx, 1); LogModal.updateUI();
+            }
+            if (CarouselModal.el.classList.contains('active')) {
+                CarouselModal.imagesArray.splice(this.dbIdx, 1);
+                if(CarouselModal.imagesArray.length === 0) { CarouselModal.closeUI(); } else {
+                    CarouselModal.render(); CarouselModal.bindZoom();
+                    CarouselModal.currentIndex = Math.min(CarouselModal.currentIndex, CarouselModal.imagesArray.length - 1);
+                    CarouselModal.container.scrollLeft = CarouselModal.currentIndex * (window.innerWidth * 0.85 + 16);
+                    if(CarouselModal.imagesArray.length <= 1) { document.getElementById('carouselNavLeft').style.display = 'none'; document.getElementById('carouselNavRight').style.display = 'none'; }
+                    CarouselModal.updateGlobalActions();
+                }
+            }
+            this.closeUI();
+        }
+    },
+    
     save: function() {
         const texts = document.getElementById('textOverlay').children;
         if (texts.length > 0) {
@@ -1270,18 +1040,9 @@ var Editor = {
             }
         }
         const dataUrl = this.canvas.toDataURL('image/jpeg', 0.8);
-        if (this.targetMode === 'db') {
-            const log = db.logs.find(l => l.id === this.logId);
-            if(log && log.images[this.dbIdx]) log.images[this.dbIdx].data = dataUrl;
-            saveDB(); App.renderEntityLogs();
-        } else if (this.targetMode === 'temp') {
-            if(LogModal.tempMedia[this.dbIdx]) LogModal.tempMedia[this.dbIdx].data = dataUrl;
-            LogModal.updateUI();
-        }
-        
-        if (CarouselModal.el.classList.contains('active') && CarouselModal.imagesArray[this.dbIdx]) {
-            CarouselModal.imagesArray[this.dbIdx].data = dataUrl; CarouselModal.render(); CarouselModal.bindZoom();
-        }
+        if (this.targetMode === 'db') { const log = db.logs.find(l => l.id === this.logId); if(log && log.images[this.dbIdx]) log.images[this.dbIdx].data = dataUrl; saveDB(); App.renderEntityLogs(); } 
+        else if (this.targetMode === 'temp') { if(LogModal.tempMedia[this.dbIdx]) LogModal.tempMedia[this.dbIdx].data = dataUrl; LogModal.updateUI(); }
+        if (CarouselModal.el.classList.contains('active') && CarouselModal.imagesArray[this.dbIdx]) { CarouselModal.imagesArray[this.dbIdx].data = dataUrl; CarouselModal.render(); CarouselModal.bindZoom(); }
         this.closeUI();
     },
     setTool: function(tool) {
@@ -1319,7 +1080,6 @@ Editor.sizeInput.addEventListener('input', (e) => { if(Editor.activeTool === 'te
 Editor.canvas.addEventListener('mousedown', (e) => Editor.startDraw(e)); Editor.canvas.addEventListener('mousemove', (e) => Editor.draw(e)); Editor.canvas.addEventListener('mouseup', (e) => Editor.stopDraw(e)); Editor.canvas.addEventListener('mouseleave', (e) => Editor.stopDraw(e));
 Editor.canvas.addEventListener('touchstart', (e) => Editor.startDraw(e), {passive: false}); Editor.canvas.addEventListener('touchmove', (e) => Editor.draw(e), {passive: false}); Editor.canvas.addEventListener('touchend', (e) => Editor.stopDraw(e), {passive: false});
 
-// Initialize app
 App.init();
 </script>
 </body>
