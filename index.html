@@ -74,7 +74,6 @@
         header h1 span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .header-actions { display: flex; gap: 16px; align-items: center; flex-shrink: 0;}
 
-        /* Dashboard Grid & Search */
         .home-search-container { padding: 16px; background: var(--surface); border-bottom: 1px solid var(--surface-variant); }
         .home-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; padding: 24px; }
         
@@ -87,7 +86,6 @@
         .module-card i { font-size: 40px; color: var(--primary); }
         .module-card span { font-size: 14px; font-weight: 500; color: var(--on-surface); text-align: center; }
 
-        /* Dropdown Menu */
         .dropdown-menu {
             position: absolute; right: 16px; top: 56px; background: var(--surface); border: 1px solid var(--surface-variant); border-radius: 8px; box-shadow: var(--shadow);
             display: none; flex-direction: column; min-width: 200px; z-index: 1000; overflow: hidden;
@@ -99,7 +97,6 @@
         .menu-item.danger .material-icons { color: var(--danger); }
         .menu-item .material-icons { font-size: 20px; color: var(--on-surface-variant); }
 
-        /* Search Component */
         .search-container { padding: 16px; background: var(--surface); position: sticky; top: 0; z-index: 5; border-bottom: 1px solid var(--surface-variant); }
         .search-box { position: relative; display: flex; align-items: center; }
         .search-box input {
@@ -109,7 +106,6 @@
         .search-box i.search-icon { position: absolute; left: 14px; color: var(--on-surface-variant); font-size: 20px; pointer-events: none; }
         .search-box input:focus { border-color: var(--primary); }
 
-        /* Nested Task & Entity Cards */
         .task-list { list-style: none; padding: 16px; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
         
         .task-item { background: var(--surface-variant); border-radius: 12px; padding: 16px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; transition: background-color 0.5s; border: 1px solid transparent; }
@@ -125,7 +121,6 @@
         .snippet-item { font-size: 12px; color: var(--on-surface-variant); font-style: italic; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 6px; line-height: 1.3; }
         mark.highlight { background-color: #ffeb3b; color: #000; padding: 2px 4px; font-weight: bold; border-radius: 4px; box-shadow: 0 0 4px rgba(255, 235, 59, 0.4); }
 
-        /* Logs Timeline & Pills */
         .log-list { margin-top: 8px; padding-left: 12px; border-left: 2px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
         .log-item { font-size: 13px; color: var(--on-surface-variant); display: flex; flex-direction: column; gap: 6px; background: rgba(0,0,0,0.15); padding: 10px; border-radius: 8px; transition: background-color 0.5s; }
         .log-header { display: flex; justify-content: space-between; align-items: center; font-size: 11px; opacity: 0.8; margin-bottom: 2px; }
@@ -150,7 +145,6 @@
         .action-icon:hover { color: var(--primary); }
         .action-icon.danger:hover { color: var(--danger); }
 
-        /* Media Decks */
         .stacked-deck { width: 100%; height: 160px; position: relative; margin-top: 8px; margin-bottom: 4px; cursor: pointer; display: block; transition: transform 0.2s; background: transparent; }
         .stacked-deck:active { transform: scale(0.98); }
         .deck-photo, .pdf-preview.deck-photo {
@@ -168,7 +162,6 @@
         .fab:active { transform: translateX(-50%) scale(0.9); }
         @media (min-width: 500px) { .fab { left: calc(50% + 180px); } }
 
-        /* Modals */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: flex-end; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
         .modal-overlay.active { opacity: 1; pointer-events: auto; }
         .modal-content { background: var(--surface); width: 100%; max-width: 480px; border-radius: 24px 24px 0 0; padding: 24px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow); transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -229,7 +222,6 @@
         #textOverlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
         .editor-hint { position: absolute; top: 24px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 14px; pointer-events: none; z-index: 10; white-space: nowrap; }
         
-        /* Popup de Cores fora da barra para não ser escondido pelo overflow */
         .color-popup { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: #222; padding: 12px; border-radius: 12px; border: 1px solid #555; display: none; gap: 12px; flex-direction: row; box-shadow: 0 4px 16px rgba(0,0,0,0.9); z-index: 99999; pointer-events: auto; }
         .color-popup.show { display: flex; }
         .color-dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid #777; flex-shrink: 0; }
@@ -258,7 +250,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 3.0.0</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 3.1.0</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -434,7 +426,6 @@
     <div class="carousel-container" id="carouselContainer"></div>
 </div>
 
-<!-- Editor Overlay com Corrigido Popup de Cores fora da barra -->
 <div class="editor-overlay" id="editorOverlay" onclick="document.getElementById('colorPopup').classList.remove('show')">
     <div class="canvas-container" id="canvasContainer">
         <div class="editor-hint" id="editorHint">Desenhe livremente na imagem</div>
@@ -461,7 +452,7 @@
         <div class="editor-sep"></div>
         
         <div class="color-palette-container">
-            <div id="activeColorBtn" class="active-color-dot" style="background-color: #ff3333;" onclick="event.stopPropagation(); document.getElementById('colorPopup').classList.toggle('show')"></div>
+            <div id="activeColorBtn" class="active-color-dot" style="background-color: #ff3333;" onclick="Editor.toggleColorPopup(event)"></div>
         </div>
         
         <div class="editor-sep"></div>
@@ -533,9 +524,12 @@ var AppUtils = {
     highlight: function(text, term) { if (!term) return text; const regex = new RegExp(`(${term})`, 'gi'); return text.replace(regex, '<mark class="highlight">$1</mark>'); },
     
     compressVideo: async function(file) {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             const fallback = (f, tBase64) => {
-                const r = new FileReader(); r.onloadend = () => resolve({ video: r.result, thumb: tBase64 || '' }); r.readAsDataURL(f);
+                const r = new FileReader(); 
+                r.onloadend = () => resolve({ video: r.result, thumb: tBase64 || '' }); 
+                r.onerror = () => reject(new Error("Falha na leitura do ficheiro."));
+                r.readAsDataURL(f);
             };
 
             const video = document.createElement('video');
@@ -548,57 +542,28 @@ var AppUtils = {
             let timeoutId = setTimeout(() => {
                 if(document.body.contains(video)) document.body.removeChild(video);
                 fallback(file, '');
-            }, 8000);
+            }, 5000);
 
             let thumbBase64 = '';
-            video.onloadeddata = () => { video.currentTime = 0.5; };
+            video.onloadeddata = () => { video.currentTime = 1; }; // Seek to 1s
             video.onseeked = () => {
+                clearTimeout(timeoutId);
                 try {
                     const canvas = document.createElement('canvas');
-                    const MAX = 180; let w = video.videoWidth, h = video.videoHeight;
+                    const MAX = 320; let w = video.videoWidth, h = video.videoHeight;
                     if (w > MAX) { h = Math.floor(h * (MAX / w)); w = MAX; }
                     canvas.width = w; canvas.height = h;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(video, 0, 0, w, h);
                     thumbBase64 = canvas.toDataURL('image/jpeg', 0.6);
-
-                    if (typeof MediaRecorder === 'undefined' || !canvas.captureStream) {
-                        clearTimeout(timeoutId);
-                        if(document.body.contains(video)) document.body.removeChild(video); 
-                        return fallback(file, thumbBase64);
-                    }
-
-                    const stream = canvas.captureStream(12);
-                    let mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8') ? 'video/webm;codecs=vp8' : (MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : '');
-                    const recorder = new MediaRecorder(stream, { mimeType: mimeType, videoBitsPerSecond: 50000 });
-                    const chunks = [];
-                    recorder.ondataavailable = e => { if(e.data.size > 0) chunks.push(e.data); };
-                    recorder.onstop = () => {
-                        clearTimeout(timeoutId);
-                        if(document.body.contains(video)) document.body.removeChild(video);
-                        const blob = new Blob(chunks, { type: mimeType || 'video/mp4' });
-                        const reader = new FileReader();
-                        reader.onloadend = () => resolve({ video: reader.result, thumb: thumbBase64 });
-                        reader.readAsDataURL(blob);
-                    };
+                    if(document.body.contains(video)) document.body.removeChild(video);
                     
-                    recorder.start();
-                    video.currentTime = 0;
-                    video.playbackRate = 4.0;
-                    video.play().then(() => {
-                        const draw = () => {
-                            if (video.ended || video.paused) { if(recorder.state === 'recording') recorder.stop(); return; }
-                            ctx.drawImage(video, 0, 0, w, h);
-                            requestAnimationFrame(draw);
-                        };
-                        draw();
-                    }).catch(() => {
-                        if(recorder.state === 'recording') recorder.stop();
-                    });
+                    // Removido o MediaRecorder que causava falhas. Apenas extraímos o thumbnail e guardamos o ficheiro original em Base64.
+                    // O Dexie suporta ficheiros grandes sem corromper se tiver RAM suficiente para o string Base64.
+                    fallback(file, thumbBase64);
                 } catch(e) { 
-                    clearTimeout(timeoutId);
-                    if(document.body.contains(video)) document.body.removeChild(video); 
-                    fallback(file, thumbBase64); 
+                    if(document.body.contains(video)) document.body.removeChild(video);
+                    fallback(file, ''); 
                 }
             };
             video.onerror = () => { 
@@ -623,9 +588,14 @@ async function processMultipleMedia(files, callback) {
             const reader = new FileReader();
             await new Promise((resolve) => { reader.onload = (e) => { let base64 = e.target.result.replace('data:application/pdf;base64,', `data:application/pdf;name=${encodedName};base64,`); processedArray.push({ data: base64, createdAt: captureTime }); resolve(); }; reader.readAsDataURL(file); });
         } else if (file.type.startsWith('video/')) {
-            const result = await AppUtils.compressVideo(file);
-            if (!result.error) {
-                processedArray.push({ data: result.video, thumbnail: result.thumb, isVideo: true, createdAt: captureTime });
+            try {
+                const result = await AppUtils.compressVideo(file);
+                if (result.video) {
+                    processedArray.push({ data: result.video, thumbnail: result.thumb, isVideo: true, createdAt: captureTime });
+                }
+            } catch (err) {
+                console.error(err);
+                // Erro silencioso, logMedia falha
             }
         } else if (file.type.startsWith('image/')) {
             const reader = new FileReader();
@@ -648,12 +618,12 @@ async function processMultipleMedia(files, callback) {
 function renderStackedDeckHTML(images, logId) {
     if (!images || images.length === 0) return '';
     let clickHandler = `CarouselModal.open('${logId}')`;
-    let pdfCount = images.filter(img => img.data.startsWith('data:application/pdf')).length;
+    let pdfCount = images.filter(img => img.data && img.data.startsWith('data:application/pdf')).length;
     let countLabel = `+${images.length - 1}`; if (pdfCount > 0) countLabel += ` (${pdfCount} PDF)`;
 
     if (images.length === 1) {
         let img = images[0];
-        if (img.isPlaceholder) return `<div class="pdf-preview deck-photo" style="position:relative; left:0; width:100%; height:auto; min-height:140px; background:#111;"><i class="material-icons" style="font-size:48px; color:var(--primary); animation: spin 1s linear infinite;">sync</i><span style="font-size: 13px; margin-top: 8px; color:var(--primary);">Processando... aguarde.</span></div>`;
+        if (img.isPlaceholder) return `<div class="pdf-preview deck-photo" style="position:relative; left:0; width:100%; height:auto; min-height:140px; background:#111;"><i class="material-icons" style="font-size:48px; color:var(--primary); animation: spin 1s linear infinite;">sync</i><span style="font-size: 13px; margin-top: 8px; color:var(--primary);">A processar... aguarde.</span></div>`;
         if (img.data.startsWith('data:application/pdf')) return `<div class="pdf-preview deck-photo" style="position:relative; left:0; width:100%; height:auto; min-height:140px; padding:12px;" onclick="${clickHandler}"><i class="material-icons" style="font-size:32px;">picture_as_pdf</i><span style="font-size: 13px; margin-top: 8px; text-align:center;">${AppUtils.getPdfName(img.data)}</span></div>`;
         else if (img.isVideo || img.data.startsWith('data:video/')) return `<div class="pdf-preview deck-photo" style="position:relative; left:0; width:100%; height:auto; min-height:140px; background: url('${img.thumbnail || ''}') center/cover;" onclick="${clickHandler}"><div style="background:rgba(0,0,0,0.5); width:100%; height:100%; min-height:140px; display:flex; flex-direction:column; align-items:center; justify-content:center;"><i class="material-icons" style="font-size:48px; color:#fff;">play_circle_outline</i></div></div>`;
         else return `<img src="${img.data}" class="image-preview" onclick="${clickHandler}" style="margin:0;">`;
@@ -781,7 +751,7 @@ var App = {
 
                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 el.style.backgroundColor = 'rgba(255, 235, 59, 0.3)';
-                setTimeout(() => el.style.backgroundColor = '', 1500);
+                setTimeout(() => el.style.backgroundColor = 'var(--surface-variant)', 1500);
             }
         }, 300);
     },
@@ -806,10 +776,10 @@ var App = {
         if(logsEl) {
             if(logsEl.style.display === 'none') {
                 logsEl.style.display = 'flex';
-                iconEl.innerText = 'expand_less';
+                if(iconEl) iconEl.innerText = 'expand_less';
             } else {
                 logsEl.style.display = 'none';
-                iconEl.innerText = 'expand_more';
+                if(iconEl) iconEl.innerText = 'expand_more';
             }
         }
     },
@@ -967,14 +937,14 @@ var App = {
         } catch(e) { CustomDialog.alert("Não foi possível abrir o PDF.", "Erro"); }
     },
 
-    exportToLocal: async () => { BackupChoiceModal.closeUI(); setTimeout(async () => { if (typeof JSZip === 'undefined') { await CustomDialog.alert("Aguarde a biblioteca carregar.", "Aviso"); return; } CustomDialog.alert("Gerando backup local...", "Aguarde"); const zip = new JSZip(); const dump = { entities: await AppDB.entities.toArray(), logs: await AppDB.logs.toArray() }; zip.file("dados_oraculo.json", JSON.stringify(dump)); const zipBlob = await zip.generateAsync({type:"blob"}); const filename = `backup_oraculo_${Date.now()}.zip`; const url = URL.createObjectURL(zipBlob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); setTimeout(() => { AppState.closeModalUI(); }, 1500); }, 100); },
-    exportToBlob: async () => { BackupChoiceModal.closeUI(); setTimeout(async () => { if (typeof JSZip === 'undefined') { await CustomDialog.alert("Aguarde a biblioteca carregar.", "Aviso"); return; } CustomDialog.alert("Enviando para a nuvem...", "Aguarde"); const zip = new JSZip(); const dump = { entities: await AppDB.entities.toArray(), logs: await AppDB.logs.toArray() }; zip.file("dados_oraculo.json", JSON.stringify(dump)); const zipBlob = await zip.generateAsync({type:"blob"}); const filename = `backup_oraculo_${Date.now()}.zip`; try { const res = await fetch(`/api/backup?filename=${filename}`, { method: 'POST', body: zipBlob }); if(res.ok) { await CustomDialog.alert(`Salvo na nuvem com sucesso!\nArquivo: ${filename}`, "Sucesso"); } else { throw new Error("API Falhou"); } } catch(e) { const url = URL.createObjectURL(zipBlob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); await CustomDialog.alert("A nuvem falhou. O arquivo foi baixado no seu dispositivo.", "Salvo Localmente"); } }, 100); },
-    listBackupsFromBlob: async () => { document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">Buscando... ⏳</div>'; BackupModal.open(); try { const res = await fetch('/api/backup'); if(res.ok) { const data = await res.json(); const zips = (data.blobs || []).filter(b => b.pathname.endsWith('.zip')).sort((a,b) => new Date(b.uploadedAt) - new Date(a.uploadedAt)); if(zips.length === 0) { document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">Nenhum backup.</div>'; return; } document.getElementById('backupList').innerHTML = zips.map(b => `<div style="background:var(--surface-variant); padding:12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;"><div style="flex-grow: 1; cursor:pointer;" onclick="App.restoreFromBlob('${b.url}')"><div style="font-weight:500; font-size:14px; color:var(--on-surface); word-break: break-all;">${b.pathname}</div><div style="font-size:12px; color:var(--on-surface-variant); margin-top:4px;">${new Date(b.uploadedAt).toLocaleString('pt-BR')} • ${(b.size / (1024*1024)).toFixed(2)} MB</div></div><div style="display: flex; gap: 16px; margin-left: 12px; border-left: 1px solid var(--border); padding-left: 12px;"><i class="material-icons" style="color:var(--primary); font-size: 24px; cursor:pointer;" onclick="App.restoreFromBlob('${b.url}')">cloud_download</i><i class="material-icons danger" style="font-size: 24px; cursor:pointer;" onclick="App.deleteFromBlob('${b.url}')">delete</i></div></div>`).join(''); } else document.getElementById('backupList').innerHTML = `<div style="color:var(--danger); padding:20px;">Erro Servidor</div>`; } catch(e) { document.getElementById('backupList').innerHTML = `<div style="color:var(--danger); padding:20px; text-align:center;">Erro Conexão</div>`; } },
-    deleteFromBlob: async (blobUrl) => { if(!await CustomDialog.confirm("DELETAR PERMANENTEMENTE da nuvem?", "Deletar")) return; try { document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">Apagando...</div>'; const res = await fetch(`/api/backup?url=${encodeURIComponent(blobUrl)}`, { method: 'DELETE' }); if(res.ok) { await CustomDialog.alert("Apagado com sucesso!", "Sucesso"); App.listBackupsFromBlob(); } else { await CustomDialog.alert("Erro ao apagar.", "Erro"); App.listBackupsFromBlob(); } } catch(e) { await CustomDialog.alert("Erro de conexão.", "Erro"); App.listBackupsFromBlob(); } },
+    exportToLocal: async () => { BackupChoiceModal.closeUI(); setTimeout(async () => { if (typeof JSZip === 'undefined') { await CustomDialog.alert("Aguarde a biblioteca carregar.", "Aviso"); return; } CustomDialog.alert("A gerar backup local...", "Aguarde"); const zip = new JSZip(); const dump = { entities: await AppDB.entities.toArray(), logs: await AppDB.logs.toArray() }; zip.file("dados_oraculo.json", JSON.stringify(dump)); const zipBlob = await zip.generateAsync({type:"blob"}); const filename = `backup_oraculo_${Date.now()}.zip`; const url = URL.createObjectURL(zipBlob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); setTimeout(() => { AppState.closeModalUI(); }, 1500); }, 100); },
+    exportToBlob: async () => { BackupChoiceModal.closeUI(); setTimeout(async () => { if (typeof JSZip === 'undefined') { await CustomDialog.alert("Aguarde a biblioteca carregar.", "Aviso"); return; } CustomDialog.alert("A enviar para a nuvem...", "Aguarde"); const zip = new JSZip(); const dump = { entities: await AppDB.entities.toArray(), logs: await AppDB.logs.toArray() }; zip.file("dados_oraculo.json", JSON.stringify(dump)); const zipBlob = await zip.generateAsync({type:"blob"}); const filename = `backup_oraculo_${Date.now()}.zip`; try { const res = await fetch(`/api/backup?filename=${filename}`, { method: 'POST', body: zipBlob }); if(res.ok) { await CustomDialog.alert(`Salvo na nuvem com sucesso!\nArquivo: ${filename}`, "Sucesso"); } else { throw new Error("API Falhou"); } } catch(e) { const url = URL.createObjectURL(zipBlob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); await CustomDialog.alert("A nuvem falhou. O arquivo foi baixado no seu dispositivo.", "Salvo Localmente"); } }, 100); },
+    listBackupsFromBlob: async () => { document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">A procurar... ⏳</div>'; BackupModal.open(); try { const res = await fetch('/api/backup'); if(res.ok) { const data = await res.json(); const zips = (data.blobs || []).filter(b => b.pathname.endsWith('.zip')).sort((a,b) => new Date(b.uploadedAt) - new Date(a.uploadedAt)); if(zips.length === 0) { document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">Nenhum backup.</div>'; return; } document.getElementById('backupList').innerHTML = zips.map(b => `<div style="background:var(--surface-variant); padding:12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;"><div style="flex-grow: 1; cursor:pointer;" onclick="App.restoreFromBlob('${b.url}')"><div style="font-weight:500; font-size:14px; color:var(--on-surface); word-break: break-all;">${b.pathname}</div><div style="font-size:12px; color:var(--on-surface-variant); margin-top:4px;">${new Date(b.uploadedAt).toLocaleString('pt-BR')} • ${(b.size / (1024*1024)).toFixed(2)} MB</div></div><div style="display: flex; gap: 16px; margin-left: 12px; border-left: 1px solid var(--border); padding-left: 12px;"><i class="material-icons" style="color:var(--primary); font-size: 24px; cursor:pointer;" onclick="App.restoreFromBlob('${b.url}')">cloud_download</i><i class="material-icons danger" style="font-size: 24px; cursor:pointer;" onclick="App.deleteFromBlob('${b.url}')">delete</i></div></div>`).join(''); } else document.getElementById('backupList').innerHTML = `<div style="color:var(--danger); padding:20px;">Erro Servidor</div>`; } catch(e) { document.getElementById('backupList').innerHTML = `<div style="color:var(--danger); padding:20px; text-align:center;">Erro de Ligação</div>`; } },
+    deleteFromBlob: async (blobUrl) => { if(!await CustomDialog.confirm("APAGAR PERMANENTEMENTE da nuvem?", "Apagar")) return; try { document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">A apagar...</div>'; const res = await fetch(`/api/backup?url=${encodeURIComponent(blobUrl)}`, { method: 'DELETE' }); if(res.ok) { await CustomDialog.alert("Apagado com sucesso!", "Sucesso"); App.listBackupsFromBlob(); } else { await CustomDialog.alert("Erro ao apagar.", "Erro"); App.listBackupsFromBlob(); } } catch(e) { await CustomDialog.alert("Erro de ligação.", "Erro"); App.listBackupsFromBlob(); } },
     restoreFromBlob: async (url) => { 
-        if(!await CustomDialog.confirm("Isso apagará e substituirá TODOS os dados pelo backup. Continuar?", "Aviso Crítico")) return; 
+        if(!await CustomDialog.confirm("Isto apagará e substituirá TODOS os dados pelo backup. Continuar?", "Aviso Crítico")) return; 
         
-        document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 40px; color: var(--primary);"><i class="material-icons" style="font-size:48px; animation: spin 1s linear infinite;">sync</i><br><br>Baixando e Restaurando...<br>Por favor, aguarde.</div>';
+        document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 40px; color: var(--primary);"><i class="material-icons" style="font-size:48px; animation: spin 1s linear infinite;">sync</i><br><br>A Baixar e a Restaurar...<br>Por favor, aguarde.</div>';
         
         try { 
             const res = await fetch(url); const blob = await res.blob(); const zip = new JSZip(); const contents = await zip.loadAsync(blob); 
@@ -1105,26 +1075,35 @@ var LogModal = {
     },
     save: async function() {
         const text = document.getElementById('logText').value.trim();
+        
+        // Remove espaços reservados que tenham falhado ou estejam incompletos
+        this.tempMedia = this.tempMedia.filter(m => !m.isPlaceholder);
+        
         if(!text && this.tempMedia.length === 0) { await CustomDialog.alert('Insira um texto ou anexe uma imagem/documento/vídeo.', 'Aviso'); return; }
         
-        const originEntity = await AppDB.entities.get(this.originId);
-        const coreRelation = { type: originEntity.type, id: originEntity.id };
-        const finalRelations = [coreRelation, ...this.tempRelations.map(rel => ({ type: rel.type, id: rel.id }))];
+        try {
+            const originEntity = await AppDB.entities.get(this.originId);
+            const coreRelation = { type: originEntity.type, id: originEntity.id };
+            const finalRelations = [coreRelation, ...this.tempRelations.map(rel => ({ type: rel.type, id: rel.id }))];
 
-        if (this.editLogId) {
-            const log = await AppDB.logs.get(this.editLogId); 
-            log.text = text; 
-            log.images = [...this.tempMedia];
-            log.relatedEntities = finalRelations;
-            await AppDB.logs.put(log);
-        } else {
-            const newLog = { 
-                id: Date.now().toString(), text: text, images: [...this.tempMedia], createdAt: Date.now(), 
-                originEntityId: this.originId, relatedEntities: finalRelations 
-            };
-            await AppDB.logs.put(newLog);
+            if (this.editLogId) {
+                const log = await AppDB.logs.get(this.editLogId); 
+                log.text = text; 
+                log.images = [...this.tempMedia];
+                log.relatedEntities = finalRelations;
+                await AppDB.logs.put(log);
+            } else {
+                const newLog = { 
+                    id: Date.now().toString(), text: text, images: [...this.tempMedia], createdAt: Date.now(), 
+                    originEntityId: this.originId, relatedEntities: finalRelations 
+                };
+                await AppDB.logs.put(newLog);
+            }
+            App.renderList(); this.closeUI();
+        } catch (e) {
+            console.error("Erro no IndexedDB:", e);
+            await CustomDialog.alert("Erro ao guardar o registo. A sua base de dados não foi danificada, mas o anexo pode ser demasiado grande.", "Erro de Memória");
         }
-        App.renderList(); this.closeUI();
     },
     updateUI: function() {
         const container = document.getElementById('logPreviewContainer'); const wrapper = document.getElementById('logMediaWrapper');
@@ -1140,10 +1119,16 @@ const handleLogMedia = async (e) => {
     let hasVideo = files.some(f => f.type.startsWith('video/'));
     if(hasVideo) { LogModal.tempMedia.push({ isPlaceholder: true }); LogModal.updateUI(); }
     
-    await processMultipleMedia(files, (newMedia) => { 
+    try {
+        await processMultipleMedia(files, (newMedia) => { 
+            if(hasVideo) LogModal.tempMedia = LogModal.tempMedia.filter(m => !m.isPlaceholder);
+            LogModal.tempMedia.push(...newMedia); LogModal.updateUI(); 
+        }); 
+    } catch(err) {
         if(hasVideo) LogModal.tempMedia = LogModal.tempMedia.filter(m => !m.isPlaceholder);
-        LogModal.tempMedia.push(...newMedia); LogModal.updateUI(); 
-    }); 
+        LogModal.updateUI();
+        CustomDialog.alert("Erro ao processar ficheiros: " + err.message, "Erro");
+    }
     e.target.value = ''; 
 };
 document.getElementById('logCam').addEventListener('change', handleLogMedia); document.getElementById('logGal').addEventListener('change', handleLogMedia);
@@ -1168,9 +1153,9 @@ var CarouselModal = {
     render: function() {
         this.container.innerHTML = this.imagesArray.map((img, idx) => {
             let media = '';
-            if (img.isPlaceholder) { media = `<div class="carousel-pdf" style="background:#111;"><i class="material-icons" style="font-size:48px; color:var(--primary); animation: spin 1s linear infinite;">sync</i><span style="color:var(--primary); font-size:14px; margin-top:12px; text-align:center;">Processando...</span></div>`; }
+            if (img.isPlaceholder) { media = `<div class="carousel-pdf" style="background:#111;"><i class="material-icons" style="font-size:48px; color:var(--primary); animation: spin 1s linear infinite;">sync</i><span style="color:var(--primary); font-size:14px; margin-top:12px; text-align:center;">A processar...</span></div>`; }
             else if (img.data.startsWith('data:application/pdf')) { media = `<div class="carousel-pdf" onclick="App.openPDF('${img.data}')"><i class="material-icons" style="font-size:48px; color:var(--danger)">picture_as_pdf</i><span style="color:#fff; font-size:14px; margin-top:12px; text-align:center;">${AppUtils.getPdfName(img.data)}</span></div>`; } 
-            else if (img.isVideo || img.data.startsWith('data:video/')) { media = `<div class="carousel-img-wrapper"><video src="${img.data}" class="carousel-img" controls playsinline style="pointer-events: auto; z-index: 10;"></video></div>`; }
+            else if (img.isVideo || img.data.startsWith('data:video/')) { media = `<div class="carousel-img-wrapper" style="pointer-events: auto;"><video src="${img.data}" class="carousel-img" controls playsinline style="pointer-events: auto; z-index: 20; position: relative; max-width: 100%; max-height: 80vh;"></video></div>`; }
             else { media = `<div class="carousel-img-wrapper"><img src="${img.data}" class="carousel-img"><div class="carousel-touch-layer"></div></div>`; }
             return `<div class="carousel-item">${media}</div>`;
         }).join('');
@@ -1248,25 +1233,29 @@ var Editor = {
     closeUI: function() { AppState.closeModalUI(); },
     onHardwareBack: function() { document.getElementById('textOverlay').innerHTML = ''; document.getElementById('colorPopup').classList.remove('show'); this.isDraggingText = false; },
     
-    toggleColorPopup: function(e) { e.stopPropagation(); document.getElementById('colorPopup').classList.toggle('show'); },
+    toggleColorPopup: function(e) { e.preventDefault(); e.stopPropagation(); document.getElementById('colorPopup').classList.toggle('show'); },
 
     save: async function() {
-        const texts = document.getElementById('textOverlay').children;
-        if (texts.length > 0) {
-            const rect = this.canvas.getBoundingClientRect(); const scaleX = this.canvas.width / rect.width; const scaleY = this.canvas.height / rect.height;
-            for (let i = 0; i < texts.length; i++) {
-                const el = texts[i]; const left = parseFloat(el.style.left); const top = parseFloat(el.style.top); const fontSizeCSS = parseFloat(el.style.fontSize);
-                const canvasX = left * scaleX; const canvasY = top * scaleY; const canvasFontSize = fontSizeCSS * scaleY;
-                this.ctx.font = `bold ${canvasFontSize}px Roboto, sans-serif`; this.ctx.fillStyle = el.style.color; this.ctx.textBaseline = 'top'; this.ctx.strokeStyle = 'rgba(0,0,0,0.8)'; this.ctx.lineWidth = Math.max(2, canvasFontSize / 10);
-                const lines = el.innerText.split('\n'); let currentY = canvasY;
-                for(let line of lines) { this.ctx.strokeText(line, canvasX, currentY); this.ctx.fillText(line, canvasX, currentY); currentY += canvasFontSize * 1.2; }
+        try {
+            const texts = document.getElementById('textOverlay').children;
+            if (texts.length > 0) {
+                const rect = this.canvas.getBoundingClientRect(); const scaleX = this.canvas.width / rect.width; const scaleY = this.canvas.height / rect.height;
+                for (let i = 0; i < texts.length; i++) {
+                    const el = texts[i]; const left = parseFloat(el.style.left); const top = parseFloat(el.style.top); const fontSizeCSS = parseFloat(el.style.fontSize);
+                    const canvasX = left * scaleX; const canvasY = top * scaleY; const canvasFontSize = fontSizeCSS * scaleY;
+                    this.ctx.font = `bold ${canvasFontSize}px Roboto, sans-serif`; this.ctx.fillStyle = el.style.color; this.ctx.textBaseline = 'top'; this.ctx.strokeStyle = 'rgba(0,0,0,0.8)'; this.ctx.lineWidth = Math.max(2, canvasFontSize / 10);
+                    const lines = el.innerText.split('\n'); let currentY = canvasY;
+                    for(let line of lines) { this.ctx.strokeText(line, canvasX, currentY); this.ctx.fillText(line, canvasX, currentY); currentY += canvasFontSize * 1.2; }
+                }
             }
+            const dataUrl = this.canvas.toDataURL('image/jpeg', 0.8);
+            if (this.targetMode === 'db') { const log = await AppDB.logs.get(this.logId); if(log && log.images[this.dbIdx]) log.images[this.dbIdx].data = dataUrl; await AppDB.logs.put(log); App.renderList(); } 
+            else if (this.targetMode === 'temp') { if(LogModal.tempMedia[this.dbIdx]) LogModal.tempMedia[this.dbIdx].data = dataUrl; LogModal.updateUI(); }
+            if (CarouselModal.el.classList.contains('active') && CarouselModal.imagesArray[this.dbIdx]) { CarouselModal.imagesArray[this.dbIdx].data = dataUrl; CarouselModal.render(); CarouselModal.bindZoom(); }
+            this.closeUI();
+        } catch(e) {
+            CustomDialog.alert("Erro ao guardar edição. O seu dispositivo pode estar sem memória suficiente.", "Erro");
         }
-        const dataUrl = this.canvas.toDataURL('image/jpeg', 0.8);
-        if (this.targetMode === 'db') { const log = await AppDB.logs.get(this.logId); if(log && log.images[this.dbIdx]) log.images[this.dbIdx].data = dataUrl; await AppDB.logs.put(log); App.renderList(); } 
-        else if (this.targetMode === 'temp') { if(LogModal.tempMedia[this.dbIdx]) LogModal.tempMedia[this.dbIdx].data = dataUrl; LogModal.updateUI(); }
-        if (CarouselModal.el.classList.contains('active') && CarouselModal.imagesArray[this.dbIdx]) { CarouselModal.imagesArray[this.dbIdx].data = dataUrl; CarouselModal.render(); CarouselModal.bindZoom(); }
-        this.closeUI();
     },
     setTool: function(tool) {
         this.activeTool = tool; document.getElementById('btnPen').classList.toggle('active', tool === 'pen'); document.getElementById('btnText').classList.toggle('active', tool === 'text');
