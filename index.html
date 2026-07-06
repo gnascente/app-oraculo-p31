@@ -5,23 +5,14 @@
     <link rel="apple-touch-icon" href="icon.png">
 
     <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').then((reg) => {
-      reg.addEventListener('updatefound', () => {
-        const newWorker = reg.installing;
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
-            // Nova versão disponível, recarrega a página
-            if (confirm("Uma nova versão está disponível! Deseja atualizar?")) {
-              window.location.reload();
-            }
-          }
-        });
-      });
-    });
-  }
-</script>
-
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(() => console.log('Service Worker registrado.'))
+                    .catch((err) => console.log('Falha ao registrar:', err));
+            });
+        }
+    </script>
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
@@ -125,7 +116,7 @@
 
         .search-snippets { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px; }
         .snippet-item { font-size: 12px; color: var(--on-surface-variant); font-style: italic; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 6px; line-height: 1.3; }
-        mark.highlight { background-color: rgba(255, 213, 79, 0.3); color: #fff; padding: 0 2px; border-radius: 2px; }
+        mark.highlight { background-color: rgba(255, 213, 79, 0.5); color: #fff; padding: 0 4px; border-radius: 4px; box-shadow: 0 0 4px rgba(255, 213, 79, 0.3); }
 
         /* Logs Timeline & Pills */
         .log-list { margin-top: 8px; padding-left: 12px; border-left: 2px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
@@ -248,7 +239,6 @@
         .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 24px; color: var(--on-surface-variant); gap: 16px; text-align: center; height: 100%; }
         .empty-state i { font-size: 56px; opacity: 0.3; }
         
-        /* Utility link */
         .module-link-badge { font-size: 10px; background: var(--background); padding: 2px 6px; border-radius: 8px; color: var(--on-surface-variant); display: inline-block; text-transform: uppercase; margin-left: 8px;}
     </style>
 </head>
@@ -260,7 +250,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 2.0.0</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 2.1.0</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -391,12 +381,12 @@
         
         <div class="input-group" style="display: flex; gap: 8px;">
             <label class="upload-btn" style="flex: 1;">
-                <i class="material-icons">photo_camera</i> Câmera
-                <input type="file" id="logCam" class="hidden-file" accept="image/*" capture="environment" multiple>
+                <i class="material-icons">photo_camera</i> Mídia
+                <input type="file" id="logCam" class="hidden-file" accept="image/*,video/*" capture="environment" multiple>
             </label>
             <label class="upload-btn" style="flex: 1;">
                 <i class="material-icons">folder</i> Arquivo
-                <input type="file" id="logGal" class="hidden-file" accept="image/*,application/pdf" multiple>
+                <input type="file" id="logGal" class="hidden-file" accept="image/*,application/pdf,video/*" multiple>
             </label>
         </div>
         <div class="form-preview-container" id="logPreviewContainer">
@@ -409,11 +399,25 @@
     </div>
 </div>
 
+<div class="modal-overlay" id="taskCreateModal">
+    <div class="modal-content">
+        <h2>Nova Tarefa de Serviço</h2>
+        <div class="input-group" style="margin-top: 16px;">
+            <input type="text" id="taskNameInput" class="input-field" placeholder="Nome da Tarefa (Ex: Desmontagem)">
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-text" onclick="TaskModal.closeUI()">Cancelar</button>
+            <button class="btn btn-filled" onclick="TaskModal.save()">Criar Tarefa</button>
+        </div>
+    </div>
+</div>
+
 <div class="carousel-overlay" id="carouselModal">
     <div class="carousel-header">
         <div style="width:32px;"></div>
         <div class="carousel-actions-global">
             <div class="carousel-btn edit" id="carouselEditBtn" onclick="CarouselModal.editCurrent()"><i class="material-icons">edit</i></div>
+            <div class="carousel-btn delete" id="carouselDeleteBtn" onclick="CarouselModal.deleteCurrent()"><i class="material-icons" style="color:var(--danger)">delete</i></div>
         </div>
         <i class="material-icons action-icon" style="color:white; font-size:32px;" onclick="CarouselModal.closeUI()">close</i>
     </div>
@@ -422,6 +426,7 @@
     <div class="carousel-container" id="carouselContainer"></div>
 </div>
 
+<!-- Editor Overlay -->
 <div class="editor-overlay" id="editorOverlay">
     <div class="canvas-container" id="canvasContainer">
         <div class="editor-hint" id="editorHint">Desenhe livremente na imagem</div>
@@ -439,7 +444,7 @@
         <div class="editor-sep"></div>
         
         <div class="color-palette-container">
-            <div id="activeColorBtn" class="active-color-dot" style="background-color: #ff3333;"></div>
+            <div id="activeColorBtn" class="active-color-dot" style="background-color: #ff3333;" onclick="document.getElementById('colorPopup').classList.toggle('show')"></div>
             <div id="colorPopup" class="color-popup">
                 <div class="color-dot" style="background-color: #ff3333" onclick="Editor.setColor('#ff3333')"></div>
                 <div class="color-dot" style="background-color: #33cc33" onclick="Editor.setColor('#33cc33')"></div>
@@ -454,7 +459,6 @@
         <input type="range" id="editorSize" class="size-slider" min="2" max="9" step="0.5" value="3">
         <div class="editor-sep"></div>
         <button class="tool-btn" onclick="Editor.undo()"><i class="material-icons">undo</i></button>
-        <button class="tool-btn danger" onclick="Editor.deleteCurrent()" style="margin-left:8px;"><i class="material-icons">delete</i></button>
         <button class="tool-btn" onclick="Editor.save()" style="background: var(--primary); color: var(--on-primary); margin-left: auto;"><i class="material-icons">check</i></button>
     </div>
 </div>
@@ -510,7 +514,54 @@ const MODULE_MAPPING = { 'servico':['Serviços','handyman'], 'equipamento':['Equ
 var AppUtils = {
     getPdfName: function(base64Str, defaultName = "Documento PDF") { if(!base64Str) return defaultName; const match = base64Str.match(/name=([^;]+);/); return match ? decodeURIComponent(match[1]) : defaultName; },
     formatDate: function(ts) { if (!ts) return ""; const d = new Date(ts); return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear().toString().slice(-2)} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`; },
-    highlight: function(text, term) { if (!term) return text; const regex = new RegExp(`(${term})`, 'gi'); return text.replace(regex, '<mark class="highlight">$1</mark>'); }
+    highlight: function(text, term) { if (!term) return text; const regex = new RegExp(`(${term})`, 'gi'); return text.replace(regex, '<mark class="highlight">$1</mark>'); },
+    
+    compressVideo: async function(file) {
+        return new Promise((resolve) => {
+            const video = document.createElement('video');
+            video.muted = true;
+            video.src = URL.createObjectURL(file);
+            video.onloadedmetadata = () => {
+                const canvas = document.createElement('canvas');
+                const MAX = 240; 
+                let w = video.videoWidth, h = video.videoHeight;
+                if (w > MAX) { h = Math.floor(h * (MAX / w)); w = MAX; }
+                canvas.width = w; canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                
+                try {
+                    const stream = canvas.captureStream(15);
+                    const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8', videoBitsPerSecond: 100000 });
+                    const chunks = [];
+                    recorder.ondataavailable = e => chunks.push(e.data);
+                    recorder.onstop = () => {
+                        const blob = new Blob(chunks, { type: 'video/webm' });
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.readAsDataURL(blob);
+                    };
+                    recorder.start();
+                    
+                    video.playbackRate = 4.0; // Acelera gravação em 4x
+                    video.play().then(() => {
+                        const draw = () => {
+                            if (video.ended || video.paused) {
+                                if(recorder.state === 'recording') recorder.stop();
+                                return;
+                            }
+                            ctx.drawImage(video, 0, 0, w, h);
+                            requestAnimationFrame(draw);
+                        };
+                        draw();
+                    }).catch(() => fallback(file, resolve));
+                } catch(e) { fallback(file, resolve); }
+            };
+            video.onerror = () => fallback(file, resolve);
+            function fallback(f, res) {
+                const r = new FileReader(); r.onloadend = () => res(r.result); r.readAsDataURL(f);
+            }
+        });
+    }
 };
 
 async function processMultipleMedia(files, callback) {
@@ -525,6 +576,10 @@ async function processMultipleMedia(files, callback) {
             const encodedName = encodeURIComponent(customName);
             const reader = new FileReader();
             await new Promise((resolve) => { reader.onload = (e) => { let base64 = e.target.result.replace('data:application/pdf;base64,', `data:application/pdf;name=${encodedName};base64,`); processedArray.push({ data: base64, createdAt: captureTime }); resolve(); }; reader.readAsDataURL(file); });
+        } else if (file.type.startsWith('video/')) {
+            if (file.size > 20 * 1024 * 1024) { CustomDialog.alert(`Vídeo muito grande (máx 20MB)`, "Aviso"); continue; }
+            const compressedBase64 = await AppUtils.compressVideo(file);
+            processedArray.push({ data: compressedBase64, createdAt: captureTime });
         } else if (file.type.startsWith('image/')) {
             const reader = new FileReader();
             await new Promise((resolve) => {
@@ -551,10 +606,12 @@ function renderStackedDeckHTML(images, logId) {
 
     if (images.length === 1) {
         if (images[0].data.startsWith('data:application/pdf')) return `<div class="pdf-preview deck-photo" style="position:relative; left:0; width:100%; height:auto; min-height:140px; padding:12px;" onclick="${clickHandler}"><i class="material-icons" style="font-size:32px;">picture_as_pdf</i><span style="font-size: 13px; margin-top: 8px; text-align:center;">${AppUtils.getPdfName(images[0].data)}</span></div>`;
+        else if (images[0].data.startsWith('data:video/')) return `<div class="pdf-preview deck-photo" style="position:relative; left:0; width:100%; height:auto; min-height:140px; background:#000;" onclick="${clickHandler}"><i class="material-icons" style="font-size:48px; color:#fff;">play_circle_outline</i><span style="font-size: 13px; margin-top: 8px; color:#fff;">VÍDEO</span></div>`;
         else return `<img src="${images[0].data}" class="image-preview" onclick="${clickHandler}" style="margin:0;">`;
     } else {
         const photosHtml = images.slice(0, 3).map(img => {
             if (img.data.startsWith('data:application/pdf')) return `<div class="pdf-preview deck-photo"><i class="material-icons" style="font-size:24px;">picture_as_pdf</i><span style="font-size:9px; margin-top:4px;">PDF</span></div>`;
+            else if (img.data.startsWith('data:video/')) return `<div class="pdf-preview deck-photo" style="background:#000;"><i class="material-icons" style="font-size:24px; color:#fff;">play_circle_outline</i><span style="font-size:9px; margin-top:4px; color:#fff;">VÍDEO</span></div>`;
             return `<img src="${img.data}" class="deck-photo">`;
         }).join('');
         let countHtml = `<div style="position: absolute; bottom: 8px; right: 18px; background: rgba(0,0,0,0.7); color:white; padding: 4px 8px; border-radius: 12px; font-size:12px; z-index: 10; font-weight:bold;">${countLabel}</div>`;
@@ -684,6 +741,20 @@ var App = {
         this.focusEntity(newEntity.id);
     },
 
+    toggleTaskLogs: function(taskId) {
+        const logsEl = document.getElementById('task-logs-' + taskId);
+        const iconEl = document.getElementById('task-icon-' + taskId);
+        if(logsEl) {
+            if(logsEl.style.display === 'none') {
+                logsEl.style.display = 'flex';
+                iconEl.innerText = 'expand_less';
+            } else {
+                logsEl.style.display = 'none';
+                iconEl.innerText = 'expand_more';
+            }
+        }
+    },
+
     renderList: function() {
         const rawSearchTerm = document.getElementById('searchInput').value; const searchTerm = rawSearchTerm.toLowerCase().trim(); const listEl = document.getElementById('entityList'); listEl.innerHTML = '';
         let filtered = db.entities.filter(e => e.type === this.moduleType && e.parentId === null); let hasExactMatch = false;
@@ -695,7 +766,6 @@ var App = {
                 let matchesName = e.name.toLowerCase().includes(searchTerm);
                 let relatedLogs = db.logs.filter(l => l.relatedEntities.some(rel => rel.id === e.id) && l.text && l.text.toLowerCase().includes(searchTerm));
                 
-                // For Serviços, also search inside its Tarefas
                 let tasksMatched = [];
                 if(e.type === 'servico') {
                     const servTasks = db.entities.filter(t => t.parentId === e.id && t.type === 'tarefa');
@@ -721,7 +791,6 @@ var App = {
         iterator.forEach(item => {
             let e = item.entity;
             
-            // Render Entity Card Header
             let cardHtml = `
             <li class="task-item" id="entity-${e.id}">
                 <div class="task-header">
@@ -737,27 +806,25 @@ var App = {
                 </div>
             `;
 
-            // Render Entity Logs
             let entityLogs = db.logs.filter(log => log.relatedEntities.some(rel => rel.id === e.id));
             if (entityLogs.length > 0) {
                 cardHtml += `<div class="log-list">`;
-                entityLogs.sort((a, b) => a.createdAt - b.createdAt).forEach(log => {
+                entityLogs.sort((a, b) => b.createdAt - a.createdAt).forEach(log => {
                     cardHtml += App.renderLogItemHTML(log, e.id, searchTerm);
                 });
                 cardHtml += `</div>`;
             }
 
-            // Render Sub-Tasks if it's a Serviço
             if (e.type === 'servico') {
                 let tasks = db.entities.filter(t => t.parentId === e.id && t.type === 'tarefa');
                 if (tasks.length > 0) {
                     cardHtml += `<div style="font-size:12px; font-weight:bold; color:var(--on-surface-variant); margin-top:20px; margin-bottom: 8px; text-transform:uppercase;">Tarefas do Serviço</div><ul class="subtask-list">`;
-                    tasks.sort((a, b) => a.createdAt - b.createdAt).forEach(t => {
+                    tasks.sort((a, b) => b.createdAt - a.createdAt).forEach(t => {
                         cardHtml += `
                         <li class="subtask-item" id="entity-${t.id}">
                             <div class="subtask-row">
                                 <div class="subtask-text-wrapper">
-                                    <i class="material-icons" style="font-size:18px; color:var(--on-surface-variant);">subdirectory_arrow_right</i>
+                                    <i class="material-icons action-icon" style="font-size:24px;" id="task-icon-${t.id}" onclick="App.toggleTaskLogs('${t.id}')">expand_less</i>
                                     <span class="subtask-text selectable-text">${AppUtils.highlight(t.name, searchTerm)}</span>
                                 </div>
                                 <div class="task-actions" style="gap:8px;">
@@ -768,11 +835,13 @@ var App = {
                         `;
                         let taskLogs = db.logs.filter(log => log.relatedEntities.some(rel => rel.id === t.id));
                         if (taskLogs.length > 0) {
-                            cardHtml += `<div class="log-list" style="margin-left: 26px;">`;
-                            taskLogs.sort((a, b) => a.createdAt - b.createdAt).forEach(log => {
+                            cardHtml += `<div class="log-list" id="task-logs-${t.id}" style="margin-left: 26px; display:flex;">`;
+                            taskLogs.sort((a, b) => b.createdAt - a.createdAt).forEach(log => {
                                 cardHtml += App.renderLogItemHTML(log, t.id, searchTerm);
                             });
                             cardHtml += `</div>`;
+                        } else {
+                            cardHtml += `<div class="log-list" id="task-logs-${t.id}" style="display:none;"></div>`;
                         }
                         cardHtml += `</li>`;
                     });
@@ -821,17 +890,6 @@ var App = {
                 ${linksBarHtml}
             </div>
         `;
-    },
-
-    openPDF: function(base64) {
-        try {
-            const arr = base64.split(','); const mimePart = arr[0]; const mime = mimePart.match(/:(.*?);/)[1]; 
-            let fileName = "documento.pdf"; const nameMatch = mimePart.match(/name=([^;]+)/); if (nameMatch) fileName = decodeURIComponent(nameMatch[1]);
-            const bstr = atob(arr[1]); let n = bstr.length; const u8arr = new Uint8Array(n); while(n--) u8arr[n] = bstr.charCodeAt(n);
-            const blob = new Blob([u8arr], {type: mime}); const url = URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.target = "_blank"; a.download = fileName;
-            document.body.appendChild(a); a.click(); setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
-        } catch(e) { CustomDialog.alert("Não foi possível abrir o PDF.", "Erro"); }
     },
 
     exportToLocal: async () => { BackupChoiceModal.closeUI(); setTimeout(async () => { if (typeof JSZip === 'undefined') { await CustomDialog.alert("Aguarde a biblioteca carregar.", "Aviso"); return; } CustomDialog.alert("Gerando backup local...", "Aguarde"); const zip = new JSZip(); const dbString = localStorage.getItem(DB_KEY) || "{}"; zip.file("dados_oraculo.json", dbString); const zipBlob = await zip.generateAsync({type:"blob"}); const filename = `backup_oraculo_${Date.now()}.zip`; const url = URL.createObjectURL(zipBlob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); setTimeout(() => { AppState.closeModalUI(); }, 1500); }, 100); },
@@ -909,7 +967,6 @@ var LogModal = {
         const term = document.getElementById('logLinkInput').value.toLowerCase().trim();
         const dropdown = document.getElementById('logLinkAutocomplete');
         
-        // Impede vincular à própria entidade de origem e oculta Tarefas da listagem
         let available = db.entities.filter(e => e.type !== 'tarefa' && e.id !== this.originId && !this.tempRelations.some(rel => rel.id === e.id));
         if (term) available = available.filter(e => e.name.toLowerCase().includes(term));
         
@@ -944,7 +1001,7 @@ var LogModal = {
     },
     save: async function() {
         const text = document.getElementById('logText').value.trim();
-        if(!text && this.tempMedia.length === 0) { await CustomDialog.alert('Insira um texto ou anexe uma imagem/documento.', 'Aviso'); return; }
+        if(!text && this.tempMedia.length === 0) { await CustomDialog.alert('Insira um texto ou anexe uma imagem/documento/vídeo.', 'Aviso'); return; }
         
         const originEntity = db.entities.find(e => e.id === this.originId);
         const coreRelation = { type: originEntity.type, id: originEntity.id };
@@ -990,20 +1047,34 @@ var CarouselModal = {
     closeUI: function() { AppState.closeModalUI(); },
     next: function() { const itemW = window.innerWidth * 0.85 + 16; this.container.scrollBy({ left: itemW, behavior: 'smooth' }); },
     prev: function() { const itemW = window.innerWidth * 0.85 + 16; this.container.scrollBy({ left: -itemW, behavior: 'smooth' }); },
-    updateGlobalActions: function() { const img = this.imagesArray[this.currentIndex]; const editBtn = document.getElementById('carouselEditBtn'); if (img && img.data.startsWith('data:application/pdf')) editBtn.style.display = 'none'; else editBtn.style.display = 'grid'; },
+    updateGlobalActions: function() { const img = this.imagesArray[this.currentIndex]; const editBtn = document.getElementById('carouselEditBtn'); if (img && (img.data.startsWith('data:application/pdf') || img.data.startsWith('data:video/'))) editBtn.style.display = 'none'; else editBtn.style.display = 'grid'; },
     render: function() {
         this.container.innerHTML = this.imagesArray.map((img, idx) => {
             let media = '';
             if (img.data.startsWith('data:application/pdf')) { media = `<div class="carousel-pdf" onclick="App.openPDF('${img.data}')"><i class="material-icons" style="font-size:48px; color:var(--danger)">picture_as_pdf</i><span style="color:#fff; font-size:14px; margin-top:12px; text-align:center;">${AppUtils.getPdfName(img.data)}</span></div>`; } 
+            else if (img.data.startsWith('data:video/')) { media = `<div class="carousel-img-wrapper"><video src="${img.data}" class="carousel-img" controls playsinline></video></div>`; }
             else { media = `<div class="carousel-img-wrapper"><img src="${img.data}" class="carousel-img"><div class="carousel-touch-layer"></div></div>`; }
             return `<div class="carousel-item">${media}</div>`;
         }).join('');
     },
     editCurrent: function() { let img = this.imagesArray[this.currentIndex]; if (this.currentLogId === 'temp') { Editor.openForTemp(img.data, this.currentIndex); } else { Editor.openForDBLog(this.currentLogId, img.data, this.currentIndex); } },
+    deleteCurrent: async function() {
+        if(await CustomDialog.confirm("Excluir imagem/arquivo permanentemente?", "Excluir")) {
+            this.imagesArray.splice(this.currentIndex, 1);
+            if (this.currentLogId === 'temp') { LogModal.updateUI(); } else { saveDB(); App.renderList(); }
+            if(this.imagesArray.length === 0) { this.closeUI(); } else {
+                this.render(); this.bindZoom();
+                this.currentIndex = Math.min(this.currentIndex, this.imagesArray.length - 1);
+                this.container.scrollLeft = this.currentIndex * (window.innerWidth * 0.85 + 16);
+                if(this.imagesArray.length <= 1) { document.getElementById('carouselNavLeft').style.display = 'none'; document.getElementById('carouselNavRight').style.display = 'none'; }
+                this.updateGlobalActions();
+            }
+        }
+    },
     bindZoom: function() {
         const wrappers = this.container.querySelectorAll('.carousel-img-wrapper');
         wrappers.forEach(wrapper => {
-            const touchLayer = wrapper.querySelector('.carousel-touch-layer'); const img = wrapper.querySelector('.carousel-img');
+            const touchLayer = wrapper.querySelector('.carousel-touch-layer'); const img = wrapper.querySelector('.carousel-img'); if(!img || img.tagName === 'VIDEO') return;
             let scale = 1, currentX = 0, currentY = 0, startX = 0, startY = 0, initialDist = 0, initialScale = 1; let lastTap = 0, isPinching = false, isMoving = false;
             touchLayer.addEventListener('touchstart', (e) => {
                 img.style.transition = 'none';
@@ -1047,28 +1118,6 @@ var Editor = {
     },
     closeUI: function() { AppState.closeModalUI(); },
     onHardwareBack: function() { document.getElementById('textOverlay').innerHTML = ''; document.getElementById('colorPopup').classList.remove('show'); this.isDraggingText = false; },
-    
-    deleteCurrent: async function() {
-        if(await CustomDialog.confirm("Excluir imagem permanentemente?", "Excluir")) {
-            if (this.targetMode === 'db') {
-                const log = db.logs.find(l => l.id === this.logId); if(log) log.images.splice(this.dbIdx, 1);
-                saveDB(); App.renderList();
-            } else if (this.targetMode === 'temp') {
-                LogModal.tempMedia.splice(this.dbIdx, 1); LogModal.updateUI();
-            }
-            if (CarouselModal.el.classList.contains('active')) {
-                CarouselModal.imagesArray.splice(this.dbIdx, 1);
-                if(CarouselModal.imagesArray.length === 0) { CarouselModal.closeUI(); } else {
-                    CarouselModal.render(); CarouselModal.bindZoom();
-                    CarouselModal.currentIndex = Math.min(CarouselModal.currentIndex, CarouselModal.imagesArray.length - 1);
-                    CarouselModal.container.scrollLeft = CarouselModal.currentIndex * (window.innerWidth * 0.85 + 16);
-                    if(CarouselModal.imagesArray.length <= 1) { document.getElementById('carouselNavLeft').style.display = 'none'; document.getElementById('carouselNavRight').style.display = 'none'; }
-                    CarouselModal.updateGlobalActions();
-                }
-            }
-            this.closeUI();
-        }
-    },
     
     save: function() {
         const texts = document.getElementById('textOverlay').children;
