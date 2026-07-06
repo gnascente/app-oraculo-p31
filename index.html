@@ -5,6 +5,7 @@
     <link rel="apple-touch-icon" href="icon.png">
 
     <script>
+        // Limpeza agressiva ao arrancar para evitar que fique preso em versões velhas no PWA
         if ('serviceWorker' in navigator) {
             caches.keys().then(function(names) { for (let name of names) caches.delete(name); });
             navigator.serviceWorker.getRegistrations().then(function(registrations) {
@@ -12,8 +13,8 @@
             });
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js?v=' + new Date().getTime())
-                    .then(() => console.log('App forçado a atualizar com sucesso.'))
-                    .catch((err) => console.log('Falha ao registrar:', err));
+                    .then(() => console.log('Service Worker Atualizado.'))
+                    .catch((err) => console.log('Falha ao registar:', err));
             });
         }
     </script>
@@ -52,7 +53,7 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; -webkit-tap-highlight-color: transparent; }
         input, textarea { -webkit-user-select: auto; user-select: auto; }
-        img { -webkit-user-drag: none; pointer-events: auto; }
+        img, video { -webkit-user-drag: none; pointer-events: auto; }
 
         body { background-color: var(--background); color: var(--on-surface); display: flex; justify-content: center; padding: 16px; min-height: 100vh; overflow-x: hidden; overscroll-behavior-y: contain; outline: none; }
         
@@ -66,7 +67,7 @@
 
         .container { 
             width: 100%; max-width: 480px; background: var(--surface); border-radius: 16px; box-shadow: var(--shadow-sm); 
-            display: flex; flex-direction: column; overflow: hidden; position: relative; padding-bottom: 80px; min-height: calc(100vh - 32px);
+            display: flex; flex-direction: column; overflow: hidden; position: relative; padding-bottom: 40px; min-height: calc(100vh - 32px);
         }
         
         header { padding: 16px; display: flex; align-items: center; justify-content: space-between; position: relative; border-bottom: 1px solid var(--surface-variant); background: var(--surface); z-index: 10; }
@@ -93,8 +94,6 @@
         .dropdown-menu.show { display: flex; }
         .menu-item { padding: 14px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; font-size: 15px; color: var(--on-surface); transition: background 0.2s; }
         .menu-item:hover { background: var(--surface-variant); }
-        .menu-item.danger { color: var(--danger); }
-        .menu-item.danger .material-icons { color: var(--danger); }
         .menu-item .material-icons { font-size: 20px; color: var(--on-surface-variant); }
 
         .search-container { padding: 16px; background: var(--surface); position: sticky; top: 0; z-index: 5; border-bottom: 1px solid var(--surface-variant); }
@@ -106,7 +105,7 @@
         .search-box i.search-icon { position: absolute; left: 14px; color: var(--on-surface-variant); font-size: 20px; pointer-events: none; }
         .search-box input:focus { border-color: var(--primary); }
 
-        .task-list { list-style: none; padding: 16px; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+        .task-list { list-style: none; padding: 16px; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; margin-bottom: 30px; }
         
         .task-item { background: var(--surface-variant); border-radius: 12px; padding: 16px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; transition: background-color 0.5s; border: 1px solid transparent; }
         .task-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 12px; }
@@ -119,7 +118,7 @@
 
         .search-snippets { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px; }
         .snippet-item { font-size: 12px; color: var(--on-surface-variant); font-style: italic; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 6px; line-height: 1.3; }
-        mark.highlight { background-color: #ffeb3b; color: #000; padding: 2px 4px; font-weight: bold; border-radius: 4px; box-shadow: 0 0 4px rgba(255, 235, 59, 0.4); }
+        mark.highlight { background-color: rgba(255, 213, 79, 0.8); color: #000; padding: 0 4px; border-radius: 4px; box-shadow: 0 0 4px rgba(255, 213, 79, 0.5); font-weight: bold; }
 
         .log-list { margin-top: 8px; padding-left: 12px; border-left: 2px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
         .log-item { font-size: 13px; color: var(--on-surface-variant); display: flex; flex-direction: column; gap: 6px; background: rgba(0,0,0,0.15); padding: 10px; border-radius: 8px; transition: background-color 0.5s; }
@@ -129,7 +128,7 @@
         .subtask-list { list-style: none; display: flex; flex-direction: column; gap: 12px; padding-top: 8px; }
         .subtask-item { display: flex; flex-direction: column; gap: 8px; font-size: 14px; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; }
         .subtask-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-        .subtask-text-wrapper { display: flex; align-items: center; gap: 8px; flex-grow: 1; cursor: pointer; }
+        .subtask-text-wrapper { display: flex; align-items: center; gap: 8px; flex-grow: 1; cursor: pointer; padding: 4px 0;}
         .subtask-text { font-weight: 500; color: var(--primary); font-size: 15px; }
         
         .log-links-bar { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); }
@@ -147,9 +146,7 @@
 
         .stacked-deck { width: 100%; height: 160px; position: relative; margin-top: 8px; margin-bottom: 4px; cursor: pointer; display: block; transition: transform 0.2s; background: transparent; }
         .stacked-deck:active { transform: scale(0.98); }
-        .deck-photo, .pdf-preview.deck-photo {
-            width: calc(100% - 20px); height: 100%; position: absolute; top: 0; left: 10px; object-fit: cover; border-radius: 8px; border: 1px solid #555; box-shadow: var(--shadow-sm); transition: transform 0.2s;
-        }
+        .deck-photo, .pdf-preview.deck-photo { width: calc(100% - 20px); height: 100%; position: absolute; top: 0; left: 10px; object-fit: cover; border-radius: 8px; border: 1px solid #555; box-shadow: var(--shadow-sm); transition: transform 0.2s; }
         .stacked-deck.single .deck-photo { width: 100%; left: 0; filter: none !important; transform: none !important; }
         .stacked-deck:not(.single) .deck-photo:nth-child(n+4) { display: none; }
         .stacked-deck:not(.single) .deck-photo:nth-child(1) { transform: rotate(-3deg); z-index: 3; }
@@ -158,20 +155,21 @@
         .image-preview { width: 100%; max-height: 200px; object-fit: cover; border-radius: 12px; border: 1px solid var(--border); cursor: pointer; margin-top: 8px; margin-bottom: 8px; display: block; }
         .pdf-preview { display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 12px; color: var(--danger); cursor: pointer; }
 
-        .fab { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); background-color: var(--primary); color: var(--on-primary); border: none; width: 56px; height: 56px; border-radius: 16px; box-shadow: var(--shadow); cursor: pointer; display: grid; place-content: center; z-index: 99; transition: transform 0.2s; }
+        .fab { position: fixed; bottom: 48px; left: 50%; transform: translateX(-50%); background-color: var(--primary); color: var(--on-primary); border: none; width: 56px; height: 56px; border-radius: 16px; box-shadow: var(--shadow); cursor: pointer; display: grid; place-content: center; z-index: 99; transition: transform 0.2s; }
         .fab:active { transform: translateX(-50%) scale(0.9); }
         @media (min-width: 500px) { .fab { left: calc(50% + 180px); } }
 
+        /* Modals */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: flex-end; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
         .modal-overlay.active { opacity: 1; pointer-events: auto; }
         .modal-content { background: var(--surface); width: 100%; max-width: 480px; border-radius: 24px 24px 0 0; padding: 24px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow); transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .modal-overlay.active .modal-content { transform: translateY(0); }
 
-        .dialog-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 3000; opacity: 0; pointer-events: none; transition: opacity 0.2s; padding: 24px; }
-        .dialog-overlay.active { opacity: 1; pointer-events: auto; }
-        .dialog-content { background: var(--surface); width: 100%; max-width: 340px; border-radius: 16px; padding: 24px; box-shadow: var(--shadow); transform: scale(0.9); opacity: 0; transition: transform 0.2s, opacity 0.2s; }
-        .dialog-overlay.active .dialog-content { transform: scale(1); opacity: 1; }
-        .dialog-content h3 { margin-bottom: 16px; }
+        .dialog-overlay, .progress-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 3000; opacity: 0; pointer-events: none; transition: opacity 0.2s; padding: 24px; }
+        .dialog-overlay.active, .progress-modal.active { opacity: 1; pointer-events: auto; }
+        .dialog-content, .progress-content { background: var(--surface); width: 100%; max-width: 340px; border-radius: 16px; padding: 24px; box-shadow: var(--shadow); transform: scale(0.9); opacity: 0; transition: transform 0.2s, opacity 0.2s; text-align: center; }
+        .dialog-overlay.active .dialog-content, .progress-modal.active .progress-content { transform: scale(1); opacity: 1; }
+        .dialog-content h3 { margin-bottom: 16px; text-align: left;}
 
         .input-group { margin-bottom: 16px; position: relative;}
         .input-field { width: 100%; padding: 14px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; outline: none; background: var(--background); color: var(--on-surface); }
@@ -196,7 +194,7 @@
         .carousel-overlay.active { display: flex; }
         .carousel-header { position: absolute; top:0; left:0; width:100%; padding: 16px; display: flex; justify-content: space-between; align-items: flex-start; z-index: 1600; pointer-events: none; }
         .carousel-header > * { pointer-events: auto; }
-        .carousel-actions-global { display: flex; gap: 16px; background: rgba(0,0,0,0.5); padding: 8px 16px; border-radius: 30px; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.1); }
+        .carousel-actions-global { display: flex; gap: 16px; background: rgba(0,0,0,0.5); padding: 8px 16px; border-radius: 30px; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.1); align-items: center; }
         .carousel-btn { width: 36px; height: 36px; border-radius: 50%; display: grid; place-content: center; cursor: pointer; transition: 0.2s; }
         .carousel-btn:active { transform: scale(0.9); }
         .carousel-btn.edit { color: var(--primary); }
@@ -222,7 +220,8 @@
         #textOverlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
         .editor-hint { position: absolute; top: 24px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 14px; pointer-events: none; z-index: 10; white-space: nowrap; }
         
-        .color-popup { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: #222; padding: 12px; border-radius: 12px; border: 1px solid #555; display: none; gap: 12px; flex-direction: row; box-shadow: 0 4px 16px rgba(0,0,0,0.9); z-index: 99999; pointer-events: auto; }
+        /* Popup de Cores Seguro */
+        .color-popup { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: #222; padding: 12px; border-radius: 12px; border: 1px solid #555; display: none; gap: 12px; flex-direction: row; box-shadow: 0 4px 16px rgba(0,0,0,0.9); z-index: 999999; pointer-events: auto; }
         .color-popup.show { display: flex; }
         .color-dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid #777; flex-shrink: 0; }
         
@@ -240,6 +239,9 @@
         .empty-state i { font-size: 56px; opacity: 0.3; }
         
         .module-link-badge { font-size: 10px; background: var(--background); padding: 2px 6px; border-radius: 8px; color: var(--on-surface-variant); display: inline-block; text-transform: uppercase; margin-left: 8px;}
+
+        /* Storage Footer */
+        .storage-footer { position: absolute; bottom: 0; left: 0; width: 100%; text-align: center; padding: 8px; font-size: 11px; color: var(--on-surface-variant); background: var(--surface); border-top: 1px solid var(--surface-variant); display: flex; justify-content: center; align-items: center; gap: 6px; z-index: 5;}
     </style>
 </head>
 <body>
@@ -258,8 +260,8 @@
             <div style="position: relative;" id="menuWrapper">
                 <i class="material-icons action-icon" onclick="App.toggleMenu(event)">more_vert</i>
                 <div id="mainMenu" class="dropdown-menu">
-                    <div class="menu-item" onclick="App.menuAction('cloud')"><i class="material-icons">cloud_download</i> Gerenciar Nuvem</div>
-                    <div class="menu-item" onclick="App.menuAction('export')"><i class="material-icons">cloud_upload</i> Exportar Backup</div>
+                    <div class="menu-item" onclick="App.listBackupsFromBlob()"><i class="material-icons">cloud_download</i> Nuvem (Restore)</div>
+                    <div class="menu-item" onclick="App.exportChoice()"><i class="material-icons">cloud_upload</i> Exportar Backup</div>
                 </div>
             </div>
         </div>
@@ -304,16 +306,43 @@
         </div>
         <ul class="task-list" id="entityList"></ul>
     </div>
+
+    <div class="storage-footer">
+        <i class="material-icons" style="font-size: 14px;">storage</i> <span id="storageFooterText">Calculando espaço...</span>
+    </div>
 </div>
 
 <button class="fab" id="mainFab" style="display:none;" onclick="LogModal.open(null, App.currentEntityId)">
     <i class="material-icons">add</i>
 </button>
 
+<div class="dialog-overlay" id="customDialogModal">
+    <div class="dialog-content">
+        <h3 id="customDialogTitle" style="text-align:left;">Aviso</h3>
+        <p id="customDialogMessage" style="text-align:left; line-height: 1.4; margin-bottom: 24px;"></p>
+        <div id="customDialogInputContainer" style="display: none; margin-bottom: 20px;">
+            <input type="text" id="customDialogInput" class="input-field">
+        </div>
+        <div class="modal-actions" style="justify-content: flex-end;">
+            <button class="btn btn-text" id="customDialogCancel" style="display: none;">Cancelar</button>
+            <button class="btn btn-filled" id="customDialogConfirm">OK</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Progresso Real de Backup -->
+<div class="progress-modal" id="progressModal">
+    <div class="progress-content">
+        <h3 id="progressTitle" style="margin-bottom: 16px; color: var(--on-surface);">Aguarde...</h3>
+        <p id="progressText" style="margin-bottom: 24px; font-weight: bold; color: var(--primary); font-size: 16px;">0%</p>
+        <button class="btn btn-filled" id="progressCancelBtn" style="width: 100%; background-color: var(--surface-variant); color: var(--danger);">Cancelar</button>
+    </div>
+</div>
+
 <div class="dialog-overlay" id="backupChoiceModal">
     <div class="dialog-content">
-        <h3 id="backupChoiceTitle">Exportar Backup</h3>
-        <p style="margin-bottom: 24px;">Escolha onde deseja salvar seu backup:</p>
+        <h3 id="backupChoiceTitle" style="text-align:left;">Exportar Backup</h3>
+        <p style="margin-bottom: 24px; text-align:left;">Escolha onde deseja salvar seu backup:</p>
         <div class="modal-actions" style="margin-top: 24px; justify-content: flex-end;">
             <button class="btn btn-filled" style="background: var(--surface-variant); color: var(--on-surface); margin-right: 8px;" onclick="App.exportToLocal()">Local (ZIP)</button>
             <button class="btn btn-filled" onclick="App.exportToBlob()">Nuvem</button>
@@ -327,20 +356,6 @@
         <div id="backupList"></div>
         <div class="modal-actions">
             <button class="btn btn-text" onclick="BackupModal.closeUI()">Fechar</button>
-        </div>
-    </div>
-</div>
-
-<div class="dialog-overlay" id="customDialogModal">
-    <div class="dialog-content">
-        <h3 id="customDialogTitle">Aviso</h3>
-        <p id="customDialogMessage"></p>
-        <div id="customDialogInputContainer" style="display: none; margin-bottom: 20px;">
-            <input type="text" id="customDialogInput" class="input-field">
-        </div>
-        <div class="modal-actions" style="justify-content: flex-end;">
-            <button class="btn btn-text" id="customDialogCancel" style="display: none;">Cancelar</button>
-            <button class="btn btn-filled" id="customDialogConfirm">OK</button>
         </div>
     </div>
 </div>
@@ -414,7 +429,7 @@
 
 <div class="carousel-overlay" id="carouselModal">
     <div class="carousel-header">
-        <div style="width:32px;"></div>
+        <div style="color: white; font-size: 13px; font-weight:bold; margin-top: 8px; text-shadow: 1px 1px 2px black;" id="carouselSizeIndicator"></div>
         <div class="carousel-actions-global">
             <div class="carousel-btn edit" id="carouselEditBtn" onclick="CarouselModal.editCurrent()"><i class="material-icons">edit</i></div>
             <div class="carousel-btn delete" id="carouselDeleteBtn" onclick="CarouselModal.deleteCurrent()"><i class="material-icons" style="color:var(--danger)">delete</i></div>
@@ -426,6 +441,7 @@
     <div class="carousel-container" id="carouselContainer"></div>
 </div>
 
+<!-- Editor Overlay -->
 <div class="editor-overlay" id="editorOverlay" onclick="document.getElementById('colorPopup').classList.remove('show')">
     <div class="canvas-container" id="canvasContainer">
         <div class="editor-hint" id="editorHint">Desenhe livremente na imagem</div>
@@ -452,7 +468,7 @@
         <div class="editor-sep"></div>
         
         <div class="color-palette-container">
-            <div id="activeColorBtn" class="active-color-dot" style="background-color: #ff3333;" onclick="Editor.toggleColorPopup(event)"></div>
+            <div id="activeColorBtn" class="active-color-dot" style="background-color: #ff3333;" onclick="event.preventDefault(); event.stopPropagation(); document.getElementById('colorPopup').classList.toggle('show');"></div>
         </div>
         
         <div class="editor-sep"></div>
@@ -464,12 +480,9 @@
 </div>
 
 <script>
-// --- 1. INICIALIZAÇÃO DO DEXIE ---
+// --- INICIALIZAÇÃO DO DEXIE ---
 const AppDB = new Dexie('OraculoP31');
-AppDB.version(1).stores({
-    entities: 'id, type, name, parentId, createdAt',
-    logs: 'id, originEntityId' 
-});
+AppDB.version(1).stores({ entities: 'id, type, name, parentId, createdAt', logs: 'id, originEntityId' });
 
 // --- CORE UTILS & STATE MANAGEMENT ---
 var AppState = {
@@ -525,52 +538,60 @@ var AppUtils = {
     
     compressVideo: async function(file) {
         return new Promise((resolve, reject) => {
-            const fallback = (f, tBase64) => {
-                const r = new FileReader(); 
-                r.onloadend = () => resolve({ video: r.result, thumb: tBase64 || '' }); 
-                r.onerror = () => reject(new Error("Falha na leitura do ficheiro."));
-                r.readAsDataURL(f);
-            };
-
             const video = document.createElement('video');
-            video.muted = true;
-            video.setAttribute('playsinline', '');
-            video.autoplay = true; 
-            video.style.display = 'none';
+            video.muted = true; video.setAttribute('playsinline', ''); video.autoplay = true; video.style.display = 'none';
             document.body.appendChild(video);
             
             let timeoutId = setTimeout(() => {
                 if(document.body.contains(video)) document.body.removeChild(video);
-                fallback(file, '');
-            }, 5000);
+                reject(new Error("O processamento do vídeo excedeu o tempo limite de segurança."));
+            }, 30000); 
 
             let thumbBase64 = '';
-            video.onloadeddata = () => { video.currentTime = 1; }; // Seek to 1s
+            video.onloadeddata = () => { video.currentTime = 0.5; }; 
             video.onseeked = () => {
-                clearTimeout(timeoutId);
                 try {
                     const canvas = document.createElement('canvas');
-                    const MAX = 320; let w = video.videoWidth, h = video.videoHeight;
+                    const MAX = 240; // Muito Pequeno = Maior Compressão
+                    let w = video.videoWidth, h = video.videoHeight;
                     if (w > MAX) { h = Math.floor(h * (MAX / w)); w = MAX; }
                     canvas.width = w; canvas.height = h;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(video, 0, 0, w, h);
                     thumbBase64 = canvas.toDataURL('image/jpeg', 0.6);
-                    if(document.body.contains(video)) document.body.removeChild(video);
+
+                    if (typeof MediaRecorder === 'undefined' || !canvas.captureStream) {
+                        throw new Error("O seu navegador não suporta a compressão nativa de vídeo HTML5.");
+                    }
+
+                    const stream = canvas.captureStream(10); // Apenas 10 frames por segundo
+                    let mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8') ? 'video/webm;codecs=vp8' : (MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : '');
+                    const recorder = new MediaRecorder(stream, { mimeType: mimeType, videoBitsPerSecond: 50000 }); // Muito pouca qualidade para caber no IndexedDB
+                    const chunks = [];
+                    recorder.ondataavailable = e => { if(e.data.size > 0) chunks.push(e.data); };
+                    recorder.onstop = () => {
+                        clearTimeout(timeoutId);
+                        if(document.body.contains(video)) document.body.removeChild(video);
+                        const blob = new Blob(chunks, { type: mimeType || 'video/mp4' });
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve({ video: reader.result, thumb: thumbBase64, size: blob.size });
+                        reader.readAsDataURL(blob);
+                    };
                     
-                    // Removido o MediaRecorder que causava falhas. Apenas extraímos o thumbnail e guardamos o ficheiro original em Base64.
-                    // O Dexie suporta ficheiros grandes sem corromper se tiver RAM suficiente para o string Base64.
-                    fallback(file, thumbBase64);
+                    recorder.start(); video.currentTime = 0; video.playbackRate = 2.0; 
+                    video.play().then(() => {
+                        const draw = () => {
+                            if (video.ended || video.paused) { if(recorder.state === 'recording') recorder.stop(); return; }
+                            ctx.drawImage(video, 0, 0, w, h); requestAnimationFrame(draw);
+                        };
+                        draw();
+                    }).catch((e) => { if(recorder.state === 'recording') recorder.stop(); });
                 } catch(e) { 
-                    if(document.body.contains(video)) document.body.removeChild(video);
-                    fallback(file, ''); 
+                    clearTimeout(timeoutId); if(document.body.contains(video)) document.body.removeChild(video); 
+                    reject(e);
                 }
             };
-            video.onerror = () => { 
-                clearTimeout(timeoutId);
-                if(document.body.contains(video)) document.body.removeChild(video); 
-                fallback(file, ''); 
-            };
+            video.onerror = () => { clearTimeout(timeoutId); if(document.body.contains(video)) document.body.removeChild(video); reject(new Error("Falha ao abrir vídeo.")); };
             video.src = URL.createObjectURL(file);
         });
     }
@@ -586,17 +607,10 @@ async function processMultipleMedia(files, callback) {
             if (!customName) customName = file.name;
             const encodedName = encodeURIComponent(customName);
             const reader = new FileReader();
-            await new Promise((resolve) => { reader.onload = (e) => { let base64 = e.target.result.replace('data:application/pdf;base64,', `data:application/pdf;name=${encodedName};base64,`); processedArray.push({ data: base64, createdAt: captureTime }); resolve(); }; reader.readAsDataURL(file); });
+            await new Promise((resolve) => { reader.onload = (e) => { let base64 = e.target.result.replace('data:application/pdf;base64,', `data:application/pdf;name=${encodedName};base64,`); processedArray.push({ data: base64, size: base64.length * 0.75, createdAt: captureTime }); resolve(); }; reader.readAsDataURL(file); });
         } else if (file.type.startsWith('video/')) {
-            try {
-                const result = await AppUtils.compressVideo(file);
-                if (result.video) {
-                    processedArray.push({ data: result.video, thumbnail: result.thumb, isVideo: true, createdAt: captureTime });
-                }
-            } catch (err) {
-                console.error(err);
-                // Erro silencioso, logMedia falha
-            }
+            const result = await AppUtils.compressVideo(file);
+            processedArray.push({ data: result.video, thumbnail: result.thumb, size: result.size, isVideo: true, createdAt: captureTime });
         } else if (file.type.startsWith('image/')) {
             const reader = new FileReader();
             await new Promise((resolve) => {
@@ -606,7 +620,8 @@ async function processMultipleMedia(files, callback) {
                         const canvas = document.createElement('canvas'); const MAX_SIZE = 480; let width = img.width, height = img.height;
                         if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
                         canvas.width = width; canvas.height = height; canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-                        processedArray.push({ data: canvas.toDataURL('image/jpeg', 0.4), createdAt: captureTime }); resolve();
+                        let b64 = canvas.toDataURL('image/jpeg', 0.4);
+                        processedArray.push({ data: b64, size: b64.length * 0.75, createdAt: captureTime }); resolve();
                     }; img.src = e.target.result;
                 }; reader.readAsDataURL(file);
             });
@@ -623,7 +638,7 @@ function renderStackedDeckHTML(images, logId) {
 
     if (images.length === 1) {
         let img = images[0];
-        if (img.isPlaceholder) return `<div class="pdf-preview deck-photo" style="position:relative; left:0; width:100%; height:auto; min-height:140px; background:#111;"><i class="material-icons" style="font-size:48px; color:var(--primary); animation: spin 1s linear infinite;">sync</i><span style="font-size: 13px; margin-top: 8px; color:var(--primary);">A processar... aguarde.</span></div>`;
+        if (img.isPlaceholder) return `<div class="pdf-preview deck-photo" style="position:relative; left:0; width:100%; height:auto; min-height:140px; background:#111;"><i class="material-icons" style="font-size:48px; color:var(--primary); animation: spin 1s linear infinite;">sync</i><span style="font-size: 13px; margin-top: 8px; color:var(--primary);">Processando... aguarde.</span></div>`;
         if (img.data.startsWith('data:application/pdf')) return `<div class="pdf-preview deck-photo" style="position:relative; left:0; width:100%; height:auto; min-height:140px; padding:12px;" onclick="${clickHandler}"><i class="material-icons" style="font-size:32px;">picture_as_pdf</i><span style="font-size: 13px; margin-top: 8px; text-align:center;">${AppUtils.getPdfName(img.data)}</span></div>`;
         else if (img.isVideo || img.data.startsWith('data:video/')) return `<div class="pdf-preview deck-photo" style="position:relative; left:0; width:100%; height:auto; min-height:140px; background: url('${img.thumbnail || ''}') center/cover;" onclick="${clickHandler}"><div style="background:rgba(0,0,0,0.5); width:100%; height:100%; min-height:140px; display:flex; flex-direction:column; align-items:center; justify-content:center;"><i class="material-icons" style="font-size:48px; color:#fff;">play_circle_outline</i></div></div>`;
         else return `<img src="${img.data}" class="image-preview" onclick="${clickHandler}" style="margin:0;">`;
@@ -643,10 +658,25 @@ function renderStackedDeckHTML(images, logId) {
 var App = {
     currentView: 'home', moduleType: null, moduleName: null, moduleIcon: null, currentEntityId: null, searchFocusTerm: '',
 
-    init: async function() { this.goHome(); },
+    init: async function() { this.goHome(); this.calculateStorage(); },
+    
+    calculateStorage: async function() {
+        try {
+            let totalBytes = 0;
+            await AppDB.entities.each(e => { totalBytes += JSON.stringify(e).length; });
+            await AppDB.logs.each(l => {
+                totalBytes += JSON.stringify(l).length; 
+                if (l.images) { l.images.forEach(img => { if (img.size) totalBytes += img.size; else if (img.data) totalBytes += Math.round(img.data.length * 0.75); }); }
+            });
+            let mb = (totalBytes / 1024 / 1024).toFixed(2);
+            const footer = document.getElementById('storageFooterText');
+            if(footer) footer.innerText = `${mb} MB utilizados`;
+        } catch(e) {}
+    },
+
     toggleMenu: (e) => { e.stopPropagation(); const menu = document.getElementById('mainMenu'); if (menu.classList.contains('show')) MenuModal.closeUI(); else MenuModal.open(); },
     menuAction: (actionName) => { const menu = document.getElementById('mainMenu'); if (menu.classList.contains('show')) { menu.classList.remove('show'); const idx = AppState.modals.indexOf(MenuModal); if (idx !== -1) AppState.modals.splice(idx, 1); const onPop = () => { window.removeEventListener('popstate', onPop); App.executeMenuAction(actionName); }; window.addEventListener('popstate', onPop); history.back(); } else { App.executeMenuAction(actionName); } },
-    executeMenuAction: (actionName) => { if (actionName === 'cloud') App.listBackupsFromBlob(); else if (actionName === 'export') BackupChoiceModal.open(); },
+    executeMenuAction: (actionName) => { if (actionName === 'cloud') App.listBackupsFromBlob(); else if (actionName === 'export') App.exportChoice(); },
 
     goHome: function() {
         this.currentView = 'home';
@@ -656,8 +686,8 @@ var App = {
         
         document.getElementById('homeSearchInput').value = '';
         this.renderHomeSearch();
-        
         history.replaceState({ view: 'home' }, '');
+        this.calculateStorage();
     },
 
     renderHomeSearch: async function() {
@@ -687,8 +717,7 @@ var App = {
                     let text = l.text; let idx = text.toLowerCase().indexOf(term);
                     let start = Math.max(0, idx - 25); let end = Math.min(text.length, idx + term.length + 25);
                     let snippet = text.substring(start, end).replace(/\n/g, ' ');
-                    let highlightedSnippet = snippet.replace(new RegExp(term, 'gi'), match => `<mark class="highlight">${match}</mark>`);
-                    snippetsHtml += `<div class="snippet-item">...${highlightedSnippet}...</div>`;
+                    snippetsHtml += `<div class="snippet-item">...${AppUtils.highlight(snippet, term)}...</div>`;
                 });
                 snippetsHtml += `</div>`;
             }
@@ -751,7 +780,7 @@ var App = {
 
                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 el.style.backgroundColor = 'rgba(255, 235, 59, 0.3)';
-                setTimeout(() => el.style.backgroundColor = 'var(--surface-variant)', 1500);
+                setTimeout(() => el.style.backgroundColor = '', 1500);
             }
         }, 300);
     },
@@ -764,10 +793,9 @@ var App = {
         if(!name.trim()) return; const newType = parentId ? 'tarefa' : this.moduleType;
         const newEntity = { id: Date.now().toString(), type: newType, name: name.trim(), createdAt: Date.now(), parentId: parentId };
         await AppDB.entities.put(newEntity);
-        
         if(!parentId) { document.getElementById('searchInput').value = ''; }
-        await this.renderList();
-        this.focusEntity(newEntity.id);
+        await this.renderList(); this.focusEntity(newEntity.id);
+        this.calculateStorage();
     },
 
     toggleTaskLogs: function(taskId) {
@@ -841,7 +869,7 @@ var App = {
             if (entityLogs.length > 0) {
                 cardHtml += `<div class="log-list">`;
                 let logsHTML = [];
-                for(let log of entityLogs.sort((a, b) => b.createdAt - a.createdAt)) {
+                for(let log of entityLogs.sort((a, b) => b.createdAt - a.createdAt)) { // Mais recentes primeiro
                     logsHTML.push(await App.renderLogItemHTML(log, e.id, searchTerm));
                 }
                 cardHtml += logsHTML.join('') + `</div>`;
@@ -851,7 +879,7 @@ var App = {
                 let tasks = await AppDB.entities.filter(t => t.parentId === e.id && t.type === 'tarefa').toArray();
                 if (tasks.length > 0) {
                     cardHtml += `<div style="font-size:12px; font-weight:bold; color:var(--on-surface-variant); margin-top:20px; margin-bottom: 8px; text-transform:uppercase;">Tarefas do Serviço</div><ul class="subtask-list">`;
-                    for(let t of tasks.sort((a, b) => b.createdAt - a.createdAt)) {
+                    for(let t of tasks.sort((a, b) => b.createdAt - a.createdAt)) { // Mais recentes primeiro
                         cardHtml += `
                         <li class="subtask-item" id="entity-${t.id}">
                             <div class="subtask-row">
@@ -867,9 +895,9 @@ var App = {
                         `;
                         let taskLogs = await AppDB.logs.filter(log => log.relatedEntities.some(rel => rel.id === t.id)).toArray();
                         if (taskLogs.length > 0) {
-                            cardHtml += `<div class="log-list" id="task-logs-${t.id}" style="margin-left: 26px; display:none;">`;
+                            cardHtml += `<div class="log-list" id="task-logs-${t.id}" style="margin-left: 26px; display:none;">`; // Oculto por padrão
                             let taskLogsHTML = [];
-                            for(let log of taskLogs.sort((a, b) => b.createdAt - a.createdAt)) {
+                            for(let log of taskLogs.sort((a, b) => b.createdAt - a.createdAt)) { // Mais recentes primeiro
                                 taskLogsHTML.push(await App.renderLogItemHTML(log, t.id, searchTerm));
                             }
                             cardHtml += taskLogsHTML.join('') + `</div>`;
@@ -937,29 +965,164 @@ var App = {
         } catch(e) { CustomDialog.alert("Não foi possível abrir o PDF.", "Erro"); }
     },
 
-    exportToLocal: async () => { BackupChoiceModal.closeUI(); setTimeout(async () => { if (typeof JSZip === 'undefined') { await CustomDialog.alert("Aguarde a biblioteca carregar.", "Aviso"); return; } CustomDialog.alert("A gerar backup local...", "Aguarde"); const zip = new JSZip(); const dump = { entities: await AppDB.entities.toArray(), logs: await AppDB.logs.toArray() }; zip.file("dados_oraculo.json", JSON.stringify(dump)); const zipBlob = await zip.generateAsync({type:"blob"}); const filename = `backup_oraculo_${Date.now()}.zip`; const url = URL.createObjectURL(zipBlob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); setTimeout(() => { AppState.closeModalUI(); }, 1500); }, 100); },
-    exportToBlob: async () => { BackupChoiceModal.closeUI(); setTimeout(async () => { if (typeof JSZip === 'undefined') { await CustomDialog.alert("Aguarde a biblioteca carregar.", "Aviso"); return; } CustomDialog.alert("A enviar para a nuvem...", "Aguarde"); const zip = new JSZip(); const dump = { entities: await AppDB.entities.toArray(), logs: await AppDB.logs.toArray() }; zip.file("dados_oraculo.json", JSON.stringify(dump)); const zipBlob = await zip.generateAsync({type:"blob"}); const filename = `backup_oraculo_${Date.now()}.zip`; try { const res = await fetch(`/api/backup?filename=${filename}`, { method: 'POST', body: zipBlob }); if(res.ok) { await CustomDialog.alert(`Salvo na nuvem com sucesso!\nArquivo: ${filename}`, "Sucesso"); } else { throw new Error("API Falhou"); } } catch(e) { const url = URL.createObjectURL(zipBlob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); await CustomDialog.alert("A nuvem falhou. O arquivo foi baixado no seu dispositivo.", "Salvo Localmente"); } }, 100); },
-    listBackupsFromBlob: async () => { document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">A procurar... ⏳</div>'; BackupModal.open(); try { const res = await fetch('/api/backup'); if(res.ok) { const data = await res.json(); const zips = (data.blobs || []).filter(b => b.pathname.endsWith('.zip')).sort((a,b) => new Date(b.uploadedAt) - new Date(a.uploadedAt)); if(zips.length === 0) { document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">Nenhum backup.</div>'; return; } document.getElementById('backupList').innerHTML = zips.map(b => `<div style="background:var(--surface-variant); padding:12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;"><div style="flex-grow: 1; cursor:pointer;" onclick="App.restoreFromBlob('${b.url}')"><div style="font-weight:500; font-size:14px; color:var(--on-surface); word-break: break-all;">${b.pathname}</div><div style="font-size:12px; color:var(--on-surface-variant); margin-top:4px;">${new Date(b.uploadedAt).toLocaleString('pt-BR')} • ${(b.size / (1024*1024)).toFixed(2)} MB</div></div><div style="display: flex; gap: 16px; margin-left: 12px; border-left: 1px solid var(--border); padding-left: 12px;"><i class="material-icons" style="color:var(--primary); font-size: 24px; cursor:pointer;" onclick="App.restoreFromBlob('${b.url}')">cloud_download</i><i class="material-icons danger" style="font-size: 24px; cursor:pointer;" onclick="App.deleteFromBlob('${b.url}')">delete</i></div></div>`).join(''); } else document.getElementById('backupList').innerHTML = `<div style="color:var(--danger); padding:20px;">Erro Servidor</div>`; } catch(e) { document.getElementById('backupList').innerHTML = `<div style="color:var(--danger); padding:20px; text-align:center;">Erro de Ligação</div>`; } },
-    deleteFromBlob: async (blobUrl) => { if(!await CustomDialog.confirm("APAGAR PERMANENTEMENTE da nuvem?", "Apagar")) return; try { document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">A apagar...</div>'; const res = await fetch(`/api/backup?url=${encodeURIComponent(blobUrl)}`, { method: 'DELETE' }); if(res.ok) { await CustomDialog.alert("Apagado com sucesso!", "Sucesso"); App.listBackupsFromBlob(); } else { await CustomDialog.alert("Erro ao apagar.", "Erro"); App.listBackupsFromBlob(); } } catch(e) { await CustomDialog.alert("Erro de ligação.", "Erro"); App.listBackupsFromBlob(); } },
+    exportChoice: function() { BackupChoiceModal.open(); },
+
+    exportToLocal: async () => { 
+        BackupChoiceModal.closeUI(); 
+        if (typeof JSZip === 'undefined') { await CustomDialog.alert("Aguarde a biblioteca carregar.", "Aviso"); return; } 
+        
+        let isCancelled = false;
+        document.getElementById('progressModal').classList.add('active');
+        document.getElementById('progressTitle').innerText = "Gerando Ficheiro Local...";
+        document.getElementById('progressText').innerText = "0%";
+        document.getElementById('progressCancelBtn').onclick = () => { isCancelled = true; document.getElementById('progressModal').classList.remove('active'); };
+
+        try {
+            const zip = new JSZip(); 
+            const dump = { entities: await AppDB.entities.toArray(), logs: await AppDB.logs.toArray() }; 
+            zip.file("dados_oraculo.json", JSON.stringify(dump)); 
+            const zipBlob = await zip.generateAsync({type:"blob"}, function updateCallback(metadata) {
+                if(!isCancelled) document.getElementById('progressText').innerText = `A compactar: ${Math.round(metadata.percent)}%`;
+            });
+            
+            document.getElementById('progressModal').classList.remove('active');
+            if(isCancelled) return;
+
+            const filename = `backup_oraculo_${Date.now()}.zip`; 
+            const url = URL.createObjectURL(zipBlob); const a = document.createElement('a'); a.href = url; a.download = filename; 
+            document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); 
+        } catch(e) {
+            document.getElementById('progressModal').classList.remove('active');
+            if(!isCancelled) CustomDialog.alert("Erro ao exportar: " + e.message, "Erro");
+        }
+    },
+
+    exportToBlob: async () => { 
+        BackupChoiceModal.closeUI(); 
+        if (typeof JSZip === 'undefined') { await CustomDialog.alert("Aguarde a biblioteca carregar.", "Aviso"); return; } 
+        
+        let isCancelled = false; let xhr = null;
+        document.getElementById('progressModal').classList.add('active');
+        document.getElementById('progressTitle').innerText = "Compactando Banco...";
+        document.getElementById('progressText').innerText = "0%";
+        document.getElementById('progressCancelBtn').onclick = () => { isCancelled = true; if(xhr) xhr.abort(); document.getElementById('progressModal').classList.remove('active'); };
+
+        try {
+            const zip = new JSZip(); 
+            const dump = { entities: await AppDB.entities.toArray(), logs: await AppDB.logs.toArray() }; 
+            zip.file("dados_oraculo.json", JSON.stringify(dump)); 
+            const zipBlob = await zip.generateAsync({type:"blob"}, function updateCallback(metadata) {
+                if(!isCancelled) document.getElementById('progressText').innerText = `A compactar: ${Math.round(metadata.percent)}%`;
+            });
+            if(isCancelled) return;
+
+            const filename = `backup_oraculo_${Date.now()}.zip`; 
+            document.getElementById('progressTitle').innerText = "Enviando para a Nuvem...";
+            document.getElementById('progressText').innerText = "Iniciando upload...";
+
+            xhr = new XMLHttpRequest();
+            xhr.open('POST', `/api/backup?filename=${filename}`, true);
+            xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable && !isCancelled) {
+                    let loaded = (e.loaded / 1024 / 1024).toFixed(2);
+                    let total = (e.total / 1024 / 1024).toFixed(2);
+                    let percent = Math.round((e.loaded / e.total) * 100);
+                    document.getElementById('progressText').innerText = `${loaded} MB / ${total} MB (${percent}%)`;
+                }
+            };
+            xhr.onload = function() {
+                document.getElementById('progressModal').classList.remove('active');
+                if(isCancelled) return;
+                if (xhr.status === 200) { CustomDialog.alert(`Salvo na nuvem com sucesso!\nArquivo: ${filename}`, "Sucesso"); } 
+                else { CustomDialog.alert("Falha no servidor. Status: " + xhr.status, "Erro"); }
+            };
+            xhr.onerror = function() {
+                document.getElementById('progressModal').classList.remove('active');
+                if(isCancelled) return;
+                const url = URL.createObjectURL(zipBlob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); 
+                CustomDialog.alert("A nuvem falhou. O arquivo foi baixado no seu dispositivo.", "Salvo Localmente");
+            };
+            xhr.send(zipBlob);
+        } catch(e) {
+            document.getElementById('progressModal').classList.remove('active');
+            if(!isCancelled) CustomDialog.alert("Erro ao exportar: " + e.message, "Erro");
+        }
+    },
+
+    listBackupsFromBlob: async () => { 
+        document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;"><i class="material-icons" style="font-size:32px; animation: spin 1s linear infinite; color:var(--primary);">sync</i><br>Buscando...</div>'; 
+        BackupModal.open(); 
+        try { 
+            const res = await fetch('/api/backup'); 
+            if(res.ok) { 
+                const data = await res.json(); 
+                const zips = (data.blobs || []).filter(b => b.pathname.endsWith('.zip')).sort((a,b) => new Date(b.uploadedAt) - new Date(a.uploadedAt)); 
+                if(zips.length === 0) { document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">Nenhum backup encontrado na nuvem.</div>'; return; } 
+                document.getElementById('backupList').innerHTML = zips.map(b => `<div style="background:var(--surface-variant); padding:12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;"><div style="flex-grow: 1; cursor:pointer;" onclick="App.restoreFromBlob('${b.url}')"><div style="font-weight:500; font-size:14px; color:var(--on-surface); word-break: break-all;">${b.pathname}</div><div style="font-size:12px; color:var(--on-surface-variant); margin-top:4px;">${new Date(b.uploadedAt).toLocaleString('pt-BR')} • ${(b.size / (1024*1024)).toFixed(2)} MB</div></div><div style="display: flex; gap: 16px; margin-left: 12px; border-left: 1px solid var(--border); padding-left: 12px;"><i class="material-icons" style="color:var(--primary); font-size: 24px; cursor:pointer;" onclick="App.restoreFromBlob('${b.url}')">cloud_download</i><i class="material-icons danger" style="font-size: 24px; cursor:pointer;" onclick="App.deleteFromBlob('${b.url}')">delete</i></div></div>`).join(''); 
+            } else document.getElementById('backupList').innerHTML = `<div style="color:var(--danger); padding:20px;">Erro Servidor</div>`; 
+        } catch(e) { document.getElementById('backupList').innerHTML = `<div style="color:var(--danger); padding:20px; text-align:center;">Erro Conexão</div>`; } 
+    },
+
+    deleteFromBlob: async (blobUrl) => { 
+        if(!await CustomDialog.confirm("APAGAR PERMANENTEMENTE da nuvem?", "Apagar")) return; 
+        try { 
+            document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">A apagar...</div>'; 
+            const res = await fetch(`/api/backup?url=${encodeURIComponent(blobUrl)}`, { method: 'DELETE' }); 
+            if(res.ok) { await CustomDialog.alert("Apagado com sucesso!", "Sucesso"); App.listBackupsFromBlob(); } else { await CustomDialog.alert("Erro ao apagar.", "Erro"); App.listBackupsFromBlob(); } 
+        } catch(e) { await CustomDialog.alert("Erro de ligação.", "Erro"); App.listBackupsFromBlob(); } 
+    },
+
     restoreFromBlob: async (url) => { 
         if(!await CustomDialog.confirm("Isto apagará e substituirá TODOS os dados pelo backup. Continuar?", "Aviso Crítico")) return; 
-        
-        document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 40px; color: var(--primary);"><i class="material-icons" style="font-size:48px; animation: spin 1s linear infinite;">sync</i><br><br>A Baixar e a Restaurar...<br>Por favor, aguarde.</div>';
-        
-        try { 
-            const res = await fetch(url); const blob = await res.blob(); const zip = new JSZip(); const contents = await zip.loadAsync(blob); 
-            if(contents.files["dados_oraculo.json"]) { 
-                const data = await contents.files["dados_oraculo.json"].async("string"); 
-                try { 
-                    const parsed = JSON.parse(data);
-                    await AppDB.transaction('rw', AppDB.entities, AppDB.logs, async () => {
-                        await AppDB.entities.clear(); await AppDB.logs.clear();
-                        await AppDB.entities.bulkPut(parsed.entities); await AppDB.logs.bulkPut(parsed.logs);
-                    });
-                    App.goHome(); await CustomDialog.alert("Restaurado com sucesso!", "Sucesso"); BackupModal.closeUI(); 
-                } catch(e) { await CustomDialog.alert("Ficheiro corrompido.", "Erro"); BackupModal.closeUI(); } 
-            } else { await CustomDialog.alert("Ficheiro inválido.", "Erro"); BackupModal.closeUI(); } 
-        } catch(e) { await CustomDialog.alert("Erro ao baixar nuvem.", "Erro"); BackupModal.closeUI(); } 
+        BackupModal.closeUI();
+
+        let isCancelled = false; let xhr = new XMLHttpRequest();
+        document.getElementById('progressModal').classList.add('active');
+        document.getElementById('progressTitle').innerText = "Baixando Backup...";
+        document.getElementById('progressText').innerText = "0 MB / 0 MB";
+        document.getElementById('progressCancelBtn').onclick = () => { isCancelled = true; xhr.abort(); document.getElementById('progressModal').classList.remove('active'); };
+
+        xhr.open('GET', url, true); xhr.responseType = 'blob';
+        xhr.onprogress = function(e) {
+            if(e.lengthComputable && !isCancelled) {
+                let loaded = (e.loaded / 1024 / 1024).toFixed(2); let total = (e.total / 1024 / 1024).toFixed(2);
+                document.getElementById('progressText').innerText = `${loaded} MB / ${total} MB`;
+            }
+        };
+        xhr.onload = async function() {
+            if(isCancelled) return;
+            if(xhr.status === 200) {
+                document.getElementById('progressTitle').innerText = "Descompactando...";
+                document.getElementById('progressText').innerText = "Processando banco de dados...";
+                try {
+                    const blob = xhr.response; const zip = new JSZip(); const contents = await zip.loadAsync(blob); 
+                    if(contents.files["dados_oraculo.json"]) { 
+                        const data = await contents.files["dados_oraculo.json"].async("string"); 
+                        const parsed = JSON.parse(data);
+                        await AppDB.transaction('rw', AppDB.entities, AppDB.logs, async () => {
+                            await AppDB.entities.clear(); await AppDB.logs.clear();
+                            await AppDB.entities.bulkPut(parsed.entities); await AppDB.logs.bulkPut(parsed.logs);
+                        });
+                        document.getElementById('progressModal').classList.remove('active');
+                        App.goHome(); await CustomDialog.alert("Restaurado com sucesso!", "Sucesso");  
+                    } else { 
+                        document.getElementById('progressModal').classList.remove('active');
+                        await CustomDialog.alert("Ficheiro inválido ou ausente.", "Erro"); 
+                    } 
+                } catch(e) { 
+                    document.getElementById('progressModal').classList.remove('active');
+                    await CustomDialog.alert("Erro ao restaurar a base de dados.", "Erro"); 
+                }
+            } else {
+                document.getElementById('progressModal').classList.remove('active');
+                await CustomDialog.alert("Falha no download.", "Erro");
+            }
+        };
+        xhr.onerror = function() {
+            document.getElementById('progressModal').classList.remove('active');
+            if(!isCancelled) CustomDialog.alert("Erro de conexão.", "Erro");
+        };
+        xhr.send();
     }
 };
 
@@ -1001,7 +1164,7 @@ var EntityModal = {
                     await AppDB.logs.put(log);
                 }
             });
-            this.closeUI(); App.renderList();
+            this.closeUI(); App.renderList(); App.calculateStorage();
         }
     }
 };
@@ -1070,13 +1233,11 @@ var LogModal = {
     delete: async function() {
         if(this.editLogId && await CustomDialog.confirm("Excluir permanentemente este registo?", "Excluir Log")) {
             await AppDB.logs.delete(this.editLogId);
-            App.renderList(); this.closeUI();
+            App.renderList(); this.closeUI(); App.calculateStorage();
         }
     },
     save: async function() {
         const text = document.getElementById('logText').value.trim();
-        
-        // Remove espaços reservados que tenham falhado ou estejam incompletos
         this.tempMedia = this.tempMedia.filter(m => !m.isPlaceholder);
         
         if(!text && this.tempMedia.length === 0) { await CustomDialog.alert('Insira um texto ou anexe uma imagem/documento/vídeo.', 'Aviso'); return; }
@@ -1088,9 +1249,7 @@ var LogModal = {
 
             if (this.editLogId) {
                 const log = await AppDB.logs.get(this.editLogId); 
-                log.text = text; 
-                log.images = [...this.tempMedia];
-                log.relatedEntities = finalRelations;
+                log.text = text; log.images = [...this.tempMedia]; log.relatedEntities = finalRelations;
                 await AppDB.logs.put(log);
             } else {
                 const newLog = { 
@@ -1099,7 +1258,7 @@ var LogModal = {
                 };
                 await AppDB.logs.put(newLog);
             }
-            App.renderList(); this.closeUI();
+            App.renderList(); this.closeUI(); App.calculateStorage();
         } catch (e) {
             console.error("Erro no IndexedDB:", e);
             await CustomDialog.alert("Erro ao guardar o registo. A sua base de dados não foi danificada, mas o anexo pode ser demasiado grande.", "Erro de Memória");
@@ -1126,34 +1285,46 @@ const handleLogMedia = async (e) => {
         }); 
     } catch(err) {
         if(hasVideo) LogModal.tempMedia = LogModal.tempMedia.filter(m => !m.isPlaceholder);
-        LogModal.updateUI();
-        CustomDialog.alert("Erro ao processar ficheiros: " + err.message, "Erro");
+        LogModal.updateUI(); CustomDialog.alert("Erro ao processar ficheiros: " + err.message, "Erro");
     }
     e.target.value = ''; 
 };
 document.getElementById('logCam').addEventListener('change', handleLogMedia); document.getElementById('logGal').addEventListener('change', handleLogMedia);
 
 var CarouselModal = {
-    el: document.getElementById('carouselModal'), container: document.getElementById('carouselContainer'), currentLogId: null, imagesArray: [], currentIndex: 0,
+    el: document.getElementById('carouselModal'), container: document.getElementById('carouselContainer'), currentLogId: null, imagesArray: [], currentIndex: 0, originalTitle: '',
     open: async function(logId, startIndex = 0) {
         this.currentLogId = logId;
         if (logId === 'temp') this.imagesArray = LogModal.tempMedia; else { const log = await AppDB.logs.get(logId); this.imagesArray = log ? log.images : []; }
         if (!this.imagesArray || this.imagesArray.length === 0) return;
-        this.currentIndex = startIndex || 0; this.render(); AppState.openModal(this); this.bindZoom();
+        this.currentIndex = startIndex || 0; this.render(); 
+        
+        this.originalTitle = document.title; document.title = "Mídia"; // Humaniza nome na tela cheia
+        
+        AppState.openModal(this); this.bindZoom();
         const navLeft = document.getElementById('carouselNavLeft'); const navRight = document.getElementById('carouselNavRight');
         if(this.imagesArray.length > 1) { navLeft.style.display = 'grid'; navRight.style.display = 'grid'; } else { navLeft.style.display = 'none'; navRight.style.display = 'none'; }
         this.updateGlobalActions();
         this.container.addEventListener('scroll', () => { const itemW = window.innerWidth * 0.85 + 16; this.currentIndex = Math.round(this.container.scrollLeft / itemW); this.updateGlobalActions(); }, {passive: true});
         setTimeout(() => { const itemW = window.innerWidth * 0.85 + 16; this.container.scrollLeft = this.currentIndex * itemW; }, 50);
     },
-    closeUI: function() { AppState.closeModalUI(); },
+    closeUI: function() { document.title = this.originalTitle || "Oráculo P-31"; AppState.closeModalUI(); },
     next: function() { const itemW = window.innerWidth * 0.85 + 16; this.container.scrollBy({ left: itemW, behavior: 'smooth' }); },
     prev: function() { const itemW = window.innerWidth * 0.85 + 16; this.container.scrollBy({ left: -itemW, behavior: 'smooth' }); },
-    updateGlobalActions: function() { const img = this.imagesArray[this.currentIndex]; const editBtn = document.getElementById('carouselEditBtn'); if (img && (img.data.startsWith('data:application/pdf') || img.data.startsWith('data:video/') || img.isVideo || img.isPlaceholder)) editBtn.style.display = 'none'; else editBtn.style.display = 'grid'; },
+    updateGlobalActions: function() { 
+        const img = this.imagesArray[this.currentIndex]; 
+        const editBtn = document.getElementById('carouselEditBtn'); 
+        if (img && (img.data.startsWith('data:application/pdf') || img.data.startsWith('data:video/') || img.isVideo || img.isPlaceholder)) editBtn.style.display = 'none'; else editBtn.style.display = 'grid'; 
+        
+        // Atualiza Tamanho da mídia visualizada
+        let sizeIndicator = document.getElementById('carouselSizeIndicator');
+        if(img && img.size) sizeIndicator.innerText = (img.size / 1024 / 1024).toFixed(2) + ' MB';
+        else sizeIndicator.innerText = '';
+    },
     render: function() {
         this.container.innerHTML = this.imagesArray.map((img, idx) => {
             let media = '';
-            if (img.isPlaceholder) { media = `<div class="carousel-pdf" style="background:#111;"><i class="material-icons" style="font-size:48px; color:var(--primary); animation: spin 1s linear infinite;">sync</i><span style="color:var(--primary); font-size:14px; margin-top:12px; text-align:center;">A processar...</span></div>`; }
+            if (img.isPlaceholder) { media = `<div class="carousel-pdf" style="background:#111;"><i class="material-icons" style="font-size:48px; color:var(--primary); animation: spin 1s linear infinite;">sync</i><span style="color:var(--primary); font-size:14px; margin-top:12px; text-align:center;">Processando...</span></div>`; }
             else if (img.data.startsWith('data:application/pdf')) { media = `<div class="carousel-pdf" onclick="App.openPDF('${img.data}')"><i class="material-icons" style="font-size:48px; color:var(--danger)">picture_as_pdf</i><span style="color:#fff; font-size:14px; margin-top:12px; text-align:center;">${AppUtils.getPdfName(img.data)}</span></div>`; } 
             else if (img.isVideo || img.data.startsWith('data:video/')) { media = `<div class="carousel-img-wrapper" style="pointer-events: auto;"><video src="${img.data}" class="carousel-img" controls playsinline style="pointer-events: auto; z-index: 20; position: relative; max-width: 100%; max-height: 80vh;"></video></div>`; }
             else { media = `<div class="carousel-img-wrapper"><img src="${img.data}" class="carousel-img"><div class="carousel-touch-layer"></div></div>`; }
@@ -1166,7 +1337,7 @@ var CarouselModal = {
             this.imagesArray.splice(this.currentIndex, 1);
             if (this.currentLogId === 'temp') { LogModal.updateUI(); } 
             else { 
-                const log = await AppDB.logs.get(this.currentLogId); log.images = this.imagesArray; await AppDB.logs.put(log); App.renderList(); 
+                const log = await AppDB.logs.get(this.currentLogId); log.images = this.imagesArray; await AppDB.logs.put(log); App.renderList(); App.calculateStorage(); 
             }
             if(this.imagesArray.length === 0) { this.closeUI(); } else {
                 this.render(); this.bindZoom();
@@ -1249,13 +1420,11 @@ var Editor = {
                 }
             }
             const dataUrl = this.canvas.toDataURL('image/jpeg', 0.8);
-            if (this.targetMode === 'db') { const log = await AppDB.logs.get(this.logId); if(log && log.images[this.dbIdx]) log.images[this.dbIdx].data = dataUrl; await AppDB.logs.put(log); App.renderList(); } 
-            else if (this.targetMode === 'temp') { if(LogModal.tempMedia[this.dbIdx]) LogModal.tempMedia[this.dbIdx].data = dataUrl; LogModal.updateUI(); }
-            if (CarouselModal.el.classList.contains('active') && CarouselModal.imagesArray[this.dbIdx]) { CarouselModal.imagesArray[this.dbIdx].data = dataUrl; CarouselModal.render(); CarouselModal.bindZoom(); }
+            if (this.targetMode === 'db') { const log = await AppDB.logs.get(this.logId); if(log && log.images[this.dbIdx]) { log.images[this.dbIdx].data = dataUrl; log.images[this.dbIdx].size = dataUrl.length * 0.75; } await AppDB.logs.put(log); App.renderList(); App.calculateStorage(); } 
+            else if (this.targetMode === 'temp') { if(LogModal.tempMedia[this.dbIdx]) { LogModal.tempMedia[this.dbIdx].data = dataUrl; LogModal.tempMedia[this.dbIdx].size = dataUrl.length * 0.75; } LogModal.updateUI(); }
+            if (CarouselModal.el.classList.contains('active') && CarouselModal.imagesArray[this.dbIdx]) { CarouselModal.imagesArray[this.dbIdx].data = dataUrl; CarouselModal.imagesArray[this.dbIdx].size = dataUrl.length * 0.75; CarouselModal.render(); CarouselModal.bindZoom(); CarouselModal.updateGlobalActions(); }
             this.closeUI();
-        } catch(e) {
-            CustomDialog.alert("Erro ao guardar edição. O seu dispositivo pode estar sem memória suficiente.", "Erro");
-        }
+        } catch(e) { CustomDialog.alert("Erro ao guardar edição.", "Erro"); }
     },
     setTool: function(tool) {
         this.activeTool = tool; document.getElementById('btnPen').classList.toggle('active', tool === 'pen'); document.getElementById('btnText').classList.toggle('active', tool === 'text');
