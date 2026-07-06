@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR" translate="no">
+<html lang="pt-PT" translate="no">
 <head>
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon.png">
@@ -55,28 +55,17 @@
         input, textarea { -webkit-user-select: auto; user-select: auto; }
         img, video { -webkit-user-drag: none; pointer-events: auto; }
 
-        body { background-color: var(--background); color: var(--on-surface); display: flex; justify-content: center; padding: 16px; min-height: 100vh; overflow-x: hidden; overscroll-behavior-y: contain; outline: none; }
+        /* Estrutura Fixa para não ter scroll duplo - App Like */
+        body { background-color: var(--background); color: var(--on-surface); display: flex; justify-content: center; padding: 16px; height: 100vh; overflow: hidden; box-sizing: border-box; outline: none; margin: 0; }
+        .container { width: 100%; max-width: 480px; background: var(--surface); border-radius: 16px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; overflow: hidden; position: relative; height: 100%; }
         
-        h1, h2, h3, header, .action-icon, .fab, .btn, .badge, .carousel-btn, .carousel-nav-btn, 
-        .stacked-deck, .pdf-preview, .image-preview, .menu-item, .upload-btn, .carousel-touch-layer, 
-        .module-card, .tool-btn, .color-dot, .active-color-dot, .pill-dark {
-            -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
-        }
-
-        .selectable-text { -webkit-user-select: text; user-select: text; cursor: text; caret-color: transparent !important; outline: none !important; }
-
-        .container { 
-            width: 100%; max-width: 480px; background: var(--surface); border-radius: 16px; box-shadow: var(--shadow-sm); 
-            display: flex; flex-direction: column; overflow: hidden; position: relative; padding-bottom: 40px; min-height: calc(100vh - 32px);
-        }
-        
-        header { padding: 16px; display: flex; align-items: center; justify-content: space-between; position: relative; border-bottom: 1px solid var(--surface-variant); background: var(--surface); z-index: 10; }
+        header { padding: 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--surface-variant); background: var(--surface); z-index: 10; flex-shrink: 0; }
         header h1 { font-size: 20px; font-weight: 500; display: flex; align-items: center; gap: 8px; flex-grow: 1; overflow: hidden; }
         header h1 span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .header-actions { display: flex; gap: 16px; align-items: center; flex-shrink: 0;}
 
-        .home-search-container { padding: 16px; background: var(--surface); border-bottom: 1px solid var(--surface-variant); }
-        .home-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; padding: 24px; }
+        .home-search-container { padding: 16px; background: var(--surface); border-bottom: 1px solid var(--surface-variant); flex-shrink: 0; }
+        .home-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; padding: 24px; flex-shrink: 0;}
         
         .module-card {
             background: var(--surface-variant); border-radius: 16px; padding: 24px 16px; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -96,7 +85,7 @@
         .menu-item:hover { background: var(--surface-variant); }
         .menu-item .material-icons { font-size: 20px; color: var(--on-surface-variant); }
 
-        .search-container { padding: 16px; background: var(--surface); position: sticky; top: 0; z-index: 5; border-bottom: 1px solid var(--surface-variant); }
+        .search-container { padding: 16px; background: var(--surface); position: sticky; top: 0; z-index: 5; border-bottom: 1px solid var(--surface-variant); flex-shrink: 0;}
         .search-box { position: relative; display: flex; align-items: center; }
         .search-box input {
             flex-grow: 1; background: var(--background); border: 1px solid var(--border); color: var(--on-surface); padding: 12px 16px 12px 44px; border-radius: 24px;
@@ -105,8 +94,11 @@
         .search-box i.search-icon { position: absolute; left: 14px; color: var(--on-surface-variant); font-size: 20px; pointer-events: none; }
         .search-box input:focus { border-color: var(--primary); }
 
-        .task-list { list-style: none; padding: 16px; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; margin-bottom: 30px; }
+        /* Área com Scroll */
+        .view-section { display: none; flex-direction: column; flex-grow: 1; overflow-y: auto; position: relative; }
+        .view-section.active { display: flex; }
         
+        .task-list { list-style: none; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
         .task-item { background: var(--surface-variant); border-radius: 12px; padding: 16px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; transition: background-color 0.5s; border: 1px solid transparent; }
         .task-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 12px; }
         .task-header-title-wrapper { display: flex; align-items: center; gap: 12px; flex-grow: 1; }
@@ -155,11 +147,10 @@
         .image-preview { width: 100%; max-height: 200px; object-fit: cover; border-radius: 12px; border: 1px solid var(--border); cursor: pointer; margin-top: 8px; margin-bottom: 8px; display: block; }
         .pdf-preview { display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 12px; color: var(--danger); cursor: pointer; }
 
-        .fab { position: fixed; bottom: 48px; left: 50%; transform: translateX(-50%); background-color: var(--primary); color: var(--on-primary); border: none; width: 56px; height: 56px; border-radius: 16px; box-shadow: var(--shadow); cursor: pointer; display: grid; place-content: center; z-index: 99; transition: transform 0.2s; }
+        .fab { position: fixed; bottom: 54px; left: 50%; transform: translateX(-50%); background-color: var(--primary); color: var(--on-primary); border: none; width: 56px; height: 56px; border-radius: 16px; box-shadow: var(--shadow); cursor: pointer; display: grid; place-content: center; z-index: 99; transition: transform 0.2s; }
         .fab:active { transform: translateX(-50%) scale(0.9); }
         @media (min-width: 500px) { .fab { left: calc(50% + 180px); } }
 
-        /* Modals */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: flex-end; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
         .modal-overlay.active { opacity: 1; pointer-events: auto; }
         .modal-content { background: var(--surface); width: 100%; max-width: 480px; border-radius: 24px 24px 0 0; padding: 24px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow); transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -183,7 +174,7 @@
         .modal-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 24px; }
         .btn { border: none; padding: 10px 18px; border-radius: 24px; font-weight: 500; cursor: pointer; font-size: 14px; white-space: nowrap; }
         .btn-text { background: transparent; color: var(--primary); }
-        .btn-filled { background-color: var(--primary); color: var(--on-primary); }
+        .btn-filled { background-color: var(--primary); color: var(--on-primary); transition: opacity 0.2s; }
 
         .upload-btn { border: 1px solid var(--border); background: transparent; padding: 12px 10px; border-radius: 8px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; color: var(--primary); cursor: pointer; width: 100%; justify-content: center; }
         .hidden-file { display: none; }
@@ -220,7 +211,6 @@
         #textOverlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
         .editor-hint { position: absolute; top: 24px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 14px; pointer-events: none; z-index: 10; white-space: nowrap; }
         
-        /* Popup de Cores Seguro */
         .color-popup { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: #222; padding: 12px; border-radius: 12px; border: 1px solid #555; display: none; gap: 12px; flex-direction: row; box-shadow: 0 4px 16px rgba(0,0,0,0.9); z-index: 999999; pointer-events: auto; }
         .color-popup.show { display: flex; }
         .color-dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid #777; flex-shrink: 0; }
@@ -233,15 +223,13 @@
         .size-slider { flex-grow: 1; min-width: 60px; max-width: 100px; accent-color: var(--primary); }
         .active-color-dot { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid #fff; flex-shrink: 0; box-shadow: 0 0 4px rgba(255,255,255,0.3); }
 
-        .view-section { display: none; flex-direction: column; flex-grow: 1; }
-        .view-section.active { display: flex; }
         .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 24px; color: var(--on-surface-variant); gap: 16px; text-align: center; height: 100%; }
         .empty-state i { font-size: 56px; opacity: 0.3; }
         
         .module-link-badge { font-size: 10px; background: var(--background); padding: 2px 6px; border-radius: 8px; color: var(--on-surface-variant); display: inline-block; text-transform: uppercase; margin-left: 8px;}
 
-        /* Storage Footer */
-        .storage-footer { position: absolute; bottom: 0; left: 0; width: 100%; text-align: center; padding: 8px; font-size: 11px; color: var(--on-surface-variant); background: var(--surface); border-top: 1px solid var(--surface-variant); display: flex; justify-content: center; align-items: center; gap: 6px; z-index: 5;}
+        /* Rodapé Fixo na Base do Container */
+        .storage-footer { height: 36px; line-height: 36px; text-align: center; font-size: 11px; color: var(--on-surface-variant); background: var(--surface); border-top: 1px solid var(--surface-variant); z-index: 5; flex-shrink: 0; display: flex; justify-content: center; align-items: center; gap: 6px; width: 100%; }
     </style>
 </head>
 <body>
@@ -252,7 +240,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 3.1.0</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 3.2.0</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -260,7 +248,7 @@
             <div style="position: relative;" id="menuWrapper">
                 <i class="material-icons action-icon" onclick="App.toggleMenu(event)">more_vert</i>
                 <div id="mainMenu" class="dropdown-menu">
-                    <div class="menu-item" onclick="App.listBackupsFromBlob()"><i class="material-icons">cloud_download</i> Nuvem (Restore)</div>
+                    <div class="menu-item" onclick="App.listBackupsFromBlob()"><i class="material-icons">cloud_download</i> Nuvem (Restaurar)</div>
                     <div class="menu-item" onclick="App.exportChoice()"><i class="material-icons">cloud_upload</i> Exportar Backup</div>
                 </div>
             </div>
@@ -308,7 +296,7 @@
     </div>
 
     <div class="storage-footer">
-        <i class="material-icons" style="font-size: 14px;">storage</i> <span id="storageFooterText">Calculando espaço...</span>
+        <i class="material-icons" style="font-size: 14px;">storage</i> <span id="storageFooterText">A calcular memória...</span>
     </div>
 </div>
 
@@ -330,11 +318,10 @@
     </div>
 </div>
 
-<!-- Modal de Progresso Real de Backup -->
 <div class="progress-modal" id="progressModal">
     <div class="progress-content">
-        <h3 id="progressTitle" style="margin-bottom: 16px; color: var(--on-surface);">Aguarde...</h3>
-        <p id="progressText" style="margin-bottom: 24px; font-weight: bold; color: var(--primary); font-size: 16px;">0%</p>
+        <h3 id="progressTitle" style="margin-bottom: 16px; color: var(--on-surface); text-align:center;">Aguarde...</h3>
+        <p id="progressText" style="margin-bottom: 24px; font-weight: bold; color: var(--primary); font-size: 16px; text-align:center;">0%</p>
         <button class="btn btn-filled" id="progressCancelBtn" style="width: 100%; background-color: var(--surface-variant); color: var(--danger);">Cancelar</button>
     </div>
 </div>
@@ -342,7 +329,7 @@
 <div class="dialog-overlay" id="backupChoiceModal">
     <div class="dialog-content">
         <h3 id="backupChoiceTitle" style="text-align:left;">Exportar Backup</h3>
-        <p style="margin-bottom: 24px; text-align:left;">Escolha onde deseja salvar seu backup:</p>
+        <p style="margin-bottom: 24px; text-align:left;">Escolha onde deseja salvar o backup:</p>
         <div class="modal-actions" style="margin-top: 24px; justify-content: flex-end;">
             <button class="btn btn-filled" style="background: var(--surface-variant); color: var(--on-surface); margin-right: 8px;" onclick="App.exportToLocal()">Local (ZIP)</button>
             <button class="btn btn-filled" onclick="App.exportToBlob()">Nuvem</button>
@@ -371,7 +358,7 @@
         </div>
         <div class="modal-actions">
             <button class="btn btn-text" onclick="EntityModal.closeUI()">Cancelar</button>
-            <button class="btn btn-filled" onclick="EntityModal.save()">Salvar</button>
+            <button class="btn btn-filled" onclick="EntityModal.save()">Guardar</button>
         </div>
     </div>
 </div>
@@ -379,7 +366,7 @@
 <div class="modal-overlay" id="logModal">
     <div class="modal-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <h2 id="logModalTitle">Registrar Evento</h2>
+            <h2 id="logModalTitle">Registar Evento</h2>
             <i class="material-icons action-icon danger" id="logModalDeleteBtn" onclick="LogModal.delete()" style="display:none;">delete</i>
         </div>
         
@@ -400,7 +387,7 @@
                 <input type="file" id="logCam" class="hidden-file" accept="image/*,video/*" capture="environment" multiple>
             </label>
             <label class="upload-btn" style="flex: 1;">
-                <i class="material-icons">folder</i> Arquivo
+                <i class="material-icons">folder</i> Ficheiro
                 <input type="file" id="logGal" class="hidden-file" accept="image/*,application/pdf,video/*" multiple>
             </label>
         </div>
@@ -409,7 +396,7 @@
         </div>
         <div class="modal-actions">
             <button class="btn btn-text" onclick="LogModal.closeUI()">Cancelar</button>
-            <button class="btn btn-filled" onclick="LogModal.save()">Salvar Registro</button>
+            <button class="btn btn-filled" id="logSaveBtn" onclick="LogModal.save()">Guardar Registo</button>
         </div>
     </div>
 </div>
@@ -441,7 +428,6 @@
     <div class="carousel-container" id="carouselContainer"></div>
 </div>
 
-<!-- Editor Overlay -->
 <div class="editor-overlay" id="editorOverlay" onclick="document.getElementById('colorPopup').classList.remove('show')">
     <div class="canvas-container" id="canvasContainer">
         <div class="editor-hint" id="editorHint">Desenhe livremente na imagem</div>
@@ -536,24 +522,50 @@ var AppUtils = {
     formatDate: function(ts) { if (!ts) return ""; const d = new Date(ts); return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear().toString().slice(-2)} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`; },
     highlight: function(text, term) { if (!term) return text; const regex = new RegExp(`(${term})`, 'gi'); return text.replace(regex, '<mark class="highlight">$1</mark>'); },
     
-    compressVideo: async function(file) {
+    compressVideo: async function(file, onProgress) {
         return new Promise((resolve, reject) => {
+            const fallback = (f, tBase64) => {
+                const r = new FileReader(); 
+                r.onloadend = () => resolve({ video: r.result, thumb: tBase64 || '' }); 
+                r.onerror = () => reject(new Error("Falha na leitura do ficheiro."));
+                r.onprogress = (e) => {
+                    if(e.lengthComputable && onProgress) onProgress(Math.round((e.loaded/e.total)*100));
+                };
+                r.readAsDataURL(f);
+            };
+
             const video = document.createElement('video');
-            video.muted = true; video.setAttribute('playsinline', ''); video.autoplay = true; video.style.display = 'none';
+            video.muted = true; video.setAttribute('playsinline', ''); video.style.display = 'none';
             document.body.appendChild(video);
             
-            let timeoutId = setTimeout(() => {
-                if(document.body.contains(video)) document.body.removeChild(video);
-                reject(new Error("O processamento do vídeo excedeu o tempo limite de segurança."));
-            }, 30000); 
+            let watchdog;
+            const resetWatchdog = () => {
+                clearTimeout(watchdog);
+                watchdog = setTimeout(() => {
+                    if(document.body.contains(video)) document.body.removeChild(video);
+                    reject(new Error("O processamento excedeu o tempo limite (15s sem resposta)."));
+                }, 15000); 
+            };
+            resetWatchdog();
 
             let thumbBase64 = '';
-            video.onloadeddata = () => { video.currentTime = 0.5; }; 
+            video.onloadeddata = () => { video.currentTime = 0.1; };
+            
+            let isRecording = false;
+
+            video.ontimeupdate = () => {
+                resetWatchdog();
+                if(isRecording && video.duration) {
+                    let pct = Math.min(100, Math.round((video.currentTime / video.duration) * 100));
+                    if(onProgress) onProgress(pct);
+                }
+            };
+
             video.onseeked = () => {
+                if(isRecording) return;
                 try {
                     const canvas = document.createElement('canvas');
-                    const MAX = 240; // Muito Pequeno = Maior Compressão
-                    let w = video.videoWidth, h = video.videoHeight;
+                    const MAX = 240; let w = video.videoWidth, h = video.videoHeight;
                     if (w > MAX) { h = Math.floor(h * (MAX / w)); w = MAX; }
                     canvas.width = w; canvas.height = h;
                     const ctx = canvas.getContext('2d');
@@ -561,16 +573,18 @@ var AppUtils = {
                     thumbBase64 = canvas.toDataURL('image/jpeg', 0.6);
 
                     if (typeof MediaRecorder === 'undefined' || !canvas.captureStream) {
-                        throw new Error("O seu navegador não suporta a compressão nativa de vídeo HTML5.");
+                        clearTimeout(watchdog);
+                        if(document.body.contains(video)) document.body.removeChild(video); 
+                        return fallback(file, thumbBase64);
                     }
 
-                    const stream = canvas.captureStream(10); // Apenas 10 frames por segundo
+                    const stream = canvas.captureStream(10); 
                     let mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8') ? 'video/webm;codecs=vp8' : (MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : '');
-                    const recorder = new MediaRecorder(stream, { mimeType: mimeType, videoBitsPerSecond: 50000 }); // Muito pouca qualidade para caber no IndexedDB
+                    const recorder = new MediaRecorder(stream, { mimeType: mimeType, videoBitsPerSecond: 50000 });
                     const chunks = [];
                     recorder.ondataavailable = e => { if(e.data.size > 0) chunks.push(e.data); };
                     recorder.onstop = () => {
-                        clearTimeout(timeoutId);
+                        clearTimeout(watchdog);
                         if(document.body.contains(video)) document.body.removeChild(video);
                         const blob = new Blob(chunks, { type: mimeType || 'video/mp4' });
                         const reader = new FileReader();
@@ -578,26 +592,35 @@ var AppUtils = {
                         reader.readAsDataURL(blob);
                     };
                     
-                    recorder.start(); video.currentTime = 0; video.playbackRate = 2.0; 
+                    isRecording = true;
+                    recorder.start(); 
+                    video.currentTime = 0; 
+                    video.playbackRate = 2.0; 
                     video.play().then(() => {
                         const draw = () => {
-                            if (video.ended || video.paused) { if(recorder.state === 'recording') recorder.stop(); return; }
-                            ctx.drawImage(video, 0, 0, w, h); requestAnimationFrame(draw);
+                            if (video.ended || video.paused) { 
+                                if(recorder.state === 'recording') recorder.stop(); 
+                                return; 
+                            }
+                            ctx.drawImage(video, 0, 0, w, h); 
+                            requestAnimationFrame(draw);
                         };
                         draw();
-                    }).catch((e) => { if(recorder.state === 'recording') recorder.stop(); });
+                    }).catch((e) => { 
+                        if(recorder.state === 'recording') recorder.stop(); 
+                    });
                 } catch(e) { 
-                    clearTimeout(timeoutId); if(document.body.contains(video)) document.body.removeChild(video); 
+                    clearTimeout(watchdog); if(document.body.contains(video)) document.body.removeChild(video); 
                     reject(e);
                 }
             };
-            video.onerror = () => { clearTimeout(timeoutId); if(document.body.contains(video)) document.body.removeChild(video); reject(new Error("Falha ao abrir vídeo.")); };
+            video.onerror = () => { clearTimeout(watchdog); if(document.body.contains(video)) document.body.removeChild(video); reject(new Error("Falha ao abrir vídeo.")); };
             video.src = URL.createObjectURL(file);
         });
     }
 };
 
-async function processMultipleMedia(files, callback) {
+async function processMultipleMedia(files, onProgress, callback) {
     if (!files || files.length === 0) return callback([]);
     let processedArray = [];
     for(let file of files) {
@@ -607,10 +630,19 @@ async function processMultipleMedia(files, callback) {
             if (!customName) customName = file.name;
             const encodedName = encodeURIComponent(customName);
             const reader = new FileReader();
-            await new Promise((resolve) => { reader.onload = (e) => { let base64 = e.target.result.replace('data:application/pdf;base64,', `data:application/pdf;name=${encodedName};base64,`); processedArray.push({ data: base64, size: base64.length * 0.75, createdAt: captureTime }); resolve(); }; reader.readAsDataURL(file); });
+            await new Promise((resolve) => { 
+                reader.onload = (e) => { 
+                    let base64 = e.target.result.replace('data:application/pdf;base64,', `data:application/pdf;name=${encodedName};base64,`); 
+                    processedArray.push({ data: base64, size: base64.length * 0.75, createdAt: captureTime }); 
+                    resolve(); 
+                }; 
+                reader.readAsDataURL(file); 
+            });
         } else if (file.type.startsWith('video/')) {
-            const result = await AppUtils.compressVideo(file);
-            processedArray.push({ data: result.video, thumbnail: result.thumb, size: result.size, isVideo: true, createdAt: captureTime });
+            const result = await AppUtils.compressVideo(file, onProgress);
+            if (result.video) {
+                processedArray.push({ data: result.video, thumbnail: result.thumb, size: result.size, isVideo: true, createdAt: captureTime });
+            }
         } else if (file.type.startsWith('image/')) {
             const reader = new FileReader();
             await new Promise((resolve) => {
@@ -638,7 +670,7 @@ function renderStackedDeckHTML(images, logId) {
 
     if (images.length === 1) {
         let img = images[0];
-        if (img.isPlaceholder) return `<div class="pdf-preview deck-photo" style="position:relative; left:0; width:100%; height:auto; min-height:140px; background:#111;"><i class="material-icons" style="font-size:48px; color:var(--primary); animation: spin 1s linear infinite;">sync</i><span style="font-size: 13px; margin-top: 8px; color:var(--primary);">Processando... aguarde.</span></div>`;
+        if (img.isPlaceholder) return `<div class="pdf-preview deck-photo" style="position:relative; left:0; width:100%; height:auto; min-height:140px; background:#111;"><i class="material-icons" style="font-size:48px; color:var(--primary); animation: spin 1s linear infinite;">sync</i><span id="video-progress-text" style="font-size: 13px; margin-top: 8px; color:var(--primary); font-weight:bold;">A processar: 0%</span></div>`;
         if (img.data.startsWith('data:application/pdf')) return `<div class="pdf-preview deck-photo" style="position:relative; left:0; width:100%; height:auto; min-height:140px; padding:12px;" onclick="${clickHandler}"><i class="material-icons" style="font-size:32px;">picture_as_pdf</i><span style="font-size: 13px; margin-top: 8px; text-align:center;">${AppUtils.getPdfName(img.data)}</span></div>`;
         else if (img.isVideo || img.data.startsWith('data:video/')) return `<div class="pdf-preview deck-photo" style="position:relative; left:0; width:100%; height:auto; min-height:140px; background: url('${img.thumbnail || ''}') center/cover;" onclick="${clickHandler}"><div style="background:rgba(0,0,0,0.5); width:100%; height:100%; min-height:140px; display:flex; flex-direction:column; align-items:center; justify-content:center;"><i class="material-icons" style="font-size:48px; color:#fff;">play_circle_outline</i></div></div>`;
         else return `<img src="${img.data}" class="image-preview" onclick="${clickHandler}" style="margin:0;">`;
@@ -869,7 +901,7 @@ var App = {
             if (entityLogs.length > 0) {
                 cardHtml += `<div class="log-list">`;
                 let logsHTML = [];
-                for(let log of entityLogs.sort((a, b) => b.createdAt - a.createdAt)) { // Mais recentes primeiro
+                for(let log of entityLogs.sort((a, b) => b.createdAt - a.createdAt)) {
                     logsHTML.push(await App.renderLogItemHTML(log, e.id, searchTerm));
                 }
                 cardHtml += logsHTML.join('') + `</div>`;
@@ -879,7 +911,7 @@ var App = {
                 let tasks = await AppDB.entities.filter(t => t.parentId === e.id && t.type === 'tarefa').toArray();
                 if (tasks.length > 0) {
                     cardHtml += `<div style="font-size:12px; font-weight:bold; color:var(--on-surface-variant); margin-top:20px; margin-bottom: 8px; text-transform:uppercase;">Tarefas do Serviço</div><ul class="subtask-list">`;
-                    for(let t of tasks.sort((a, b) => b.createdAt - a.createdAt)) { // Mais recentes primeiro
+                    for(let t of tasks.sort((a, b) => b.createdAt - a.createdAt)) {
                         cardHtml += `
                         <li class="subtask-item" id="entity-${t.id}">
                             <div class="subtask-row">
@@ -895,9 +927,9 @@ var App = {
                         `;
                         let taskLogs = await AppDB.logs.filter(log => log.relatedEntities.some(rel => rel.id === t.id)).toArray();
                         if (taskLogs.length > 0) {
-                            cardHtml += `<div class="log-list" id="task-logs-${t.id}" style="margin-left: 26px; display:none;">`; // Oculto por padrão
+                            cardHtml += `<div class="log-list" id="task-logs-${t.id}" style="margin-left: 26px; display:none;">`;
                             let taskLogsHTML = [];
-                            for(let log of taskLogs.sort((a, b) => b.createdAt - a.createdAt)) { // Mais recentes primeiro
+                            for(let log of taskLogs.sort((a, b) => b.createdAt - a.createdAt)) {
                                 taskLogsHTML.push(await App.renderLogItemHTML(log, t.id, searchTerm));
                             }
                             cardHtml += taskLogsHTML.join('') + `</div>`;
@@ -1017,7 +1049,7 @@ var App = {
             if(isCancelled) return;
 
             const filename = `backup_oraculo_${Date.now()}.zip`; 
-            document.getElementById('progressTitle').innerText = "Enviando para a Nuvem...";
+            document.getElementById('progressTitle').innerText = "A enviar para a Nuvem...";
             document.getElementById('progressText').innerText = "Iniciando upload...";
 
             xhr = new XMLHttpRequest();
@@ -1050,7 +1082,7 @@ var App = {
     },
 
     listBackupsFromBlob: async () => { 
-        document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;"><i class="material-icons" style="font-size:32px; animation: spin 1s linear infinite; color:var(--primary);">sync</i><br>Buscando...</div>'; 
+        document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;"><i class="material-icons" style="font-size:32px; animation: spin 1s linear infinite; color:var(--primary);">sync</i><br>A procurar...</div>'; 
         BackupModal.open(); 
         try { 
             const res = await fetch('/api/backup'); 
@@ -1060,7 +1092,7 @@ var App = {
                 if(zips.length === 0) { document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">Nenhum backup encontrado na nuvem.</div>'; return; } 
                 document.getElementById('backupList').innerHTML = zips.map(b => `<div style="background:var(--surface-variant); padding:12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;"><div style="flex-grow: 1; cursor:pointer;" onclick="App.restoreFromBlob('${b.url}')"><div style="font-weight:500; font-size:14px; color:var(--on-surface); word-break: break-all;">${b.pathname}</div><div style="font-size:12px; color:var(--on-surface-variant); margin-top:4px;">${new Date(b.uploadedAt).toLocaleString('pt-BR')} • ${(b.size / (1024*1024)).toFixed(2)} MB</div></div><div style="display: flex; gap: 16px; margin-left: 12px; border-left: 1px solid var(--border); padding-left: 12px;"><i class="material-icons" style="color:var(--primary); font-size: 24px; cursor:pointer;" onclick="App.restoreFromBlob('${b.url}')">cloud_download</i><i class="material-icons danger" style="font-size: 24px; cursor:pointer;" onclick="App.deleteFromBlob('${b.url}')">delete</i></div></div>`).join(''); 
             } else document.getElementById('backupList').innerHTML = `<div style="color:var(--danger); padding:20px;">Erro Servidor</div>`; 
-        } catch(e) { document.getElementById('backupList').innerHTML = `<div style="color:var(--danger); padding:20px; text-align:center;">Erro Conexão</div>`; } 
+        } catch(e) { document.getElementById('backupList').innerHTML = `<div style="color:var(--danger); padding:20px; text-align:center;">Erro de Ligação</div>`; } 
     },
 
     deleteFromBlob: async (blobUrl) => { 
@@ -1078,7 +1110,7 @@ var App = {
 
         let isCancelled = false; let xhr = new XMLHttpRequest();
         document.getElementById('progressModal').classList.add('active');
-        document.getElementById('progressTitle').innerText = "Baixando Backup...";
+        document.getElementById('progressTitle').innerText = "A Baixar Backup...";
         document.getElementById('progressText').innerText = "0 MB / 0 MB";
         document.getElementById('progressCancelBtn').onclick = () => { isCancelled = true; xhr.abort(); document.getElementById('progressModal').classList.remove('active'); };
 
@@ -1093,7 +1125,7 @@ var App = {
             if(isCancelled) return;
             if(xhr.status === 200) {
                 document.getElementById('progressTitle').innerText = "Descompactando...";
-                document.getElementById('progressText').innerText = "Processando banco de dados...";
+                document.getElementById('progressText').innerText = "A processar base de dados...";
                 try {
                     const blob = xhr.response; const zip = new JSZip(); const contents = await zip.loadAsync(blob); 
                     if(contents.files["dados_oraculo.json"]) { 
@@ -1249,7 +1281,9 @@ var LogModal = {
 
             if (this.editLogId) {
                 const log = await AppDB.logs.get(this.editLogId); 
-                log.text = text; log.images = [...this.tempMedia]; log.relatedEntities = finalRelations;
+                log.text = text; 
+                log.images = [...this.tempMedia];
+                log.relatedEntities = finalRelations;
                 await AppDB.logs.put(log);
             } else {
                 const newLog = { 
@@ -1268,6 +1302,14 @@ var LogModal = {
         const container = document.getElementById('logPreviewContainer'); const wrapper = document.getElementById('logMediaWrapper');
         if (this.tempMedia && this.tempMedia.length > 0) { wrapper.innerHTML = renderStackedDeckHTML(this.tempMedia, 'temp'); container.style.display = 'block'; } 
         else { container.style.display = 'none'; wrapper.innerHTML = ''; }
+        
+        const saveBtn = document.getElementById('logSaveBtn');
+        const hasPlaceholder = this.tempMedia.some(m => m.isPlaceholder);
+        if (saveBtn) {
+            saveBtn.disabled = hasPlaceholder;
+            saveBtn.style.opacity = hasPlaceholder ? '0.5' : '1';
+            saveBtn.innerText = hasPlaceholder ? 'A processar...' : 'Guardar Registo';
+        }
     }
 };
 
@@ -1276,10 +1318,13 @@ const handleLogMedia = async (e) => {
     if(files.length === 0) return;
     
     let hasVideo = files.some(f => f.type.startsWith('video/'));
-    if(hasVideo) { LogModal.tempMedia.push({ isPlaceholder: true }); LogModal.updateUI(); }
+    if(hasVideo) { LogModal.tempMedia.push({ isPlaceholder: true, progress: 0 }); LogModal.updateUI(); }
     
     try {
-        await processMultipleMedia(files, (newMedia) => { 
+        await processMultipleMedia(files, (pct) => {
+            const progressText = document.getElementById('video-progress-text');
+            if(progressText) progressText.innerText = `A processar: ${pct}%`;
+        }, (newMedia) => { 
             if(hasVideo) LogModal.tempMedia = LogModal.tempMedia.filter(m => !m.isPlaceholder);
             LogModal.tempMedia.push(...newMedia); LogModal.updateUI(); 
         }); 
@@ -1299,7 +1344,7 @@ var CarouselModal = {
         if (!this.imagesArray || this.imagesArray.length === 0) return;
         this.currentIndex = startIndex || 0; this.render(); 
         
-        this.originalTitle = document.title; document.title = "Mídia"; // Humaniza nome na tela cheia
+        this.originalTitle = document.title; document.title = "Mídia"; 
         
         AppState.openModal(this); this.bindZoom();
         const navLeft = document.getElementById('carouselNavLeft'); const navRight = document.getElementById('carouselNavRight');
@@ -1316,7 +1361,6 @@ var CarouselModal = {
         const editBtn = document.getElementById('carouselEditBtn'); 
         if (img && (img.data.startsWith('data:application/pdf') || img.data.startsWith('data:video/') || img.isVideo || img.isPlaceholder)) editBtn.style.display = 'none'; else editBtn.style.display = 'grid'; 
         
-        // Atualiza Tamanho da mídia visualizada
         let sizeIndicator = document.getElementById('carouselSizeIndicator');
         if(img && img.size) sizeIndicator.innerText = (img.size / 1024 / 1024).toFixed(2) + ' MB';
         else sizeIndicator.innerText = '';
@@ -1324,7 +1368,7 @@ var CarouselModal = {
     render: function() {
         this.container.innerHTML = this.imagesArray.map((img, idx) => {
             let media = '';
-            if (img.isPlaceholder) { media = `<div class="carousel-pdf" style="background:#111;"><i class="material-icons" style="font-size:48px; color:var(--primary); animation: spin 1s linear infinite;">sync</i><span style="color:var(--primary); font-size:14px; margin-top:12px; text-align:center;">Processando...</span></div>`; }
+            if (img.isPlaceholder) { media = `<div class="carousel-pdf" style="background:#111;"><i class="material-icons" style="font-size:48px; color:var(--primary); animation: spin 1s linear infinite;">sync</i><span style="color:var(--primary); font-size:14px; margin-top:12px; text-align:center;">A processar...</span></div>`; }
             else if (img.data.startsWith('data:application/pdf')) { media = `<div class="carousel-pdf" onclick="App.openPDF('${img.data}')"><i class="material-icons" style="font-size:48px; color:var(--danger)">picture_as_pdf</i><span style="color:#fff; font-size:14px; margin-top:12px; text-align:center;">${AppUtils.getPdfName(img.data)}</span></div>`; } 
             else if (img.isVideo || img.data.startsWith('data:video/')) { media = `<div class="carousel-img-wrapper" style="pointer-events: auto;"><video src="${img.data}" class="carousel-img" controls playsinline style="pointer-events: auto; z-index: 20; position: relative; max-width: 100%; max-height: 80vh;"></video></div>`; }
             else { media = `<div class="carousel-img-wrapper"><img src="${img.data}" class="carousel-img"><div class="carousel-touch-layer"></div></div>`; }
