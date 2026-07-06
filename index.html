@@ -27,9 +27,13 @@
     
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Dexie.js para IndexedDB -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dexie/3.2.4/dexie.min.js"></script>
+    <!-- JSZip para backup/restauração -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
     <style>
+        /* ... (mantenha todo o CSS original exatamente igual) ... */
         :root {
             --primary: #a8c7fa;
             --on-primary: #062e6f;
@@ -241,7 +245,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 2.5.0</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 3.0.0</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -301,6 +305,7 @@
     <i class="material-icons">add</i>
 </button>
 
+<!-- Modais (mantidos iguais) -->
 <div class="dialog-overlay" id="backupChoiceModal">
     <div class="dialog-content">
         <h3 id="backupChoiceTitle">Exportar Backup</h3>
@@ -455,7 +460,21 @@
 </div>
 
 <script>
-// --- CORE UTILS & STATE MANAGEMENT ---
+// ==========================================
+// BANCO DE DADOS DEXIE (IndexedDB)
+// ==========================================
+const db = new Dexie('oraculo_p31_db');
+db.version(1).stores({
+    entities: 'id, type, parentId, name, createdAt',
+    logs: 'id, originEntityId, text, images, createdAt, *relatedEntities'
+});
+
+// Índices virtuais para buscas em arrays de objetos aninhados
+// Dexie não indexa arrays de objetos diretamente, então usamos uma abordagem de busca em memória
+
+// ==========================================
+// CORE UTILS & STATE MANAGEMENT
+// ==========================================
 var AppState = {
     modals: [],
     openModal: function(modalObj) { modalObj.el.classList.add('active'); this.modals.push(modalObj); history.pushState({ modalId: modalObj.el.id }, ''); },
@@ -510,8 +529,8 @@ var AppUtils = {
     compressVideo: async function(file) {
         return new Promise((resolve) => {
             const fallback = (f, tBase64) => {
-                if (f.size > 5 * 1024 * 1024) { 
-                    CustomDialog.alert("O vídeo é maior que 5MB. Para não corromper o banco de dados, a mídia foi rejeitada. Reduza o vídeo ou envie um menor.", "Erro de Memória");
+                if (f.size > 10 * 1024 * 1024) { // Aumentado para 10MB com IndexedDB
+                    CustomDialog.alert("O vídeo é maior que 10MB. Para não corromper o banco de dados, a mídia foi rejeitada. Reduza o vídeo ou envie um menor.", "Erro de Memória");
                     resolve({ error: true });
                     return;
                 }
@@ -628,7 +647,7 @@ async function processMultipleMedia(files, callback) {
 function renderStackedDeckHTML(images, logId) {
     if (!images || images.length === 0) return '';
     let clickHandler = `CarouselModal.open('${logId}')`;
-    let pdfCount = images.filter(img => img.data.startsWith('data:application/pdf')).length;
+    let pdfCount = images.filter(img => img.data && img.data.startsWith('data:application/pdf')).length;
     let countLabel = `+${images.length - 1}`; if (pdfCount > 0) countLabel += ` (${pdfCount} PDF)`;
 
     if (images.length === 1) {
@@ -649,26 +668,46 @@ function renderStackedDeckHTML(images, logId) {
     }
 }
 
-// --- DATABASE ---
-const DB_KEY = 'oraculo_p31_v4';
-let db = JSON.parse(localStorage.getItem(DB_KEY)) || { entities: [], logs: [] };
-db.entities.forEach(e => { if(e.parentId === undefined) e.parentId = null; });
-db.logs.forEach(l => { if(!l.relatedEntities) l.relatedEntities = []; if(!l.originEntityId) l.originEntityId = l.relatedEntities.length > 0 ? l.relatedEntities[0].id : null; });
-function saveDB() { 
-    try {
-        localStorage.setItem(DB_KEY, JSON.stringify(db)); 
-    } catch(e) {
-        CustomDialog.alert("Limite de memória atingido! O anexo inserido é muito grande para o seu navegador. A sessão foi revertida por segurança.", "Erro Crítico de Armazenamento");
-        db = JSON.parse(localStorage.getItem(DB_KEY)) || { entities: [], logs: [] };
-        App.renderList();
+// ==========================================
+// MIGRAÇÃO DE DADOS DO localStorage PARA IndexedDB
+// ==========================================
+async function migrateFromLocalStorage() {
+    const DB_KEY = 'oraculo_p31_v4';
+    const oldData = localStorage.getItem(DB_KEY);
+    if (oldData) {
+        try {
+            const parsed = JSON.parse(oldData);
+            const entityCount = await db.entities.count();
+            if (entityCount === 0 && parsed.entities && parsed.entities.length > 0) {
+                console.log('Migrando dados do localStorage para IndexedDB...');
+                await db.entities.bulkPut(parsed.entities);
+                if (parsed.logs && parsed.logs.length > 0) {
+                    // Garantir que relatedEntities seja um array de objetos {type, id}
+                    const logs = parsed.logs.map(l => ({
+                        ...l,
+                        relatedEntities: l.relatedEntities || []
+                    }));
+                    await db.logs.bulkPut(logs);
+                }
+                // Não removemos o localStorage para segurança, mas podemos limpar depois
+                console.log('Migração concluída com sucesso!');
+            }
+        } catch(e) {
+            console.error('Erro na migração:', e);
+        }
     }
 }
 
-// --- MAIN APPLICATION LOGIC ---
+// ==========================================
+// MAIN APPLICATION LOGIC
+// ==========================================
 var App = {
     currentView: 'home', moduleType: null, moduleName: null, moduleIcon: null, currentEntityId: null, searchFocusTerm: '',
 
-    init: function() { this.goHome(); },
+    init: async function() {
+        await migrateFromLocalStorage();
+        this.goHome();
+    },
     toggleMenu: (e) => { e.stopPropagation(); const menu = document.getElementById('mainMenu'); if (menu.classList.contains('show')) MenuModal.closeUI(); else MenuModal.open(); },
     menuAction: (actionName) => { const menu = document.getElementById('mainMenu'); if (menu.classList.contains('show')) { menu.classList.remove('show'); const idx = AppState.modals.indexOf(MenuModal); if (idx !== -1) AppState.modals.splice(idx, 1); const onPop = () => { window.removeEventListener('popstate', onPop); App.executeMenuAction(actionName); }; window.addEventListener('popstate', onPop); history.back(); } else { App.executeMenuAction(actionName); } },
     executeMenuAction: (actionName) => { if (actionName === 'cloud') App.listBackupsFromBlob(); else if (actionName === 'export') BackupChoiceModal.open(); },
@@ -685,7 +724,7 @@ var App = {
         history.replaceState({ view: 'home' }, '');
     },
 
-    renderHomeSearch: function() {
+    renderHomeSearch: async function() {
         const term = document.getElementById('homeSearchInput').value.toLowerCase().trim();
         const grid = document.getElementById('homeGrid');
         const list = document.getElementById('homeSearchList');
@@ -694,9 +733,15 @@ var App = {
         grid.style.display = 'none'; list.style.display = 'flex'; list.innerHTML = '';
         
         let resultList = [];
-        db.entities.forEach(e => {
+        const allEntities = await db.entities.toArray();
+        const allLogs = await db.logs.toArray();
+        
+        allEntities.forEach(e => {
             let matchesName = e.name.toLowerCase().includes(term);
-            let relatedLogs = db.logs.filter(l => l.relatedEntities.some(rel => rel.id === e.id) && l.text && l.text.toLowerCase().includes(term));
+            let relatedLogs = allLogs.filter(l => 
+                l.relatedEntities && l.relatedEntities.some(rel => rel.id === e.id) && 
+                l.text && l.text.toLowerCase().includes(term)
+            );
             if(matchesName || relatedLogs.length > 0) resultList.push({ entity: e, logsMatched: relatedLogs });
         });
 
@@ -740,13 +785,14 @@ var App = {
         document.getElementById('searchInput').value = ''; this.renderList(); history.pushState({ view: 'list' }, '');
     },
 
-    focusEntity: function(id, focusTerm = '', focusLogId = null) {
-        const entity = db.entities.find(e => e.id === id); if(!entity) return;
+    focusEntity: async function(id, focusTerm = '', focusLogId = null) {
+        const entity = await db.entities.get(id);
+        if(!entity) return;
         this.searchFocusTerm = focusTerm;
         
         let targetModuleType = entity.type; let targetModuleName = MODULE_MAPPING[entity.type][0]; let targetModuleIcon = MODULE_MAPPING[entity.type][1];
         if(entity.type === 'tarefa') {
-            const parent = db.entities.find(e => e.id === entity.parentId);
+            const parent = await db.entities.get(entity.parentId);
             if(parent) { targetModuleType = 'servico'; targetModuleName = 'Serviços'; targetModuleIcon = 'handyman'; }
         } else {
             if(MODULE_MAPPING[entity.type]) { targetModuleType = entity.type; targetModuleName = MODULE_MAPPING[entity.type][0]; targetModuleIcon = MODULE_MAPPING[entity.type][1]; }
@@ -758,7 +804,7 @@ var App = {
         document.getElementById('btnBack').style.display = 'block'; document.getElementById('headerVersion').style.display = 'none';
         
         document.getElementById('searchInput').value = focusTerm;
-        this.renderList(); 
+        await this.renderList(); 
         history.pushState({ view: 'list' }, '');
 
         setTimeout(() => {
@@ -784,13 +830,13 @@ var App = {
         if (this.currentView === 'list') { this.goHome(); if(!fromPopState) history.back(); }
     },
 
-    createEntityOnTheFly: function(name, parentId = null) {
+    createEntityOnTheFly: async function(name, parentId = null) {
         if(!name.trim()) return; const newType = parentId ? 'tarefa' : this.moduleType;
         const newEntity = { id: Date.now().toString(), type: newType, name: name.trim(), createdAt: Date.now(), parentId: parentId };
-        db.entities.push(newEntity); saveDB();
+        await db.entities.put(newEntity);
         
         if(!parentId) { document.getElementById('searchInput').value = ''; }
-        this.renderList();
+        await this.renderList();
         this.focusEntity(newEntity.id);
     },
 
@@ -808,31 +854,41 @@ var App = {
         }
     },
 
-    renderList: function() {
+    renderList: async function() {
         const rawSearchTerm = document.getElementById('searchInput').value; const searchTerm = rawSearchTerm.toLowerCase().trim(); const listEl = document.getElementById('entityList'); listEl.innerHTML = '';
-        let filtered = db.entities.filter(e => e.type === this.moduleType && e.parentId === null); let hasExactMatch = false;
+        
+        let filtered = await db.entities.where({type: this.moduleType}).filter(e => !e.parentId).toArray();
+        let hasExactMatch = false;
 
         if (searchTerm) {
             let resultList = [];
-            filtered.forEach(e => {
+            const allLogs = await db.logs.toArray();
+            
+            for(let e of filtered) {
                 if(e.name.toLowerCase() === searchTerm) hasExactMatch = true;
                 let matchesName = e.name.toLowerCase().includes(searchTerm);
-                let relatedLogs = db.logs.filter(l => l.relatedEntities.some(rel => rel.id === e.id) && l.text && l.text.toLowerCase().includes(searchTerm));
+                let relatedLogs = allLogs.filter(l => 
+                    l.relatedEntities && l.relatedEntities.some(rel => rel.id === e.id) && 
+                    l.text && l.text.toLowerCase().includes(searchTerm)
+                );
                 
                 let tasksMatched = [];
                 if(e.type === 'servico') {
-                    const servTasks = db.entities.filter(t => t.parentId === e.id && t.type === 'tarefa');
-                    servTasks.forEach(t => {
+                    const servTasks = await db.entities.where({parentId: e.id, type: 'tarefa'}).toArray();
+                    for(let t of servTasks) {
                         let matchesTaskName = t.name.toLowerCase().includes(searchTerm);
-                        let taskRelatedLogs = db.logs.filter(l => l.relatedEntities.some(rel => rel.id === t.id) && l.text && l.text.toLowerCase().includes(searchTerm));
+                        let taskRelatedLogs = allLogs.filter(l => 
+                            l.relatedEntities && l.relatedEntities.some(rel => rel.id === t.id) && 
+                            l.text && l.text.toLowerCase().includes(searchTerm)
+                        );
                         if(matchesTaskName || taskRelatedLogs.length > 0) tasksMatched.push({ task: t, logsMatched: taskRelatedLogs });
-                    });
+                    }
                 }
 
                 if(matchesName || relatedLogs.length > 0 || tasksMatched.length > 0) {
                     resultList.push({ entity: e, logsMatched: relatedLogs, tasksMatched: tasksMatched });
                 }
-            });
+            }
             filtered = resultList;
             if (!hasExactMatch) { listEl.innerHTML += `<div class="create-btn-dynamic" onclick="App.createEntityOnTheFly('${rawSearchTerm.replace(/'/g, "\\'")}')"><i class="material-icons">add_circle_outline</i><span>Criar: <strong>${rawSearchTerm}</strong></span></div>`; }
         }
@@ -841,7 +897,7 @@ var App = {
 
         let iterator = searchTerm ? filtered.sort((a, b) => b.entity.createdAt - a.entity.createdAt) : filtered.sort((a, b) => b.createdAt - a.createdAt).map(e => ({entity: e}));
 
-        iterator.forEach(item => {
+        for(let item of iterator) {
             let e = item.entity;
             
             let cardHtml = `
@@ -859,7 +915,10 @@ var App = {
                 </div>
             `;
 
-            let entityLogs = db.logs.filter(log => log.relatedEntities.some(rel => rel.id === e.id));
+            let entityLogs = await db.logs.filter(l => 
+                l.relatedEntities && l.relatedEntities.some(rel => rel.id === e.id)
+            ).toArray();
+            
             if (entityLogs.length > 0) {
                 cardHtml += `<div class="log-list">`;
                 entityLogs.sort((a, b) => b.createdAt - a.createdAt).forEach(log => {
@@ -869,10 +928,10 @@ var App = {
             }
 
             if (e.type === 'servico') {
-                let tasks = db.entities.filter(t => t.parentId === e.id && t.type === 'tarefa');
+                let tasks = await db.entities.where({parentId: e.id, type: 'tarefa'}).toArray();
                 if (tasks.length > 0) {
                     cardHtml += `<div style="font-size:12px; font-weight:bold; color:var(--on-surface-variant); margin-top:20px; margin-bottom: 8px; text-transform:uppercase;">Tarefas do Serviço</div><ul class="subtask-list">`;
-                    tasks.sort((a, b) => b.createdAt - a.createdAt).forEach(t => {
+                    tasks.sort((a, b) => b.createdAt - a.createdAt).forEach(async t => {
                         cardHtml += `
                         <li class="subtask-item" id="entity-${t.id}">
                             <div class="subtask-row">
@@ -886,7 +945,10 @@ var App = {
                                 </div>
                             </div>
                         `;
-                        let taskLogs = db.logs.filter(log => log.relatedEntities.some(rel => rel.id === t.id));
+                        let taskLogs = await db.logs.filter(l => 
+                            l.relatedEntities && l.relatedEntities.some(rel => rel.id === t.id)
+                        ).toArray();
+                        
                         if (taskLogs.length > 0) {
                             cardHtml += `<div class="log-list" id="task-logs-${t.id}" style="margin-left: 26px; display:none;">`;
                             taskLogs.sort((a, b) => b.createdAt - a.createdAt).forEach(log => {
@@ -903,27 +965,25 @@ var App = {
             }
             cardHtml += `</li>`;
             listEl.innerHTML += cardHtml;
-        });
+        }
     },
 
     renderLogItemHTML: function(log, contextEntityId, searchTerm = '') {
         let mediaHtml = log.images && log.images.length > 0 ? renderStackedDeckHTML(log.images, log.id) : '';
         let isOrigin = log.originEntityId === contextEntityId;
-        let otherLinks = log.relatedEntities.filter(rel => rel.id !== log.originEntityId);
+        let otherLinks = (log.relatedEntities || []).filter(rel => rel.id !== log.originEntityId);
         
         let linksBarHtml = '';
         if(isOrigin) {
             if (otherLinks.length > 0) {
                 let pills = otherLinks.map(rel => {
-                    let linkedE = db.entities.find(e => e.id === rel.id); if(!linkedE) return '';
-                    return `<div class="pill-dark" onclick="App.focusEntity('${linkedE.id}', '', '${log.id}')">${linkedE.name} <i class="material-icons" style="font-size:12px; margin-left:4px;" title="Ir para Destino">arrow_forward</i></div>`;
+                    return `<div class="pill-dark" onclick="App.focusEntity('${rel.id}', '', '${log.id}')">Entidade ${rel.id.slice(-4)} <i class="material-icons" style="font-size:12px; margin-left:4px;" title="Ir para Destino">arrow_forward</i></div>`;
                 }).join('');
                 linksBarHtml = `<div class="log-links-bar"><div class="link-label">Vinculado a:</div><div class="pills-container">${pills}</div></div>`;
             }
         } else {
-            let originE = db.entities.find(e => e.id === log.originEntityId);
-            if (originE) {
-                let originPill = `<div class="pill-dark origin" onclick="App.focusEntity('${originE.id}', '', '${log.id}')">${originE.name} <i class="material-icons" style="font-size:12px; margin-left:4px;" title="Ir para Origem">arrow_forward</i></div>`;
+            if (log.originEntityId) {
+                let originPill = `<div class="pill-dark origin" onclick="App.focusEntity('${log.originEntityId}', '', '${log.id}')">Origem: ${log.originEntityId.slice(-4)} <i class="material-icons" style="font-size:12px; margin-left:4px;" title="Ir para Origem">arrow_forward</i></div>`;
                 linksBarHtml = `<div class="log-links-bar"><div class="link-label">Vinculado de:</div><div class="pills-container">${originPill}</div></div>`;
             }
         }
@@ -956,36 +1016,187 @@ var App = {
         } catch(e) { CustomDialog.alert("Não foi possível abrir o PDF.", "Erro"); }
     },
 
-    exportToLocal: async () => { BackupChoiceModal.closeUI(); setTimeout(async () => { if (typeof JSZip === 'undefined') { await CustomDialog.alert("Aguarde a biblioteca carregar.", "Aviso"); return; } CustomDialog.alert("Gerando backup local...", "Aguarde"); const zip = new JSZip(); const dbString = localStorage.getItem(DB_KEY) || "{}"; zip.file("dados_oraculo.json", dbString); const zipBlob = await zip.generateAsync({type:"blob"}); const filename = `backup_oraculo_${Date.now()}.zip`; const url = URL.createObjectURL(zipBlob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); setTimeout(() => { AppState.closeModalUI(); }, 1500); }, 100); },
-    exportToBlob: async () => { BackupChoiceModal.closeUI(); setTimeout(async () => { if (typeof JSZip === 'undefined') { await CustomDialog.alert("Aguarde a biblioteca carregar.", "Aviso"); return; } CustomDialog.alert("Enviando para a nuvem...", "Aguarde"); const zip = new JSZip(); zip.file("dados_oraculo.json", localStorage.getItem(DB_KEY) || "{}"); const zipBlob = await zip.generateAsync({type:"blob"}); const filename = `backup_oraculo_${Date.now()}.zip`; try { const res = await fetch(`/api/backup?filename=${filename}`, { method: 'POST', body: zipBlob }); if(res.ok) { await CustomDialog.alert(`Salvo na nuvem com sucesso!\nArquivo: ${filename}`, "Sucesso"); } else { throw new Error("API Falhou"); } } catch(e) { const url = URL.createObjectURL(zipBlob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); await CustomDialog.alert("A nuvem falhou. O arquivo foi baixado no seu dispositivo.", "Salvo Localmente"); } }, 100); },
-    listBackupsFromBlob: async () => { document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">Buscando... ⏳</div>'; BackupModal.open(); try { const res = await fetch('/api/backup'); if(res.ok) { const data = await res.json(); const zips = (data.blobs || []).filter(b => b.pathname.endsWith('.zip')).sort((a,b) => new Date(b.uploadedAt) - new Date(a.uploadedAt)); if(zips.length === 0) { document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">Nenhum backup.</div>'; return; } document.getElementById('backupList').innerHTML = zips.map(b => `<div style="background:var(--surface-variant); padding:12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;"><div style="flex-grow: 1; cursor:pointer;" onclick="App.restoreFromBlob('${b.url}')"><div style="font-weight:500; font-size:14px; color:var(--on-surface); word-break: break-all;">${b.pathname}</div><div style="font-size:12px; color:var(--on-surface-variant); margin-top:4px;">${new Date(b.uploadedAt).toLocaleString('pt-BR')} • ${(b.size / (1024*1024)).toFixed(2)} MB</div></div><div style="display: flex; gap: 16px; margin-left: 12px; border-left: 1px solid var(--border); padding-left: 12px;"><i class="material-icons" style="color:var(--primary); font-size: 24px; cursor:pointer;" onclick="App.restoreFromBlob('${b.url}')">cloud_download</i><i class="material-icons danger" style="font-size: 24px; cursor:pointer;" onclick="App.deleteFromBlob('${b.url}')">delete</i></div></div>`).join(''); } else document.getElementById('backupList').innerHTML = `<div style="color:var(--danger); padding:20px;">Erro Servidor</div>`; } catch(e) { document.getElementById('backupList').innerHTML = `<div style="color:var(--danger); padding:20px; text-align:center;">Erro Conexão</div>`; } },
-    deleteFromBlob: async (blobUrl) => { if(!await CustomDialog.confirm("DELETAR PERMANENTEMENTE da nuvem?", "Deletar")) return; try { document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">Apagando...</div>'; const res = await fetch(`/api/backup?url=${encodeURIComponent(blobUrl)}`, { method: 'DELETE' }); if(res.ok) { await CustomDialog.alert("Apagado com sucesso!", "Sucesso"); App.listBackupsFromBlob(); } else { await CustomDialog.alert("Erro ao apagar.", "Erro"); App.listBackupsFromBlob(); } } catch(e) { await CustomDialog.alert("Erro de conexão.", "Erro"); App.listBackupsFromBlob(); } },
+    // ==========================================
+    // BACKUP / RESTAURAÇÃO (Vercel Blob)
+    // ==========================================
+    exportToLocal: async () => { 
+        BackupChoiceModal.closeUI(); 
+        setTimeout(async () => { 
+            if (typeof JSZip === 'undefined') { 
+                await CustomDialog.alert("Aguarde a biblioteca carregar.", "Aviso"); 
+                return; 
+            } 
+            await CustomDialog.alert("Gerando backup local...", "Aguarde"); 
+            const zip = new JSZip(); 
+            
+            // Exportar dados do IndexedDB
+            const allEntities = await db.entities.toArray();
+            const allLogs = await db.logs.toArray();
+            const dbData = JSON.stringify({ entities: allEntities, logs: allLogs });
+            
+            zip.file("dados_oraculo.json", dbData); 
+            const zipBlob = await zip.generateAsync({type:"blob"}); 
+            const filename = `backup_oraculo_${Date.now()}.zip`; 
+            const url = URL.createObjectURL(zipBlob); 
+            const a = document.createElement('a'); 
+            a.href = url; 
+            a.download = filename; 
+            document.body.appendChild(a); 
+            a.click(); 
+            document.body.removeChild(a); 
+            URL.revokeObjectURL(url); 
+            setTimeout(() => { AppState.closeModalUI(); }, 1500); 
+        }, 100); 
+    },
+    
+    exportToBlob: async () => { 
+        BackupChoiceModal.closeUI(); 
+        setTimeout(async () => { 
+            if (typeof JSZip === 'undefined') { 
+                await CustomDialog.alert("Aguarde a biblioteca carregar.", "Aviso"); 
+                return; 
+            } 
+            await CustomDialog.alert("Enviando para a nuvem...", "Aguarde"); 
+            const zip = new JSZip(); 
+            
+            const allEntities = await db.entities.toArray();
+            const allLogs = await db.logs.toArray();
+            const dbData = JSON.stringify({ entities: allEntities, logs: allLogs });
+            
+            zip.file("dados_oraculo.json", dbData); 
+            const zipBlob = await zip.generateAsync({type:"blob"}); 
+            const filename = `backup_oraculo_${Date.now()}.zip`; 
+            try { 
+                const res = await fetch(`/api/backup?filename=${filename}`, { method: 'POST', body: zipBlob }); 
+                if(res.ok) { 
+                    await CustomDialog.alert(`Salvo na nuvem com sucesso!\nArquivo: ${filename}`, "Sucesso"); 
+                } else { 
+                    throw new Error("API Falhou"); 
+                } 
+            } catch(e) { 
+                const url = URL.createObjectURL(zipBlob); 
+                const a = document.createElement('a'); 
+                a.href = url; 
+                a.download = filename; 
+                document.body.appendChild(a); 
+                a.click(); 
+                document.body.removeChild(a); 
+                URL.revokeObjectURL(url); 
+                await CustomDialog.alert("A nuvem falhou. O arquivo foi baixado no seu dispositivo.", "Salvo Localmente"); 
+            } 
+        }, 100); 
+    },
+    
+    listBackupsFromBlob: async () => { 
+        document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">Buscando... ⏳</div>'; 
+        BackupModal.open(); 
+        try { 
+            const res = await fetch('/api/backup'); 
+            if(res.ok) { 
+                const data = await res.json(); 
+                const zips = (data.blobs || []).filter(b => b.pathname.endsWith('.zip')).sort((a,b) => new Date(b.uploadedAt) - new Date(a.uploadedAt)); 
+                if(zips.length === 0) { 
+                    document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">Nenhum backup.</div>'; 
+                    return; 
+                } 
+                document.getElementById('backupList').innerHTML = zips.map(b => 
+                    `<div style="background:var(--surface-variant); padding:12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <div style="flex-grow: 1; cursor:pointer;" onclick="App.restoreFromBlob('${b.url}')">
+                            <div style="font-weight:500; font-size:14px; color:var(--on-surface); word-break: break-all;">${b.pathname}</div>
+                            <div style="font-size:12px; color:var(--on-surface-variant); margin-top:4px;">${new Date(b.uploadedAt).toLocaleString('pt-BR')} • ${(b.size / (1024*1024)).toFixed(2)} MB</div>
+                        </div>
+                        <div style="display: flex; gap: 16px; margin-left: 12px; border-left: 1px solid var(--border); padding-left: 12px;">
+                            <i class="material-icons" style="color:var(--primary); font-size: 24px; cursor:pointer;" onclick="App.restoreFromBlob('${b.url}')">cloud_download</i>
+                            <i class="material-icons danger" style="font-size: 24px; cursor:pointer;" onclick="App.deleteFromBlob('${b.url}')">delete</i>
+                        </div>
+                    </div>`
+                ).join(''); 
+            } else {
+                document.getElementById('backupList').innerHTML = `<div style="color:var(--danger); padding:20px;">Erro Servidor</div>`; 
+            }
+        } catch(e) { 
+            document.getElementById('backupList').innerHTML = `<div style="color:var(--danger); padding:20px; text-align:center;">Erro Conexão</div>`; 
+        } 
+    },
+    
+    deleteFromBlob: async (blobUrl) => { 
+        if(!await CustomDialog.confirm("DELETAR PERMANENTEMENTE da nuvem?", "Deletar")) return; 
+        try { 
+            document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">Apagando...</div>'; 
+            const res = await fetch(`/api/backup?url=${encodeURIComponent(blobUrl)}`, { method: 'DELETE' }); 
+            if(res.ok) { 
+                await CustomDialog.alert("Apagado com sucesso!", "Sucesso"); 
+                App.listBackupsFromBlob(); 
+            } else { 
+                await CustomDialog.alert("Erro ao apagar.", "Erro"); 
+                App.listBackupsFromBlob(); 
+            } 
+        } catch(e) { 
+            await CustomDialog.alert("Erro de conexão.", "Erro"); 
+            App.listBackupsFromBlob(); 
+        } 
+    },
+    
     restoreFromBlob: async (url) => { 
         if(!await CustomDialog.confirm("Isso apagará e substituirá TODOS os dados pelo backup. Continuar?", "Aviso Crítico")) return; 
         
         document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 40px; color: var(--primary);"><i class="material-icons" style="font-size:48px; animation: spin 1s linear infinite;">sync</i><br><br>A Baixar e a Restaurar...<br>Por favor, aguarde.</div>';
         
         try { 
-            const res = await fetch(url); const blob = await res.blob(); const zip = new JSZip(); const contents = await zip.loadAsync(blob); 
+            const res = await fetch(url); 
+            const blob = await res.blob(); 
+            const zip = new JSZip(); 
+            const contents = await zip.loadAsync(blob); 
             if(contents.files["dados_oraculo.json"]) { 
                 const data = await contents.files["dados_oraculo.json"].async("string"); 
-                try { JSON.parse(data); localStorage.setItem(DB_KEY, data); db = JSON.parse(data); App.goHome(); await CustomDialog.alert("Restaurado!", "Sucesso"); BackupModal.closeUI(); } 
-                catch(e) { await CustomDialog.alert("Ficheiro corrompido.", "Erro"); BackupModal.closeUI(); } 
-            } else { await CustomDialog.alert("Ficheiro inválido.", "Erro"); BackupModal.closeUI(); } 
-        } catch(e) { await CustomDialog.alert("Erro ao baixar nuvem.", "Erro"); BackupModal.closeUI(); } 
+                try { 
+                    const parsed = JSON.parse(data);
+                    
+                    // Limpar banco de dados atual
+                    await db.entities.clear();
+                    await db.logs.clear();
+                    
+                    // Restaurar dados
+                    if (parsed.entities && parsed.entities.length > 0) {
+                        await db.entities.bulkPut(parsed.entities);
+                    }
+                    if (parsed.logs && parsed.logs.length > 0) {
+                        await db.logs.bulkPut(parsed.logs);
+                    }
+                    
+                    App.goHome(); 
+                    await CustomDialog.alert("Restaurado!", "Sucesso"); 
+                    BackupModal.closeUI(); 
+                } catch(e) { 
+                    await CustomDialog.alert("Ficheiro corrompido.", "Erro"); 
+                    BackupModal.closeUI(); 
+                } 
+            } else { 
+                await CustomDialog.alert("Ficheiro inválido.", "Erro"); 
+                BackupModal.closeUI(); 
+            } 
+        } catch(e) { 
+            await CustomDialog.alert("Erro ao baixar nuvem.", "Erro"); 
+            BackupModal.closeUI(); 
+        } 
     }
 };
 
+// ==========================================
+// MODAIS (Adaptados para Dexie)
+// ==========================================
 var BackupChoiceModal = { el: document.getElementById('backupChoiceModal'), open: function() { AppState.openModal(this); }, closeUI: function() { AppState.closeModalUI(); } };
 var BackupModal = { el: document.getElementById('backupModal'), open: function() { AppState.openModal(this); }, closeUI: function() { AppState.closeModalUI(); } };
 
 var EntityModal = {
     el: document.getElementById('entityModal'), currentTargetId: null,
-    open: function(id) { 
-        this.currentTargetId = id; const entity = db.entities.find(e => e.id === id); 
+    open: async function(id) { 
+        this.currentTargetId = id; 
+        const entity = await db.entities.get(id); 
         if(entity) { 
             document.getElementById('entityModalTitle').innerText = entity.type === 'tarefa' ? 'Editar Tarefa' : 'Editar Entidade';
-            document.getElementById('entityNameEditInput').value = entity.name; AppState.openModal(this); 
+            document.getElementById('entityNameEditInput').value = entity.name; 
+            AppState.openModal(this); 
         } 
     },
     openTaskPrompt: async function(parentId) {
@@ -993,37 +1204,66 @@ var EntityModal = {
         if(name) { App.createEntityOnTheFly(name, parentId); }
     },
     closeUI: function() { AppState.closeModalUI(); },
-    save: function() {
-        const val = document.getElementById('entityNameEditInput').value.trim(); if(!val) return;
-        const entity = db.entities.find(e => e.id === this.currentTargetId); if(entity) { entity.name = val; saveDB(); App.renderList(); }
+    save: async function() {
+        const val = document.getElementById('entityNameEditInput').value.trim(); 
+        if(!val) return;
+        await db.entities.update(this.currentTargetId, { name: val });
+        App.renderList();
         this.closeUI();
     },
     delete: async function() {
         if(await CustomDialog.confirm("Excluir esta entidade? TODOS os registos gerados nela e sub-tarefas serão apagados.", "Atenção (Cascata)")) {
             const id = this.currentTargetId;
-            db.entities = db.entities.filter(e => e.parentId !== id && e.id !== id);
-            db.logs = db.logs.filter(l => {
-                if (l.originEntityId === id) return false;
-                l.relatedEntities = l.relatedEntities.filter(rel => rel.id !== id);
-                return true;
-            });
-            saveDB(); this.closeUI(); App.renderList();
+            
+            // Deletar sub-entidades (tarefas)
+            const subEntities = await db.entities.where({parentId: id}).toArray();
+            for(let sub of subEntities) {
+                await db.entities.delete(sub.id);
+                // Atualizar logs relacionados
+                const logsToUpdate = await db.logs.filter(l => 
+                    l.relatedEntities && l.relatedEntities.some(rel => rel.id === sub.id)
+                ).toArray();
+                for(let log of logsToUpdate) {
+                    log.relatedEntities = log.relatedEntities.filter(rel => rel.id !== sub.id);
+                    await db.logs.put(log);
+                }
+            }
+            
+            // Deletar entidade principal
+            await db.entities.delete(id);
+            
+            // Atualizar logs relacionados
+            const logsToUpdate = await db.logs.filter(l => 
+                l.relatedEntities && l.relatedEntities.some(rel => rel.id === id)
+            ).toArray();
+            for(let log of logsToUpdate) {
+                log.relatedEntities = log.relatedEntities.filter(rel => rel.id !== id);
+                if (log.originEntityId === id) {
+                    log.originEntityId = null;
+                }
+                await db.logs.put(log);
+            }
+            
+            this.closeUI(); 
+            App.renderList();
         }
     }
 };
 
 var LogModal = {
     el: document.getElementById('logModal'), editLogId: null, tempMedia: [], tempRelations: [], originId: null,
-    open: function(logId = null, targetEntityId = null) {
-        this.editLogId = logId; this.tempMedia = []; 
+    open: async function(logId = null, targetEntityId = null) {
+        this.editLogId = logId; 
+        this.tempMedia = []; 
         const textInput = document.getElementById('logText');
 
         if (logId) {
-            const log = db.logs.find(l => l.id === logId); 
+            const log = await db.logs.get(logId); 
+            if (!log) return;
             this.originId = log.originEntityId;
             textInput.value = log.text; 
             this.tempMedia = [...(log.images || [])]; 
-            this.tempRelations = log.relatedEntities.filter(rel => rel.id !== this.originId).map(rel => ({ id: rel.id, type: rel.type }));
+            this.tempRelations = (log.relatedEntities || []).filter(rel => rel.id !== this.originId).map(rel => ({ id: rel.id, type: rel.type }));
             document.getElementById('logModalTitle').innerText = 'Editar Registo';
             document.getElementById('logModalDeleteBtn').style.display = 'block';
         } else { 
@@ -1037,23 +1277,35 @@ var LogModal = {
         document.getElementById('logLinkInput').value = '';
         document.getElementById('logLinkAutocomplete').style.display = 'none';
         this.renderLinks();
-        this.updateUI(); AppState.openModal(this);
+        this.updateUI(); 
+        AppState.openModal(this);
     },
     closeUI: function() { AppState.closeModalUI(); },
-    searchLinks: function() {
+    searchLinks: async function() {
         const term = document.getElementById('logLinkInput').value.toLowerCase().trim();
         const dropdown = document.getElementById('logLinkAutocomplete');
         
-        let available = db.entities.filter(e => e.type !== 'tarefa' && e.id !== this.originId && !this.tempRelations.some(rel => rel.id === e.id));
+        let available = await db.entities.filter(e => 
+            e.type !== 'tarefa' && 
+            e.id !== this.originId && 
+            !this.tempRelations.some(rel => rel.id === e.id)
+        ).toArray();
+        
         if (term) available = available.filter(e => e.name.toLowerCase().includes(term));
         
         if (available.length === 0) { dropdown.style.display = 'none'; return; }
         
-        dropdown.innerHTML = available.slice(0, 5).map(e => `<div class="autocomplete-item" onclick="LogModal.addLink('${e.id}')"><i class="material-icons" style="font-size:16px; opacity:0.6;">link</i> ${e.name} <span style="font-size:10px; opacity:0.5; margin-left:auto;">${MODULE_MAPPING[e.type][0]}</span></div>`).join('');
+        dropdown.innerHTML = available.slice(0, 5).map(e => 
+            `<div class="autocomplete-item" onclick="LogModal.addLink('${e.id}')">
+                <i class="material-icons" style="font-size:16px; opacity:0.6;">link</i> 
+                ${e.name} 
+                <span style="font-size:10px; opacity:0.5; margin-left:auto;">${MODULE_MAPPING[e.type] ? MODULE_MAPPING[e.type][0] : e.type}</span>
+            </div>`
+        ).join('');
         dropdown.style.display = 'flex';
     },
-    addLink: function(id) {
-        const e = db.entities.find(x => x.id === id);
+    addLink: async function(id) {
+        const e = await db.entities.get(id);
         if(e) this.tempRelations.push({ type: e.type, id: e.id });
         document.getElementById('logLinkInput').value = '';
         document.getElementById('logLinkAutocomplete').style.display = 'none';
@@ -1063,45 +1315,69 @@ var LogModal = {
         this.tempRelations = this.tempRelations.filter(rel => rel.id !== id);
         this.renderLinks();
     },
-    renderLinks: function() {
+    renderLinks: async function() {
         const container = document.getElementById('logLinkPills');
-        container.innerHTML = this.tempRelations.map(rel => {
-            const e = db.entities.find(x => x.id === rel.id) || rel;
-            return `<div class="pill-dark">${e.name} <i class="material-icons" onclick="LogModal.removeLink('${e.id}')">close</i></div>`;
-        }).join('');
+        let html = '';
+        for(let rel of this.tempRelations) {
+            const e = await db.entities.get(rel.id);
+            const name = e ? e.name : rel.id;
+            html += `<div class="pill-dark">${name} <i class="material-icons" onclick="LogModal.removeLink('${rel.id}')">close</i></div>`;
+        }
+        container.innerHTML = html;
     },
     delete: async function() {
         if(this.editLogId && await CustomDialog.confirm("Excluir permanentemente este registo?", "Excluir Log")) {
-            db.logs = db.logs.filter(l => l.id !== this.editLogId);
-            saveDB(); App.renderList(); this.closeUI();
+            await db.logs.delete(this.editLogId);
+            App.renderList(); 
+            this.closeUI();
         }
     },
     save: async function() {
         const text = document.getElementById('logText').value.trim();
-        if(!text && this.tempMedia.length === 0) { await CustomDialog.alert('Insira um texto ou anexe uma imagem/documento/vídeo.', 'Aviso'); return; }
+        if(!text && this.tempMedia.length === 0) { 
+            await CustomDialog.alert('Insira um texto ou anexe uma imagem/documento/vídeo.', 'Aviso'); 
+            return; 
+        }
         
-        const originEntity = db.entities.find(e => e.id === this.originId);
+        const originEntity = await db.entities.get(this.originId);
+        if (!originEntity) {
+            await CustomDialog.alert('Entidade de origem não encontrada.', 'Erro');
+            return;
+        }
+        
         const coreRelation = { type: originEntity.type, id: originEntity.id };
         const finalRelations = [coreRelation, ...this.tempRelations.map(rel => ({ type: rel.type, id: rel.id }))];
 
         if (this.editLogId) {
-            const log = db.logs.find(l => l.id === this.editLogId); 
-            log.text = text; 
-            log.images = [...this.tempMedia];
-            log.relatedEntities = finalRelations;
+            await db.logs.update(this.editLogId, {
+                text: text,
+                images: this.tempMedia,
+                relatedEntities: finalRelations
+            });
         } else {
             const newLog = { 
-                id: Date.now().toString(), text: text, images: [...this.tempMedia], createdAt: Date.now(), 
-                originEntityId: this.originId, relatedEntities: finalRelations 
+                id: Date.now().toString(), 
+                text: text, 
+                images: [...this.tempMedia], 
+                createdAt: Date.now(), 
+                originEntityId: this.originId, 
+                relatedEntities: finalRelations 
             };
-            db.logs.push(newLog);
+            await db.logs.put(newLog);
         }
-        saveDB(); App.renderList(); this.closeUI();
+        App.renderList(); 
+        this.closeUI();
     },
     updateUI: function() {
-        const container = document.getElementById('logPreviewContainer'); const wrapper = document.getElementById('logMediaWrapper');
-        if (this.tempMedia && this.tempMedia.length > 0) { wrapper.innerHTML = renderStackedDeckHTML(this.tempMedia, 'temp'); container.style.display = 'block'; } 
-        else { container.style.display = 'none'; wrapper.innerHTML = ''; }
+        const container = document.getElementById('logPreviewContainer'); 
+        const wrapper = document.getElementById('logMediaWrapper');
+        if (this.tempMedia && this.tempMedia.length > 0) { 
+            wrapper.innerHTML = renderStackedDeckHTML(this.tempMedia, 'temp'); 
+            container.style.display = 'block'; 
+        } else { 
+            container.style.display = 'none'; 
+            wrapper.innerHTML = ''; 
+        }
     }
 };
 
@@ -1114,48 +1390,136 @@ const handleLogMedia = async (e) => {
     
     await processMultipleMedia(files, (newMedia) => { 
         if(hasVideo) LogModal.tempMedia = LogModal.tempMedia.filter(m => !m.isPlaceholder);
-        LogModal.tempMedia.push(...newMedia); LogModal.updateUI(); 
+        LogModal.tempMedia.push(...newMedia); 
+        LogModal.updateUI(); 
     }); 
     e.target.value = ''; 
 };
-document.getElementById('logCam').addEventListener('change', handleLogMedia); document.getElementById('logGal').addEventListener('change', handleLogMedia);
+document.getElementById('logCam').addEventListener('change', handleLogMedia); 
+document.getElementById('logGal').addEventListener('change', handleLogMedia);
 
+// ==========================================
+// CAROUSEL MODAL (mantido igual, apenas adaptado para Dexie)
+// ==========================================
 var CarouselModal = {
     el: document.getElementById('carouselModal'), container: document.getElementById('carouselContainer'), currentLogId: null, imagesArray: [], currentIndex: 0,
     open: function(logId, startIndex = 0) {
         this.currentLogId = logId;
-        if (logId === 'temp') this.imagesArray = LogModal.tempMedia; else { const log = db.logs.find(l => l.id === logId); this.imagesArray = log ? log.images : []; }
+        if (logId === 'temp') {
+            this.imagesArray = LogModal.tempMedia; 
+        } else {
+            db.logs.get(logId).then(log => {
+                this.imagesArray = log ? (log.images || []) : [];
+                if (!this.imagesArray || this.imagesArray.length === 0) return;
+                this.currentIndex = startIndex || 0; 
+                this.render(); 
+                AppState.openModal(this); 
+                this.bindZoom();
+                const navLeft = document.getElementById('carouselNavLeft'); 
+                const navRight = document.getElementById('carouselNavRight');
+                if(this.imagesArray.length > 1) { 
+                    navLeft.style.display = 'grid'; 
+                    navRight.style.display = 'grid'; 
+                } else { 
+                    navLeft.style.display = 'none'; 
+                    navRight.style.display = 'none'; 
+                }
+                this.updateGlobalActions();
+                this.container.addEventListener('scroll', () => { 
+                    const itemW = window.innerWidth * 0.85 + 16; 
+                    this.currentIndex = Math.round(this.container.scrollLeft / itemW); 
+                    this.updateGlobalActions(); 
+                }, {passive: true});
+                setTimeout(() => { 
+                    const itemW = window.innerWidth * 0.85 + 16; 
+                    this.container.scrollLeft = this.currentIndex * itemW; 
+                }, 50);
+            });
+            return;
+        }
+        
         if (!this.imagesArray || this.imagesArray.length === 0) return;
-        this.currentIndex = startIndex || 0; this.render(); AppState.openModal(this); this.bindZoom();
-        const navLeft = document.getElementById('carouselNavLeft'); const navRight = document.getElementById('carouselNavRight');
-        if(this.imagesArray.length > 1) { navLeft.style.display = 'grid'; navRight.style.display = 'grid'; } else { navLeft.style.display = 'none'; navRight.style.display = 'none'; }
+        this.currentIndex = startIndex || 0; 
+        this.render(); 
+        AppState.openModal(this); 
+        this.bindZoom();
+        const navLeft = document.getElementById('carouselNavLeft'); 
+        const navRight = document.getElementById('carouselNavRight');
+        if(this.imagesArray.length > 1) { 
+            navLeft.style.display = 'grid'; 
+            navRight.style.display = 'grid'; 
+        } else { 
+            navLeft.style.display = 'none'; 
+            navRight.style.display = 'none'; 
+        }
         this.updateGlobalActions();
-        this.container.addEventListener('scroll', () => { const itemW = window.innerWidth * 0.85 + 16; this.currentIndex = Math.round(this.container.scrollLeft / itemW); this.updateGlobalActions(); }, {passive: true});
-        setTimeout(() => { const itemW = window.innerWidth * 0.85 + 16; this.container.scrollLeft = this.currentIndex * itemW; }, 50);
+        this.container.addEventListener('scroll', () => { 
+            const itemW = window.innerWidth * 0.85 + 16; 
+            this.currentIndex = Math.round(this.container.scrollLeft / itemW); 
+            this.updateGlobalActions(); 
+        }, {passive: true});
+        setTimeout(() => { 
+            const itemW = window.innerWidth * 0.85 + 16; 
+            this.container.scrollLeft = this.currentIndex * itemW; 
+        }, 50);
     },
     closeUI: function() { AppState.closeModalUI(); },
     next: function() { const itemW = window.innerWidth * 0.85 + 16; this.container.scrollBy({ left: itemW, behavior: 'smooth' }); },
     prev: function() { const itemW = window.innerWidth * 0.85 + 16; this.container.scrollBy({ left: -itemW, behavior: 'smooth' }); },
-    updateGlobalActions: function() { const img = this.imagesArray[this.currentIndex]; const editBtn = document.getElementById('carouselEditBtn'); if (img && (img.data.startsWith('data:application/pdf') || img.data.startsWith('data:video/') || img.isVideo)) editBtn.style.display = 'none'; else editBtn.style.display = 'grid'; },
+    updateGlobalActions: function() { 
+        const img = this.imagesArray[this.currentIndex]; 
+        const editBtn = document.getElementById('carouselEditBtn'); 
+        if (img && (img.data.startsWith('data:application/pdf') || img.data.startsWith('data:video/') || img.isVideo)) {
+            editBtn.style.display = 'none'; 
+        } else {
+            editBtn.style.display = 'grid'; 
+        }
+    },
     render: function() {
         this.container.innerHTML = this.imagesArray.map((img, idx) => {
             let media = '';
-            if (img.data.startsWith('data:application/pdf')) { media = `<div class="carousel-pdf" onclick="App.openPDF('${img.data}')"><i class="material-icons" style="font-size:48px; color:var(--danger)">picture_as_pdf</i><span style="color:#fff; font-size:14px; margin-top:12px; text-align:center;">${AppUtils.getPdfName(img.data)}</span></div>`; } 
-            else if (img.isVideo || img.data.startsWith('data:video/')) { media = `<div class="carousel-img-wrapper"><video src="${img.data}" class="carousel-img" controls playsinline style="pointer-events: auto; z-index: 10;"></video></div>`; }
-            else { media = `<div class="carousel-img-wrapper"><img src="${img.data}" class="carousel-img"><div class="carousel-touch-layer"></div></div>`; }
+            if (img.data.startsWith('data:application/pdf')) { 
+                media = `<div class="carousel-pdf" onclick="App.openPDF('${img.data}')"><i class="material-icons" style="font-size:48px; color:var(--danger)">picture_as_pdf</i><span style="color:#fff; font-size:14px; margin-top:12px; text-align:center;">${AppUtils.getPdfName(img.data)}</span></div>`; 
+            } else if (img.isVideo || img.data.startsWith('data:video/')) { 
+                media = `<div class="carousel-img-wrapper"><video src="${img.data}" class="carousel-img" controls playsinline style="pointer-events: auto; z-index: 10;"></video></div>`; 
+            } else { 
+                media = `<div class="carousel-img-wrapper"><img src="${img.data}" class="carousel-img"><div class="carousel-touch-layer"></div></div>`; 
+            }
             return `<div class="carousel-item">${media}</div>`;
         }).join('');
     },
-    editCurrent: function() { let img = this.imagesArray[this.currentIndex]; if (this.currentLogId === 'temp') { Editor.openForTemp(img.data, this.currentIndex); } else { Editor.openForDBLog(this.currentLogId, img.data, this.currentIndex); } },
+    editCurrent: function() { 
+        let img = this.imagesArray[this.currentIndex]; 
+        if (this.currentLogId === 'temp') { 
+            Editor.openForTemp(img.data, this.currentIndex); 
+        } else { 
+            Editor.openForDBLog(this.currentLogId, img.data, this.currentIndex); 
+        } 
+    },
     deleteCurrent: async function() {
         if(await CustomDialog.confirm("Excluir imagem/ficheiro permanentemente?", "Excluir")) {
             this.imagesArray.splice(this.currentIndex, 1);
-            if (this.currentLogId === 'temp') { LogModal.updateUI(); } else { saveDB(); App.renderList(); }
-            if(this.imagesArray.length === 0) { this.closeUI(); } else {
-                this.render(); this.bindZoom();
+            if (this.currentLogId === 'temp') { 
+                LogModal.updateUI(); 
+            } else { 
+                const log = await db.logs.get(this.currentLogId);
+                if (log) {
+                    log.images = this.imagesArray;
+                    await db.logs.put(log);
+                }
+                App.renderList(); 
+            }
+            if(this.imagesArray.length === 0) { 
+                this.closeUI(); 
+            } else {
+                this.render(); 
+                this.bindZoom();
                 this.currentIndex = Math.min(this.currentIndex, this.imagesArray.length - 1);
                 this.container.scrollLeft = this.currentIndex * (window.innerWidth * 0.85 + 16);
-                if(this.imagesArray.length <= 1) { document.getElementById('carouselNavLeft').style.display = 'none'; document.getElementById('carouselNavRight').style.display = 'none'; }
+                if(this.imagesArray.length <= 1) { 
+                    document.getElementById('carouselNavLeft').style.display = 'none'; 
+                    document.getElementById('carouselNavRight').style.display = 'none'; 
+                }
                 this.updateGlobalActions();
             }
         }
@@ -1163,30 +1527,83 @@ var CarouselModal = {
     bindZoom: function() {
         const wrappers = this.container.querySelectorAll('.carousel-img-wrapper');
         wrappers.forEach(wrapper => {
-            const touchLayer = wrapper.querySelector('.carousel-touch-layer'); const img = wrapper.querySelector('.carousel-img'); if(!img || img.tagName === 'VIDEO' || !touchLayer) return;
-            let scale = 1, currentX = 0, currentY = 0, startX = 0, startY = 0, initialDist = 0, initialScale = 1; let lastTap = 0, isPinching = false, isMoving = false;
+            const touchLayer = wrapper.querySelector('.carousel-touch-layer'); 
+            const img = wrapper.querySelector('.carousel-img'); 
+            if(!img || img.tagName === 'VIDEO' || !touchLayer) return;
+            
+            let scale = 1, currentX = 0, currentY = 0, startX = 0, startY = 0, initialDist = 0, initialScale = 1; 
+            let lastTap = 0, isPinching = false, isMoving = false;
+            
             touchLayer.addEventListener('touchstart', (e) => {
                 img.style.transition = 'none';
-                if (e.touches.length === 2) { e.preventDefault(); e.stopPropagation(); isPinching = true; isMoving = true; initialDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); initialScale = scale; } 
-                else if (e.touches.length === 1) { isMoving = false; if (scale > 1) { e.stopPropagation(); startX = e.touches[0].clientX - currentX; startY = e.touches[0].clientY - currentY; } }
+                if (e.touches.length === 2) { 
+                    e.preventDefault(); e.stopPropagation(); 
+                    isPinching = true; isMoving = true; 
+                    initialDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); 
+                    initialScale = scale; 
+                } else if (e.touches.length === 1) { 
+                    isMoving = false; 
+                    if (scale > 1) { 
+                        e.stopPropagation(); 
+                        startX = e.touches[0].clientX - currentX; 
+                        startY = e.touches[0].clientY - currentY; 
+                    } 
+                }
             }, {passive: false});
+            
             touchLayer.addEventListener('touchmove', (e) => {
                 isMoving = true;
-                if (e.touches.length === 2) { e.preventDefault(); e.stopPropagation(); const currentDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); scale = Math.max(1, Math.min(initialScale * (currentDist / initialDist), 5)); const maxTx = (scale - 1) * img.offsetWidth / 2; const maxTy = (scale - 1) * img.offsetHeight / 2; currentX = Math.max(-maxTx, Math.min(currentX, maxTx)); currentY = Math.max(-maxTy, Math.min(currentY, maxTy)); img.style.transform = `translate(${currentX}px, ${currentY}px) scale(${scale})`; } 
-                else if (e.touches.length === 1 && scale > 1) { e.preventDefault(); e.stopPropagation(); currentX = e.touches[0].clientX - startX; currentY = e.touches[0].clientY - startY; const maxTx = (scale - 1) * img.offsetWidth / 2; const maxTy = (scale - 1) * img.offsetHeight / 2; currentX = Math.max(-maxTx, Math.min(currentX, maxTx)); currentY = Math.max(-maxTy, Math.min(currentY, maxTy)); img.style.transform = `translate(${currentX}px, ${currentY}px) scale(${scale})`; }
+                if (e.touches.length === 2) { 
+                    e.preventDefault(); e.stopPropagation(); 
+                    const currentDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); 
+                    scale = Math.max(1, Math.min(initialScale * (currentDist / initialDist), 5)); 
+                    const maxTx = (scale - 1) * img.offsetWidth / 2; 
+                    const maxTy = (scale - 1) * img.offsetHeight / 2; 
+                    currentX = Math.max(-maxTx, Math.min(currentX, maxTx)); 
+                    currentY = Math.max(-maxTy, Math.min(currentY, maxTy)); 
+                    img.style.transform = `translate(${currentX}px, ${currentY}px) scale(${scale})`; 
+                } else if (e.touches.length === 1 && scale > 1) { 
+                    e.preventDefault(); e.stopPropagation(); 
+                    currentX = e.touches[0].clientX - startX; 
+                    currentY = e.touches[0].clientY - startY; 
+                    const maxTx = (scale - 1) * img.offsetWidth / 2; 
+                    const maxTy = (scale - 1) * img.offsetHeight / 2; 
+                    currentX = Math.max(-maxTx, Math.min(currentX, maxTx)); 
+                    currentY = Math.max(-maxTy, Math.min(currentY, maxTy)); 
+                    img.style.transform = `translate(${currentX}px, ${currentY}px) scale(${scale})`; 
+                }
             }, {passive: false});
+            
             touchLayer.addEventListener('touchend', (e) => {
                 img.style.transition = 'transform 0.2s ease-out';
-                if (e.touches.length === 1 && scale > 1) { startX = e.touches[0].clientX - currentX; startY = e.touches[0].clientY - currentY; }
+                if (e.touches.length === 1 && scale > 1) { 
+                    startX = e.touches[0].clientX - currentX; 
+                    startY = e.touches[0].clientY - currentY; 
+                }
                 if (e.touches.length === 0) {
-                    if (!isPinching && !isMoving) { const tapLength = new Date().getTime() - lastTap; if (tapLength < 300 && tapLength > 0) { scale = 1; currentX = 0; currentY = 0; img.style.transform = `translate(0, 0) scale(1)`; e.preventDefault(); e.stopPropagation(); } lastTap = new Date().getTime(); }
-                    if (scale <= 1) { scale = 1; currentX = 0; currentY = 0; img.style.transform = `translate(0, 0) scale(1)`; } isPinching = false; isMoving = false;
+                    if (!isPinching && !isMoving) { 
+                        const tapLength = new Date().getTime() - lastTap; 
+                        if (tapLength < 300 && tapLength > 0) { 
+                            scale = 1; currentX = 0; currentY = 0; 
+                            img.style.transform = `translate(0, 0) scale(1)`; 
+                            e.preventDefault(); e.stopPropagation(); 
+                        } 
+                        lastTap = new Date().getTime(); 
+                    }
+                    if (scale <= 1) { 
+                        scale = 1; currentX = 0; currentY = 0; 
+                        img.style.transform = `translate(0, 0) scale(1)`; 
+                    } 
+                    isPinching = false; isMoving = false;
                 }
             });
         });
     }
 };
 
+// ==========================================
+// EDITOR (mantido igual, apenas adaptado para salvar no Dexie)
+// ==========================================
 var Editor = {
     overlay: document.getElementById('editorOverlay'), canvas: document.getElementById('mainCanvas'), ctx: document.getElementById('mainCanvas').getContext('2d'), sizeInput: document.getElementById('editorSize'), activeColor: '#ff3333', activeTool: 'pen', activeText: null, isDrawing: false, lastPos: {x: 0, y: 0}, undoStack: [], isDraggingText: false, dragStartX: 0, dragStartY: 0, dragStartLeft: 0, dragStartTop: 0, targetMode: null, logId: null, dbIdx: null, el: document.getElementById('editorOverlay'),
     
@@ -1204,10 +1621,44 @@ var Editor = {
             this.canvas.style.width = w + 'px'; this.canvas.style.height = h + 'px';
             
             this.canvas.width = img.width; this.canvas.height = img.height; this.ctx.drawImage(img, 0, 0);
-            let currentPhotoObj = this.targetMode === 'db' ? db.logs.find(l => l.id === this.logId).images[this.dbIdx] : LogModal.tempMedia[this.dbIdx];
-            const dateStr = currentPhotoObj ? AppUtils.formatDate(currentPhotoObj.createdAt) : '';
-            if (dateStr) { const fs = Math.max(12, this.canvas.width / 40); this.ctx.font = `bold ${fs}px Roboto`; this.ctx.textBaseline = 'bottom'; this.ctx.fillStyle = 'rgba(0,0,0,0.6)'; this.ctx.fillText(`Registrada: ${dateStr}`, 10 + 2, this.canvas.height - 10 + 2); this.ctx.fillStyle = '#fff'; this.ctx.fillText(`Registrada: ${dateStr}`, 10, this.canvas.height - 10); }
-            this.saveState(); AppState.openModal(this);
+            
+            // Buscar data de criação da imagem
+            let currentPhotoObj = null;
+            if (this.targetMode === 'db') {
+                db.logs.get(this.logId).then(log => {
+                    if (log && log.images && log.images[this.dbIdx]) {
+                        currentPhotoObj = log.images[this.dbIdx];
+                        const dateStr = currentPhotoObj ? AppUtils.formatDate(currentPhotoObj.createdAt) : '';
+                        if (dateStr) { 
+                            const fs = Math.max(12, this.canvas.width / 40); 
+                            this.ctx.font = `bold ${fs}px Roboto`; 
+                            this.ctx.textBaseline = 'bottom'; 
+                            this.ctx.fillStyle = 'rgba(0,0,0,0.6)'; 
+                            this.ctx.fillText(`Registrada: ${dateStr}`, 10 + 2, this.canvas.height - 10 + 2); 
+                            this.ctx.fillStyle = '#fff'; 
+                            this.ctx.fillText(`Registrada: ${dateStr}`, 10, this.canvas.height - 10); 
+                        }
+                        this.saveState(); 
+                    }
+                    AppState.openModal(this);
+                });
+                return;
+            } else if (this.targetMode === 'temp') {
+                currentPhotoObj = LogModal.tempMedia[this.dbIdx];
+                const dateStr = currentPhotoObj ? AppUtils.formatDate(currentPhotoObj.createdAt) : '';
+                if (dateStr) { 
+                    const fs = Math.max(12, this.canvas.width / 40); 
+                    this.ctx.font = `bold ${fs}px Roboto`; 
+                    this.ctx.textBaseline = 'bottom'; 
+                    this.ctx.fillStyle = 'rgba(0,0,0,0.6)'; 
+                    this.ctx.fillText(`Registrada: ${dateStr}`, 10 + 2, this.canvas.height - 10 + 2); 
+                    this.ctx.fillStyle = '#fff'; 
+                    this.ctx.fillText(`Registrada: ${dateStr}`, 10, this.canvas.height - 10); 
+                }
+            }
+            
+            this.saveState(); 
+            AppState.openModal(this);
         };
         img.src = imgSrc;
     },
@@ -1222,56 +1673,219 @@ var Editor = {
     save: function() {
         const texts = document.getElementById('textOverlay').children;
         if (texts.length > 0) {
-            const rect = this.canvas.getBoundingClientRect(); const scaleX = this.canvas.width / rect.width; const scaleY = this.canvas.height / rect.height;
+            const rect = this.canvas.getBoundingClientRect(); 
+            const scaleX = this.canvas.width / rect.width; 
+            const scaleY = this.canvas.height / rect.height;
             for (let i = 0; i < texts.length; i++) {
-                const el = texts[i]; const left = parseFloat(el.style.left); const top = parseFloat(el.style.top); const fontSizeCSS = parseFloat(el.style.fontSize);
-                const canvasX = left * scaleX; const canvasY = top * scaleY; const canvasFontSize = fontSizeCSS * scaleY;
-                this.ctx.font = `bold ${canvasFontSize}px Roboto, sans-serif`; this.ctx.fillStyle = el.style.color; this.ctx.textBaseline = 'top'; this.ctx.strokeStyle = 'rgba(0,0,0,0.8)'; this.ctx.lineWidth = Math.max(2, canvasFontSize / 10);
-                const lines = el.innerText.split('\n'); let currentY = canvasY;
-                for(let line of lines) { this.ctx.strokeText(line, canvasX, currentY); this.ctx.fillText(line, canvasX, currentY); currentY += canvasFontSize * 1.2; }
+                const el = texts[i]; 
+                const left = parseFloat(el.style.left); 
+                const top = parseFloat(el.style.top); 
+                const fontSizeCSS = parseFloat(el.style.fontSize);
+                const canvasX = left * scaleX; 
+                const canvasY = top * scaleY; 
+                const canvasFontSize = fontSizeCSS * scaleY;
+                this.ctx.font = `bold ${canvasFontSize}px Roboto, sans-serif`; 
+                this.ctx.fillStyle = el.style.color; 
+                this.ctx.textBaseline = 'top'; 
+                this.ctx.strokeStyle = 'rgba(0,0,0,0.8)'; 
+                this.ctx.lineWidth = Math.max(2, canvasFontSize / 10);
+                const lines = el.innerText.split('\n'); 
+                let currentY = canvasY;
+                for(let line of lines) { 
+                    this.ctx.strokeText(line, canvasX, currentY); 
+                    this.ctx.fillText(line, canvasX, currentY); 
+                    currentY += canvasFontSize * 1.2; 
+                }
             }
         }
         const dataUrl = this.canvas.toDataURL('image/jpeg', 0.8);
-        if (this.targetMode === 'db') { const log = db.logs.find(l => l.id === this.logId); if(log && log.images[this.dbIdx]) log.images[this.dbIdx].data = dataUrl; saveDB(); App.renderList(); } 
-        else if (this.targetMode === 'temp') { if(LogModal.tempMedia[this.dbIdx]) LogModal.tempMedia[this.dbIdx].data = dataUrl; LogModal.updateUI(); }
-        if (CarouselModal.el.classList.contains('active') && CarouselModal.imagesArray[this.dbIdx]) { CarouselModal.imagesArray[this.dbIdx].data = dataUrl; CarouselModal.render(); CarouselModal.bindZoom(); }
-        this.closeUI();
+        
+        const saveAndClose = () => {
+            this.closeUI();
+        };
+        
+        if (this.targetMode === 'db') { 
+            db.logs.get(this.logId).then(log => {
+                if(log && log.images && log.images[this.dbIdx]) {
+                    log.images[this.dbIdx].data = dataUrl; 
+                    db.logs.put(log).then(() => {
+                        App.renderList(); 
+                        if (CarouselModal.el.classList.contains('active') && CarouselModal.imagesArray[this.dbIdx]) { 
+                            CarouselModal.imagesArray[this.dbIdx].data = dataUrl; 
+                            CarouselModal.render(); 
+                            CarouselModal.bindZoom(); 
+                        }
+                        saveAndClose();
+                    });
+                }
+            });
+        } else if (this.targetMode === 'temp') { 
+            if(LogModal.tempMedia[this.dbIdx]) {
+                LogModal.tempMedia[this.dbIdx].data = dataUrl; 
+                LogModal.updateUI(); 
+            }
+            if (CarouselModal.el.classList.contains('active') && CarouselModal.imagesArray[this.dbIdx]) { 
+                CarouselModal.imagesArray[this.dbIdx].data = dataUrl; 
+                CarouselModal.render(); 
+                CarouselModal.bindZoom(); 
+            }
+            this.closeUI();
+        }
     },
     setTool: function(tool) {
-        this.activeTool = tool; document.getElementById('btnPen').classList.toggle('active', tool === 'pen'); document.getElementById('btnText').classList.toggle('active', tool === 'text');
+        this.activeTool = tool; 
+        document.getElementById('btnPen').classList.toggle('active', tool === 'pen'); 
+        document.getElementById('btnText').classList.toggle('active', tool === 'text');
         this.canvas.className = tool === 'text' ? 'cursor-text' : 'cursor-crosshair';
-        const hints = { 'pen': 'Desenhe livremente', 'text': 'Toque para digitar. Toque e arraste para mover.' }; document.getElementById('editorHint').textContent = hints[tool];
+        const hints = { 'pen': 'Desenhe livremente', 'text': 'Toque para digitar. Toque e arraste para mover.' }; 
+        document.getElementById('editorHint').textContent = hints[tool];
         if (tool !== 'text' && this.activeText) { this.activeText.blur(); }
     },
-    setColor: function(color) { this.activeColor = color; document.getElementById('activeColorBtn').style.backgroundColor = color; document.getElementById('colorPopup').classList.remove('show'); if (this.activeTool === 'text' && this.activeText) { this.activeText.style.color = color; } },
-    saveState: function() { if(this.undoStack.length >= 15) this.undoStack.shift(); this.undoStack.push(this.canvas.toDataURL()); },
-    undo: function() { if(this.undoStack.length > 1) { this.undoStack.pop(); const img = new Image(); img.onload = () => { this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height); this.ctx.drawImage(img, 0, 0); }; img.src = this.undoStack[this.undoStack.length - 1]; } },
-    getCoords: function(e) { const rect = this.canvas.getBoundingClientRect(); const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY; const scaleX = this.canvas.width / rect.width; const scaleY = this.canvas.height / rect.height; return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY }; },
+    setColor: function(color) { 
+        this.activeColor = color; 
+        document.getElementById('activeColorBtn').style.backgroundColor = color; 
+        document.getElementById('colorPopup').classList.remove('show'); 
+        if (this.activeTool === 'text' && this.activeText) { 
+            this.activeText.style.color = color; 
+        } 
+    },
+    saveState: function() { 
+        if(this.undoStack.length >= 15) this.undoStack.shift(); 
+        this.undoStack.push(this.canvas.toDataURL()); 
+    },
+    undo: function() { 
+        if(this.undoStack.length > 1) { 
+            this.undoStack.pop(); 
+            const img = new Image(); 
+            img.onload = () => { 
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height); 
+                this.ctx.drawImage(img, 0, 0); 
+            }; 
+            img.src = this.undoStack[this.undoStack.length - 1]; 
+        } 
+    },
+    getCoords: function(e) { 
+        const rect = this.canvas.getBoundingClientRect(); 
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX; 
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY; 
+        const scaleX = this.canvas.width / rect.width; 
+        const scaleY = this.canvas.height / rect.height; 
+        return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY }; 
+    },
     startDraw: function(e) {
         if (this.activeTool === 'text') {
-            e.preventDefault(); if (this.activeText) { this.activeText.blur(); this.activeText = null; return; }
-            const rect = this.canvas.getBoundingClientRect(); const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY; const x = clientX - rect.left; const y = clientY - rect.top;
-            const el = document.createElement('div'); el.contentEditable = true; el.style.position = 'absolute'; el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.color = this.activeColor; el.style.fontSize = Math.max(14, this.sizeInput.value * 6) + 'px'; el.style.pointerEvents = 'auto'; el.style.whiteSpace = 'nowrap'; el.style.outline = 'none'; el.style.minWidth = '20px'; el.style.lineHeight = '1'; el.style.fontFamily = 'Roboto, sans-serif'; el.style.fontWeight = 'bold'; el.style.textShadow = '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000';
-            el.addEventListener('focus', () => { this.activeText = el; el.style.border = '1px dashed #fff'; }); el.addEventListener('blur', () => { el.style.border = 'none'; if(el.textContent.trim() === '') el.remove(); if(this.activeText === el) this.activeText = null; });
-            const setupDrag = (ev, cX, cY) => { ev.stopPropagation(); if (this.activeTool !== 'text') this.setTool('text'); this.activeText = el; this.isDraggingText = true; this.dragStartX = cX; this.dragStartY = cY; this.dragStartLeft = parseFloat(el.style.left) || 0; this.dragStartTop = parseFloat(el.style.top) || 0; };
-            el.addEventListener('touchstart', (ev) => setupDrag(ev, ev.touches[0].clientX, ev.touches[0].clientY), {passive: false}); el.addEventListener('mousedown', (ev) => setupDrag(ev, ev.clientX, ev.clientY));
-            document.getElementById('textOverlay').appendChild(el); setTimeout(() => { el.focus(); }, 50); return;
+            e.preventDefault(); 
+            if (this.activeText) { this.activeText.blur(); this.activeText = null; return; }
+            const rect = this.canvas.getBoundingClientRect(); 
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX; 
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY; 
+            const x = clientX - rect.left; 
+            const y = clientY - rect.top;
+            const el = document.createElement('div'); 
+            el.contentEditable = true; 
+            el.style.position = 'absolute'; 
+            el.style.left = x + 'px'; 
+            el.style.top = y + 'px'; 
+            el.style.color = this.activeColor; 
+            el.style.fontSize = Math.max(14, this.sizeInput.value * 6) + 'px'; 
+            el.style.pointerEvents = 'auto'; 
+            el.style.whiteSpace = 'nowrap'; 
+            el.style.outline = 'none'; 
+            el.style.minWidth = '20px'; 
+            el.style.lineHeight = '1'; 
+            el.style.fontFamily = 'Roboto, sans-serif'; 
+            el.style.fontWeight = 'bold'; 
+            el.style.textShadow = '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000';
+            el.addEventListener('focus', () => { this.activeText = el; el.style.border = '1px dashed #fff'; }); 
+            el.addEventListener('blur', () => { el.style.border = 'none'; if(el.textContent.trim() === '') el.remove(); if(this.activeText === el) this.activeText = null; });
+            const setupDrag = (ev, cX, cY) => { 
+                ev.stopPropagation(); 
+                if (this.activeTool !== 'text') this.setTool('text'); 
+                this.activeText = el; 
+                this.isDraggingText = true; 
+                this.dragStartX = cX; 
+                this.dragStartY = cY; 
+                this.dragStartLeft = parseFloat(el.style.left) || 0; 
+                this.dragStartTop = parseFloat(el.style.top) || 0; 
+            };
+            el.addEventListener('touchstart', (ev) => setupDrag(ev, ev.touches[0].clientX, ev.touches[0].clientY), {passive: false}); 
+            el.addEventListener('mousedown', (ev) => setupDrag(ev, ev.clientX, ev.clientY));
+            document.getElementById('textOverlay').appendChild(el); 
+            setTimeout(() => { el.focus(); }, 50); 
+            return;
         }
-        e.preventDefault(); const pos = this.getCoords(e); this.isDrawing = true; this.lastPos = pos;
-        this.ctx.beginPath(); this.ctx.arc(pos.x, pos.y, this.sizeInput.value / 2, 0, Math.PI * 2); this.ctx.globalCompositeOperation = 'source-over'; this.ctx.fillStyle = this.activeColor; this.ctx.fill();
+        e.preventDefault(); 
+        const pos = this.getCoords(e); 
+        this.isDrawing = true; 
+        this.lastPos = pos;
+        this.ctx.beginPath(); 
+        this.ctx.arc(pos.x, pos.y, this.sizeInput.value / 2, 0, Math.PI * 2); 
+        this.ctx.globalCompositeOperation = 'source-over'; 
+        this.ctx.fillStyle = this.activeColor; 
+        this.ctx.fill();
     },
-    draw: function(e) { if (!this.isDrawing || this.activeTool === 'text') return; e.preventDefault(); const pos = this.getCoords(e); this.ctx.beginPath(); this.ctx.lineCap = 'round'; this.ctx.lineJoin = 'round'; this.ctx.lineWidth = this.sizeInput.value; this.ctx.globalCompositeOperation = 'source-over'; this.ctx.strokeStyle = this.activeColor; this.ctx.moveTo(this.lastPos.x, this.lastPos.y); this.ctx.lineTo(pos.x, pos.y); this.ctx.stroke(); this.lastPos = pos; },
-    stopDraw: function(e) { if (!this.isDrawing) return; e.preventDefault(); this.isDrawing = false; this.saveState(); }
+    draw: function(e) { 
+        if (!this.isDrawing || this.activeTool === 'text') return; 
+        e.preventDefault(); 
+        const pos = this.getCoords(e); 
+        this.ctx.beginPath(); 
+        this.ctx.lineCap = 'round'; 
+        this.ctx.lineJoin = 'round'; 
+        this.ctx.lineWidth = this.sizeInput.value; 
+        this.ctx.globalCompositeOperation = 'source-over'; 
+        this.ctx.strokeStyle = this.activeColor; 
+        this.ctx.moveTo(this.lastPos.x, this.lastPos.y); 
+        this.ctx.lineTo(pos.x, pos.y); 
+        this.ctx.stroke(); 
+        this.lastPos = pos; 
+    },
+    stopDraw: function(e) { 
+        if (!this.isDrawing) return; 
+        e.preventDefault(); 
+        this.isDrawing = false; 
+        this.saveState(); 
+    }
 };
 
-Editor.overlay.addEventListener('touchmove', (e) => { if (Editor.isDraggingText && Editor.activeText) { e.preventDefault(); Editor.activeText.style.left = (Editor.dragStartLeft + e.touches[0].clientX - Editor.dragStartX) + 'px'; Editor.activeText.style.top = (Editor.dragStartTop + e.touches[0].clientY - Editor.dragStartY) + 'px'; } }, {passive: false});
-Editor.overlay.addEventListener('mousemove', (e) => { if (Editor.isDraggingText && Editor.activeText) { e.preventDefault(); Editor.activeText.style.left = (Editor.dragStartLeft + e.clientX - Editor.dragStartX) + 'px'; Editor.activeText.style.top = (Editor.dragStartTop + e.clientY - Editor.dragStartY) + 'px'; } });
-const stopTextDrag = () => { Editor.isDraggingText = false; };
-Editor.overlay.addEventListener('touchend', stopTextDrag); Editor.overlay.addEventListener('mouseup', stopTextDrag); Editor.overlay.addEventListener('mouseleave', stopTextDrag);
-Editor.sizeInput.addEventListener('input', (e) => { if(Editor.activeTool === 'text' && Editor.activeText) { Editor.activeText.style.fontSize = Math.max(14, e.target.value * 6) + 'px'; } });
-Editor.canvas.addEventListener('mousedown', (e) => Editor.startDraw(e)); Editor.canvas.addEventListener('mousemove', (e) => Editor.draw(e)); Editor.canvas.addEventListener('mouseup', (e) => Editor.stopDraw(e)); Editor.canvas.addEventListener('mouseleave', (e) => Editor.stopDraw(e));
-Editor.canvas.addEventListener('touchstart', (e) => Editor.startDraw(e), {passive: false}); Editor.canvas.addEventListener('touchmove', (e) => Editor.draw(e), {passive: false}); Editor.canvas.addEventListener('touchend', (e) => Editor.stopDraw(e), {passive: false});
+Editor.overlay.addEventListener('touchmove', (e) => { 
+    if (Editor.isDraggingText && Editor.activeText) { 
+        e.preventDefault(); 
+        Editor.activeText.style.left = (Editor.dragStartLeft + e.touches[0].clientX - Editor.dragStartX) + 'px'; 
+        Editor.activeText.style.top = (Editor.dragStartTop + e.touches[0].clientY - Editor.dragStartY) + 'px'; 
+    } 
+}, {passive: false});
 
+Editor.overlay.addEventListener('mousemove', (e) => { 
+    if (Editor.isDraggingText && Editor.activeText) { 
+        e.preventDefault(); 
+        Editor.activeText.style.left = (Editor.dragStartLeft + e.clientX - Editor.dragStartX) + 'px'; 
+        Editor.activeText.style.top = (Editor.dragStartTop + e.clientY - Editor.dragStartY) + 'px'; 
+    } 
+});
+
+const stopTextDrag = () => { Editor.isDraggingText = false; };
+Editor.overlay.addEventListener('touchend', stopTextDrag); 
+Editor.overlay.addEventListener('mouseup', stopTextDrag); 
+Editor.overlay.addEventListener('mouseleave', stopTextDrag);
+
+Editor.sizeInput.addEventListener('input', (e) => { 
+    if(Editor.activeTool === 'text' && Editor.activeText) { 
+        Editor.activeText.style.fontSize = Math.max(14, e.target.value * 6) + 'px'; 
+    } 
+});
+
+Editor.canvas.addEventListener('mousedown', (e) => Editor.startDraw(e)); 
+Editor.canvas.addEventListener('mousemove', (e) => Editor.draw(e)); 
+Editor.canvas.addEventListener('mouseup', (e) => Editor.stopDraw(e)); 
+Editor.canvas.addEventListener('mouseleave', (e) => Editor.stopDraw(e));
+
+Editor.canvas.addEventListener('touchstart', (e) => Editor.startDraw(e), {passive: false}); 
+Editor.canvas.addEventListener('touchmove', (e) => Editor.draw(e), {passive: false}); 
+Editor.canvas.addEventListener('touchend', (e) => Editor.stopDraw(e), {passive: false});
+
+// ==========================================
+// INICIALIZAÇÃO
+// ==========================================
 App.init();
 </script>
 </body>
