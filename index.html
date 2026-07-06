@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-PT" translate="no">
+<html lang="pt-BR" translate="no">
 <head>
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon.png">
@@ -151,6 +151,7 @@
         .fab:active { transform: translateX(-50%) scale(0.9); }
         @media (min-width: 500px) { .fab { left: calc(50% + 180px); } }
 
+        /* Modals */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: flex-end; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
         .modal-overlay.active { opacity: 1; pointer-events: auto; }
         .modal-content { background: var(--surface); width: 100%; max-width: 480px; border-radius: 24px 24px 0 0; padding: 24px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow); transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -211,6 +212,7 @@
         #textOverlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
         .editor-hint { position: absolute; top: 24px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 14px; pointer-events: none; z-index: 10; white-space: nowrap; }
         
+        /* Popup de Cores Seguro */
         .color-popup { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: #222; padding: 12px; border-radius: 12px; border: 1px solid #555; display: none; gap: 12px; flex-direction: row; box-shadow: 0 4px 16px rgba(0,0,0,0.9); z-index: 999999; pointer-events: auto; }
         .color-popup.show { display: flex; }
         .color-dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid #777; flex-shrink: 0; }
@@ -240,7 +242,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 3.2.0</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 3.3.0</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -877,7 +879,7 @@ var App = {
 
         if (filtered.length === 0 && !searchTerm) { listEl.innerHTML = `<div class="empty-state"><i class="material-icons">${this.moduleIcon}</i><p>Nenhum registo.<br>Busque para criar.</p></div>`; return; }
 
-        let iterator = searchTerm ? filtered.sort((a, b) => b.entity.createdAt - a.entity.createdAt) : filtered.sort((a, b) => b.createdAt - a.createdAt).map(e => ({entity: e}));
+        let iterator = searchTerm ? filtered.sort((a, b) => b.entity.createdAt - a.entity.createdAt) : filtered.sort((a, b) => b.createdAt - a.createdAt).map(e => ({entity: e, tasksMatched: []}));
 
         for(let item of iterator) {
             let e = item.entity;
@@ -911,12 +913,20 @@ var App = {
                 let tasks = await AppDB.entities.filter(t => t.parentId === e.id && t.type === 'tarefa').toArray();
                 if (tasks.length > 0) {
                     cardHtml += `<div style="font-size:12px; font-weight:bold; color:var(--on-surface-variant); margin-top:20px; margin-bottom: 8px; text-transform:uppercase;">Tarefas do Serviço</div><ul class="subtask-list">`;
+                    
+                    let matchedTaskIds = item.tasksMatched ? item.tasksMatched.map(tm => tm.task.id) : [];
+
                     for(let t of tasks.sort((a, b) => b.createdAt - a.createdAt)) {
+                        
+                        let isTaskExpanded = searchTerm && matchedTaskIds.includes(t.id) ? true : false;
+                        let taskIcon = isTaskExpanded ? 'expand_less' : 'expand_more';
+                        let taskLogsDisplay = isTaskExpanded ? 'flex' : 'none';
+
                         cardHtml += `
                         <li class="subtask-item" id="entity-${t.id}">
                             <div class="subtask-row">
                                 <div class="subtask-text-wrapper" onclick="App.toggleTaskLogs('${t.id}')">
-                                    <i class="material-icons action-icon" style="font-size:24px;" id="task-icon-${t.id}">expand_more</i>
+                                    <i class="material-icons action-icon" style="font-size:24px;" id="task-icon-${t.id}">${taskIcon}</i>
                                     <span class="subtask-text selectable-text">${AppUtils.highlight(t.name, searchTerm)}</span>
                                 </div>
                                 <div class="task-actions" style="gap:8px;">
@@ -927,7 +937,7 @@ var App = {
                         `;
                         let taskLogs = await AppDB.logs.filter(log => log.relatedEntities.some(rel => rel.id === t.id)).toArray();
                         if (taskLogs.length > 0) {
-                            cardHtml += `<div class="log-list" id="task-logs-${t.id}" style="margin-left: 26px; display:none;">`;
+                            cardHtml += `<div class="log-list" id="task-logs-${t.id}" style="margin-left: 26px; display:${taskLogsDisplay};">`;
                             let taskLogsHTML = [];
                             for(let log of taskLogs.sort((a, b) => b.createdAt - a.createdAt)) {
                                 taskLogsHTML.push(await App.renderLogItemHTML(log, t.id, searchTerm));
@@ -1005,7 +1015,7 @@ var App = {
         
         let isCancelled = false;
         document.getElementById('progressModal').classList.add('active');
-        document.getElementById('progressTitle').innerText = "Gerando Ficheiro Local...";
+        document.getElementById('progressTitle').innerText = "A Gerar Ficheiro Local...";
         document.getElementById('progressText').innerText = "0%";
         document.getElementById('progressCancelBtn').onclick = () => { isCancelled = true; document.getElementById('progressModal').classList.remove('active'); };
 
@@ -1035,7 +1045,7 @@ var App = {
         
         let isCancelled = false; let xhr = null;
         document.getElementById('progressModal').classList.add('active');
-        document.getElementById('progressTitle').innerText = "Compactando Banco...";
+        document.getElementById('progressTitle').innerText = "A Compactar Banco...";
         document.getElementById('progressText').innerText = "0%";
         document.getElementById('progressCancelBtn').onclick = () => { isCancelled = true; if(xhr) xhr.abort(); document.getElementById('progressModal').classList.remove('active'); };
 
@@ -1050,7 +1060,7 @@ var App = {
 
             const filename = `backup_oraculo_${Date.now()}.zip`; 
             document.getElementById('progressTitle').innerText = "A enviar para a Nuvem...";
-            document.getElementById('progressText').innerText = "Iniciando upload...";
+            document.getElementById('progressText').innerText = "A Iniciar upload...";
 
             xhr = new XMLHttpRequest();
             xhr.open('POST', `/api/backup?filename=${filename}`, true);
@@ -1105,56 +1115,58 @@ var App = {
     },
 
     restoreFromBlob: async (url) => { 
-        if(!await CustomDialog.confirm("Isto apagará e substituirá TODOS os dados pelo backup. Continuar?", "Aviso Crítico")) return; 
-        BackupModal.closeUI();
+        BackupModal.el.classList.remove('active'); // Fecha o modal silenciosamente para não desestruturar o popstate
+        setTimeout(async () => {
+            if(!await CustomDialog.confirm("Isto apagará e substituirá TODOS os dados pelo backup. Continuar?", "Aviso Crítico")) return; 
+            
+            let isCancelled = false; let xhr = new XMLHttpRequest();
+            document.getElementById('progressModal').classList.add('active');
+            document.getElementById('progressTitle').innerText = "A Baixar Backup...";
+            document.getElementById('progressText').innerText = "0 MB / 0 MB";
+            document.getElementById('progressCancelBtn').onclick = () => { isCancelled = true; xhr.abort(); document.getElementById('progressModal').classList.remove('active'); };
 
-        let isCancelled = false; let xhr = new XMLHttpRequest();
-        document.getElementById('progressModal').classList.add('active');
-        document.getElementById('progressTitle').innerText = "A Baixar Backup...";
-        document.getElementById('progressText').innerText = "0 MB / 0 MB";
-        document.getElementById('progressCancelBtn').onclick = () => { isCancelled = true; xhr.abort(); document.getElementById('progressModal').classList.remove('active'); };
-
-        xhr.open('GET', url, true); xhr.responseType = 'blob';
-        xhr.onprogress = function(e) {
-            if(e.lengthComputable && !isCancelled) {
-                let loaded = (e.loaded / 1024 / 1024).toFixed(2); let total = (e.total / 1024 / 1024).toFixed(2);
-                document.getElementById('progressText').innerText = `${loaded} MB / ${total} MB`;
-            }
-        };
-        xhr.onload = async function() {
-            if(isCancelled) return;
-            if(xhr.status === 200) {
-                document.getElementById('progressTitle').innerText = "Descompactando...";
-                document.getElementById('progressText').innerText = "A processar base de dados...";
-                try {
-                    const blob = xhr.response; const zip = new JSZip(); const contents = await zip.loadAsync(blob); 
-                    if(contents.files["dados_oraculo.json"]) { 
-                        const data = await contents.files["dados_oraculo.json"].async("string"); 
-                        const parsed = JSON.parse(data);
-                        await AppDB.transaction('rw', AppDB.entities, AppDB.logs, async () => {
-                            await AppDB.entities.clear(); await AppDB.logs.clear();
-                            await AppDB.entities.bulkPut(parsed.entities); await AppDB.logs.bulkPut(parsed.logs);
-                        });
-                        document.getElementById('progressModal').classList.remove('active');
-                        App.goHome(); await CustomDialog.alert("Restaurado com sucesso!", "Sucesso");  
-                    } else { 
-                        document.getElementById('progressModal').classList.remove('active');
-                        await CustomDialog.alert("Ficheiro inválido ou ausente.", "Erro"); 
-                    } 
-                } catch(e) { 
-                    document.getElementById('progressModal').classList.remove('active');
-                    await CustomDialog.alert("Erro ao restaurar a base de dados.", "Erro"); 
+            xhr.open('GET', url, true); xhr.responseType = 'blob';
+            xhr.onprogress = function(e) {
+                if(e.lengthComputable && !isCancelled) {
+                    let loaded = (e.loaded / 1024 / 1024).toFixed(2); let total = (e.total / 1024 / 1024).toFixed(2);
+                    document.getElementById('progressText').innerText = `${loaded} MB / ${total} MB`;
                 }
-            } else {
+            };
+            xhr.onload = async function() {
+                if(isCancelled) return;
+                if(xhr.status === 200) {
+                    document.getElementById('progressTitle').innerText = "Descompactando...";
+                    document.getElementById('progressText').innerText = "A processar base de dados...";
+                    try {
+                        const blob = xhr.response; const zip = new JSZip(); const contents = await zip.loadAsync(blob); 
+                        if(contents.files["dados_oraculo.json"]) { 
+                            const data = await contents.files["dados_oraculo.json"].async("string"); 
+                            const parsed = JSON.parse(data);
+                            await AppDB.transaction('rw', AppDB.entities, AppDB.logs, async () => {
+                                await AppDB.entities.clear(); await AppDB.logs.clear();
+                                await AppDB.entities.bulkPut(parsed.entities); await AppDB.logs.bulkPut(parsed.logs);
+                            });
+                            document.getElementById('progressModal').classList.remove('active');
+                            App.goHome(); await CustomDialog.alert("Restaurado com sucesso!", "Sucesso");  
+                        } else { 
+                            document.getElementById('progressModal').classList.remove('active');
+                            await CustomDialog.alert("Ficheiro inválido ou ausente.", "Erro"); 
+                        } 
+                    } catch(e) { 
+                        document.getElementById('progressModal').classList.remove('active');
+                        await CustomDialog.alert("Erro ao restaurar a base de dados.", "Erro"); 
+                    }
+                } else {
+                    document.getElementById('progressModal').classList.remove('active');
+                    await CustomDialog.alert("Falha no download.", "Erro");
+                }
+            };
+            xhr.onerror = function() {
                 document.getElementById('progressModal').classList.remove('active');
-                await CustomDialog.alert("Falha no download.", "Erro");
-            }
-        };
-        xhr.onerror = function() {
-            document.getElementById('progressModal').classList.remove('active');
-            if(!isCancelled) CustomDialog.alert("Erro de conexão.", "Erro");
-        };
-        xhr.send();
+                if(!isCancelled) CustomDialog.alert("Erro de conexão.", "Erro");
+            };
+            xhr.send();
+        }, 300);
     }
 };
 
