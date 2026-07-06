@@ -5,18 +5,13 @@
     <link rel="apple-touch-icon" href="icon.png">
 
     <script>
-        // Limpeza agressiva de Cache e Service Worker para forçar atualização constante
+        // Limpeza agressiva ao arrancar para evitar que fique preso em versões velhas
         if ('serviceWorker' in navigator) {
-            caches.keys().then(function(names) {
-                for (let name of names) caches.delete(name);
-            });
-            navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                for(let registration of registrations) registration.unregister();
-            });
+            caches.keys().then(function(names) { for (let name of names) caches.delete(name); });
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js?v=' + new Date().getTime())
-                    .then(() => console.log('App forçado a atualizar com sucesso.'))
-                    .catch((err) => console.log('Falha ao registrar:', err));
+                    .then(() => console.log('Service Worker Atualizado.'))
+                    .catch((err) => console.log('Falha ao registar:', err));
             });
         }
     </script>
@@ -76,7 +71,6 @@
         header h1 span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .header-actions { display: flex; gap: 16px; align-items: center; flex-shrink: 0;}
 
-        /* Dashboard Grid & Search */
         .home-search-container { padding: 16px; background: var(--surface); border-bottom: 1px solid var(--surface-variant); }
         .home-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; padding: 24px; }
         
@@ -89,7 +83,6 @@
         .module-card i { font-size: 40px; color: var(--primary); }
         .module-card span { font-size: 14px; font-weight: 500; color: var(--on-surface); text-align: center; }
 
-        /* Dropdown Menu */
         .dropdown-menu {
             position: absolute; right: 16px; top: 56px; background: var(--surface); border: 1px solid var(--surface-variant); border-radius: 8px; box-shadow: var(--shadow);
             display: none; flex-direction: column; min-width: 200px; z-index: 1000; overflow: hidden;
@@ -101,7 +94,6 @@
         .menu-item.danger .material-icons { color: var(--danger); }
         .menu-item .material-icons { font-size: 20px; color: var(--on-surface-variant); }
 
-        /* Search Component */
         .search-container { padding: 16px; background: var(--surface); position: sticky; top: 0; z-index: 5; border-bottom: 1px solid var(--surface-variant); }
         .search-box { position: relative; display: flex; align-items: center; }
         .search-box input {
@@ -111,9 +103,7 @@
         .search-box i.search-icon { position: absolute; left: 14px; color: var(--on-surface-variant); font-size: 20px; pointer-events: none; }
         .search-box input:focus { border-color: var(--primary); }
 
-        /* Nested Task & Entity Cards */
         .task-list { list-style: none; padding: 16px; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
-        
         .task-item { background: var(--surface-variant); border-radius: 12px; padding: 16px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; transition: background-color 0.5s; border: 1px solid transparent; }
         .task-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 12px; }
         .task-header-title-wrapper { display: flex; align-items: center; gap: 12px; flex-grow: 1; }
@@ -127,7 +117,6 @@
         .snippet-item { font-size: 12px; color: var(--on-surface-variant); font-style: italic; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 6px; line-height: 1.3; }
         mark.highlight { background-color: rgba(255, 213, 79, 0.6); color: #111; padding: 0 4px; border-radius: 4px; box-shadow: 0 0 4px rgba(255, 213, 79, 0.4); font-weight: bold; }
 
-        /* Logs Timeline & Pills */
         .log-list { margin-top: 8px; padding-left: 12px; border-left: 2px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
         .log-item { font-size: 13px; color: var(--on-surface-variant); display: flex; flex-direction: column; gap: 6px; background: rgba(0,0,0,0.15); padding: 10px; border-radius: 8px; transition: background-color 0.5s; }
         .log-header { display: flex; justify-content: space-between; align-items: center; font-size: 11px; opacity: 0.8; margin-bottom: 2px; }
@@ -152,25 +141,19 @@
         .action-icon:hover { color: var(--primary); }
         .action-icon.danger:hover { color: var(--danger); }
 
-        /* Media Decks */
         .stacked-deck { width: 100%; height: 160px; position: relative; margin-top: 8px; margin-bottom: 4px; cursor: pointer; display: block; transition: transform 0.2s; background: transparent; }
         .stacked-deck:active { transform: scale(0.98); }
-        .deck-photo, .pdf-preview.deck-photo {
-            width: calc(100% - 20px); height: 100%; position: absolute; top: 0; left: 10px; object-fit: cover; border-radius: 8px; border: 1px solid #555; box-shadow: var(--shadow-sm); transition: transform 0.2s;
-        }
+        .deck-photo, .pdf-preview.deck-photo { width: calc(100% - 20px); height: 100%; position: absolute; top: 0; left: 10px; object-fit: cover; border-radius: 8px; border: 1px solid #555; box-shadow: var(--shadow-sm); transition: transform 0.2s; }
         .stacked-deck.single .deck-photo { width: 100%; left: 0; filter: none !important; transform: none !important; }
         .stacked-deck:not(.single) .deck-photo:nth-child(n+4) { display: none; }
         .stacked-deck:not(.single) .deck-photo:nth-child(1) { transform: rotate(-3deg); z-index: 3; }
         .stacked-deck:not(.single) .deck-photo:nth-child(2) { transform: rotate(1deg) translate(5px, 3px); z-index: 2; filter: grayscale(40%) brightness(0.8); }
         .stacked-deck:not(.single) .deck-photo:nth-child(3) { transform: rotate(4deg) translate(10px, 6px); z-index: 1; filter: grayscale(70%) brightness(0.6); }
-        .image-preview { width: 100%; max-height: 200px; object-fit: cover; border-radius: 12px; border: 1px solid var(--border); cursor: pointer; margin-top: 8px; margin-bottom: 8px; display: block; }
-        .pdf-preview { display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 12px; color: var(--danger); cursor: pointer; }
 
         .fab { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); background-color: var(--primary); color: var(--on-primary); border: none; width: 56px; height: 56px; border-radius: 16px; box-shadow: var(--shadow); cursor: pointer; display: grid; place-content: center; z-index: 99; transition: transform 0.2s; }
         .fab:active { transform: translateX(-50%) scale(0.9); }
         @media (min-width: 500px) { .fab { left: calc(50% + 180px); } }
 
-        /* Modals */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: flex-end; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
         .modal-overlay.active { opacity: 1; pointer-events: auto; }
         .modal-content { background: var(--surface); width: 100%; max-width: 480px; border-radius: 24px 24px 0 0; padding: 24px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow); transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -220,7 +203,7 @@
         .carousel-nav-btn.left { left: 8px; }
         .carousel-nav-btn.right { right: 8px; }
 
-        /* Editor */
+        /* Editor Overlay */
         .editor-overlay { position: fixed; inset: 0; background: #000; z-index: 2000; display: none; flex-direction: column; height: 100dvh; }
         .editor-overlay.active { display: flex; }
         .canvas-container { flex-grow: 1; display: flex; justify-content: center; align-items: center; background: #1a1a1a; overflow: hidden; touch-action: none; position: relative; }
@@ -230,19 +213,19 @@
         canvas.cursor-crosshair { cursor: crosshair; }
         #textOverlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
         .editor-hint { position: absolute; top: 24px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 14px; pointer-events: none; z-index: 10; white-space: nowrap; }
-        .editor-toolbar { background: #111; padding: 8px; display: flex; align-items: center; gap: 8px; border-top: 1px solid #333; overflow-x: auto; flex-shrink: 0; height: 60px; }
+        
+        /* Popup de Cores fora da barra para não ser escondido pelo overflow */
+        .color-popup { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: #222; padding: 12px; border-radius: 12px; border: 1px solid #555; display: none; gap: 12px; flex-direction: row; box-shadow: 0 4px 16px rgba(0,0,0,0.9); z-index: 99999; pointer-events: auto; }
+        .color-popup.show { display: flex; }
+        .color-dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid #777; flex-shrink: 0; }
+        
+        .editor-toolbar { background: #111; padding: 8px; display: flex; align-items: center; gap: 8px; border-top: 1px solid #333; overflow-x: auto; flex-shrink: 0; height: 60px; z-index: 10; }
         .tool-btn { background: #222; border: 2px solid transparent; border-radius: 8px; color: #fff; width: 36px; height: 36px; display: grid; place-content: center; cursor: pointer; flex-shrink: 0; }
         .tool-btn .material-icons { font-size: 20px; }
         .tool-btn.active { border-color: var(--primary); color: var(--primary); background: #001a40; }
-        .tool-btn.danger { color: var(--danger); }
         .editor-sep { width: 1px; height: 24px; background: #444; flex-shrink: 0; margin: 0 4px; }
         .size-slider { flex-grow: 1; min-width: 60px; max-width: 100px; accent-color: var(--primary); }
-        
-        .color-palette-container { position: relative; display: flex; align-items: center; }
         .active-color-dot { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid #fff; flex-shrink: 0; box-shadow: 0 0 4px rgba(255,255,255,0.3); }
-        .color-popup { position: absolute; bottom: 70px; left: 50%; transform: translateX(-50%); background: #222; padding: 8px; border-radius: 8px; border: 1px solid #444; display: none; gap: 8px; flex-direction: row; box-shadow: 0 4px 12px rgba(0,0,0,0.8); z-index: 9999; }
-        .color-popup.show { display: flex; }
-        .color-dot { width: 24px; height: 24px; border-radius: 50%; cursor: pointer; border: 1px solid #555; flex-shrink: 0; }
 
         .view-section { display: none; flex-direction: column; flex-grow: 1; }
         .view-section.active { display: flex; }
@@ -260,7 +243,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 2.2.0</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 2.4.0</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -436,7 +419,7 @@
     <div class="carousel-container" id="carouselContainer"></div>
 </div>
 
-<div class="editor-overlay" id="editorOverlay">
+<div class="editor-overlay" id="editorOverlay" onclick="document.getElementById('colorPopup').classList.remove('show')">
     <div class="canvas-container" id="canvasContainer">
         <div class="editor-hint" id="editorHint">Desenhe livremente na imagem</div>
         <div class="canvas-wrapper">
@@ -446,15 +429,15 @@
     </div>
     
     <div id="colorPopup" class="color-popup">
-        <div class="color-dot" style="background-color: #ff3333" onclick="Editor.setColor('#ff3333')"></div>
-        <div class="color-dot" style="background-color: #33cc33" onclick="Editor.setColor('#33cc33')"></div>
-        <div class="color-dot" style="background-color: #3366ff" onclick="Editor.setColor('#3366ff')"></div>
-        <div class="color-dot" style="background-color: #ffff33" onclick="Editor.setColor('#ffff33')"></div>
-        <div class="color-dot" style="background-color: #ffffff" onclick="Editor.setColor('#ffffff')"></div>
-        <div class="color-dot" style="background-color: #000000" onclick="Editor.setColor('#000000')"></div>
+        <div class="color-dot" style="background-color: #ff3333" onclick="event.stopPropagation(); Editor.setColor('#ff3333')"></div>
+        <div class="color-dot" style="background-color: #33cc33" onclick="event.stopPropagation(); Editor.setColor('#33cc33')"></div>
+        <div class="color-dot" style="background-color: #3366ff" onclick="event.stopPropagation(); Editor.setColor('#3366ff')"></div>
+        <div class="color-dot" style="background-color: #ffff33" onclick="event.stopPropagation(); Editor.setColor('#ffff33')"></div>
+        <div class="color-dot" style="background-color: #ffffff" onclick="event.stopPropagation(); Editor.setColor('#ffffff')"></div>
+        <div class="color-dot" style="background-color: #000000" onclick="event.stopPropagation(); Editor.setColor('#000000')"></div>
     </div>
 
-    <div class="editor-toolbar">
+    <div class="editor-toolbar" onclick="event.stopPropagation()">
         <button class="tool-btn" onclick="Editor.closeUI()"><i class="material-icons">close</i></button>
         <div class="editor-sep"></div>
         <button class="tool-btn active" id="btnPen" onclick="Editor.setTool('pen')"><i class="material-icons">edit</i></button>
@@ -462,7 +445,7 @@
         <div class="editor-sep"></div>
         
         <div class="color-palette-container">
-            <div id="activeColorBtn" class="active-color-dot" style="background-color: #ff3333;" onclick="Editor.toggleColorPopup(event)"></div>
+            <div id="activeColorBtn" class="active-color-dot" style="background-color: #ff3333;" onclick="event.stopPropagation(); document.getElementById('colorPopup').classList.toggle('show')"></div>
         </div>
         
         <div class="editor-sep"></div>
@@ -530,15 +513,25 @@ var AppUtils = {
         return new Promise((resolve) => {
             const video = document.createElement('video');
             video.muted = true;
+            video.playsInline = true;
             video.src = URL.createObjectURL(file);
-            video.onloadedmetadata = () => {
+            let thumbBase64 = '';
+            
+            video.onloadedmetadata = () => { video.currentTime = 0.5; };
+            video.onseeked = () => {
                 const canvas = document.createElement('canvas');
-                const MAX = 180; // Compressão extremamente agressiva
-                let w = video.videoWidth, h = video.videoHeight;
+                const MAX = 180; let w = video.videoWidth, h = video.videoHeight;
                 if (w > MAX) { h = Math.floor(h * (MAX / w)); w = MAX; }
                 canvas.width = w; canvas.height = h;
                 const ctx = canvas.getContext('2d');
                 
+                ctx.drawImage(video, 0, 0, w, h);
+                thumbBase64 = canvas.toDataURL('image/jpeg', 0.6);
+
+                if (typeof MediaRecorder === 'undefined' || !canvas.captureStream) {
+                    return fallback(file, resolve, thumbBase64);
+                }
+
                 try {
                     const stream = canvas.captureStream(15);
                     const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8', videoBitsPerSecond: 50000 });
@@ -547,28 +540,25 @@ var AppUtils = {
                     recorder.onstop = () => {
                         const blob = new Blob(chunks, { type: 'video/webm' });
                         const reader = new FileReader();
-                        reader.onloadend = () => resolve(reader.result);
+                        reader.onloadend = () => resolve({ video: reader.result, thumb: thumbBase64 });
                         reader.readAsDataURL(blob);
                     };
                     recorder.start();
                     
-                    video.playbackRate = 4.0; // Acelera gravação
+                    video.playbackRate = 4.0;
                     video.play().then(() => {
                         const draw = () => {
-                            if (video.ended || video.paused) {
-                                if(recorder.state === 'recording') recorder.stop();
-                                return;
-                            }
+                            if (video.ended || video.paused) { if(recorder.state === 'recording') recorder.stop(); return; }
                             ctx.drawImage(video, 0, 0, w, h);
                             requestAnimationFrame(draw);
                         };
                         draw();
-                    }).catch(() => fallback(file, resolve));
-                } catch(e) { fallback(file, resolve); }
+                    }).catch(() => fallback(file, resolve, thumbBase64));
+                } catch(e) { fallback(file, resolve, thumbBase64); }
             };
-            video.onerror = () => fallback(file, resolve);
-            function fallback(f, res) {
-                const r = new FileReader(); r.onloadend = () => res(r.result); r.readAsDataURL(f);
+            video.onerror = () => fallback(file, resolve, '');
+            function fallback(f, res, tBase64) {
+                const r = new FileReader(); r.onloadend = () => res({ video: r.result, thumb: tBase64 || '' }); r.readAsDataURL(f);
             }
         });
     }
@@ -580,15 +570,14 @@ async function processMultipleMedia(files, callback) {
     for(let file of files) {
         let captureTime = Date.now(); 
         if (file.type === 'application/pdf') {
-            if (file.size > 2 * 1024 * 1024) { CustomDialog.alert(`PDF ${file.name} muito grande (máx 2MB)`, "Aviso"); continue; }
             let customName = await CustomDialog.prompt("Nome curto para este PDF:", file.name, "Nome do Arquivo");
             if (!customName) customName = file.name;
             const encodedName = encodeURIComponent(customName);
             const reader = new FileReader();
             await new Promise((resolve) => { reader.onload = (e) => { let base64 = e.target.result.replace('data:application/pdf;base64,', `data:application/pdf;name=${encodedName};base64,`); processedArray.push({ data: base64, createdAt: captureTime }); resolve(); }; reader.readAsDataURL(file); });
         } else if (file.type.startsWith('video/')) {
-            const compressedBase64 = await AppUtils.compressVideo(file);
-            processedArray.push({ data: compressedBase64, createdAt: captureTime });
+            const result = await AppUtils.compressVideo(file);
+            processedArray.push({ data: result.video, thumbnail: result.thumb, isVideo: true, createdAt: captureTime });
         } else if (file.type.startsWith('image/')) {
             const reader = new FileReader();
             await new Promise((resolve) => {
@@ -614,13 +603,16 @@ function renderStackedDeckHTML(images, logId) {
     let countLabel = `+${images.length - 1}`; if (pdfCount > 0) countLabel += ` (${pdfCount} PDF)`;
 
     if (images.length === 1) {
-        if (images[0].data.startsWith('data:application/pdf')) return `<div class="pdf-preview deck-photo" style="position:relative; left:0; width:100%; height:auto; min-height:140px; padding:12px;" onclick="${clickHandler}"><i class="material-icons" style="font-size:32px;">picture_as_pdf</i><span style="font-size: 13px; margin-top: 8px; text-align:center;">${AppUtils.getPdfName(images[0].data)}</span></div>`;
-        else if (images[0].data.startsWith('data:video/')) return `<div class="pdf-preview deck-photo" style="position:relative; left:0; width:100%; height:auto; min-height:140px; background:#000;" onclick="${clickHandler}"><i class="material-icons" style="font-size:48px; color:#fff;">play_circle_outline</i><span style="font-size: 13px; margin-top: 8px; color:#fff;">VÍDEO</span></div>`;
-        else return `<img src="${images[0].data}" class="image-preview" onclick="${clickHandler}" style="margin:0;">`;
+        let img = images[0];
+        if (img.isPlaceholder) return `<div class="pdf-preview deck-photo" style="position:relative; left:0; width:100%; height:auto; min-height:140px; background:#111;"><i class="material-icons" style="font-size:48px; color:var(--primary); animation: spin 1s linear infinite;">sync</i><span style="font-size: 13px; margin-top: 8px; color:var(--primary);">Processando... aguarde.</span></div>`;
+        if (img.data.startsWith('data:application/pdf')) return `<div class="pdf-preview deck-photo" style="position:relative; left:0; width:100%; height:auto; min-height:140px; padding:12px;" onclick="${clickHandler}"><i class="material-icons" style="font-size:32px;">picture_as_pdf</i><span style="font-size: 13px; margin-top: 8px; text-align:center;">${AppUtils.getPdfName(img.data)}</span></div>`;
+        else if (img.isVideo || img.data.startsWith('data:video/')) return `<div class="pdf-preview deck-photo" style="position:relative; left:0; width:100%; height:auto; min-height:140px; background: url('${img.thumbnail || ''}') center/cover;" onclick="${clickHandler}"><div style="background:rgba(0,0,0,0.5); width:100%; height:100%; min-height:140px; display:flex; flex-direction:column; align-items:center; justify-content:center;"><i class="material-icons" style="font-size:48px; color:#fff;">play_circle_outline</i></div></div>`;
+        else return `<img src="${img.data}" class="image-preview" onclick="${clickHandler}" style="margin:0;">`;
     } else {
         const photosHtml = images.slice(0, 3).map(img => {
+            if (img.isPlaceholder) return `<div class="pdf-preview deck-photo" style="background:#111;"><i class="material-icons" style="font-size:24px; color:var(--primary); animation: spin 1s linear infinite;">sync</i></div>`;
             if (img.data.startsWith('data:application/pdf')) return `<div class="pdf-preview deck-photo"><i class="material-icons" style="font-size:24px;">picture_as_pdf</i><span style="font-size:9px; margin-top:4px;">PDF</span></div>`;
-            else if (img.data.startsWith('data:video/')) return `<div class="pdf-preview deck-photo" style="background:#000;"><i class="material-icons" style="font-size:24px; color:#fff;">play_circle_outline</i><span style="font-size:9px; margin-top:4px; color:#fff;">VÍDEO</span></div>`;
+            else if (img.isVideo || img.data.startsWith('data:video/')) return `<div class="pdf-preview deck-photo" style="background: url('${img.thumbnail || ''}') center/cover;"><div style="background:rgba(0,0,0,0.5); width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center;"><i class="material-icons" style="font-size:24px; color:#fff;">play_circle_outline</i></div></div>`;
             return `<img src="${img.data}" class="deck-photo">`;
         }).join('');
         let countHtml = `<div style="position: absolute; bottom: 8px; right: 18px; background: rgba(0,0,0,0.7); color:white; padding: 4px 8px; border-radius: 12px; font-size:12px; z-index: 10; font-weight:bold;">${countLabel}</div>`;
@@ -728,7 +720,6 @@ var App = {
         document.getElementById('headerIcon').innerText = targetModuleIcon; document.getElementById('headerText').innerText = targetModuleName;
         document.getElementById('btnBack').style.display = 'block'; document.getElementById('headerVersion').style.display = 'none';
         
-        // Passar termo de busca pra listagem pra preservar highlight
         document.getElementById('searchInput').value = focusTerm;
         this.renderList(); 
         history.pushState({ view: 'list' }, '');
@@ -737,7 +728,6 @@ var App = {
             const elId = focusLogId ? 'log-' + focusLogId : 'entity-' + id;
             const el = document.getElementById(elId);
             if (el) {
-                // Se o item estiver dentro de uma tarefa fechada, abra-a
                 let parentList = el.closest('.log-list');
                 if(parentList && parentList.style.display === 'none') {
                     parentList.style.display = 'flex';
@@ -845,7 +835,7 @@ var App = {
                 let tasks = db.entities.filter(t => t.parentId === e.id && t.type === 'tarefa');
                 if (tasks.length > 0) {
                     cardHtml += `<div style="font-size:12px; font-weight:bold; color:var(--on-surface-variant); margin-top:20px; margin-bottom: 8px; text-transform:uppercase;">Tarefas do Serviço</div><ul class="subtask-list">`;
-                    tasks.sort((a, b) => a.createdAt - b.createdAt).forEach(t => {
+                    tasks.sort((a, b) => b.createdAt - a.createdAt).forEach(t => {
                         cardHtml += `
                         <li class="subtask-item" id="entity-${t.id}">
                             <div class="subtask-row">
@@ -918,6 +908,17 @@ var App = {
         `;
     },
 
+    openPDF: function(base64) {
+        try {
+            const arr = base64.split(','); const mimePart = arr[0]; const mime = mimePart.match(/:(.*?);/)[1]; 
+            let fileName = "documento.pdf"; const nameMatch = mimePart.match(/name=([^;]+)/); if (nameMatch) fileName = decodeURIComponent(nameMatch[1]);
+            const bstr = atob(arr[1]); let n = bstr.length; const u8arr = new Uint8Array(n); while(n--) u8arr[n] = bstr.charCodeAt(n);
+            const blob = new Blob([u8arr], {type: mime}); const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.target = "_blank"; a.download = fileName;
+            document.body.appendChild(a); a.click(); setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+        } catch(e) { CustomDialog.alert("Não foi possível abrir o PDF.", "Erro"); }
+    },
+
     exportToLocal: async () => { BackupChoiceModal.closeUI(); setTimeout(async () => { if (typeof JSZip === 'undefined') { await CustomDialog.alert("Aguarde a biblioteca carregar.", "Aviso"); return; } CustomDialog.alert("Gerando backup local...", "Aguarde"); const zip = new JSZip(); const dbString = localStorage.getItem(DB_KEY) || "{}"; zip.file("dados_oraculo.json", dbString); const zipBlob = await zip.generateAsync({type:"blob"}); const filename = `backup_oraculo_${Date.now()}.zip`; const url = URL.createObjectURL(zipBlob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); setTimeout(() => { AppState.closeModalUI(); }, 1500); }, 100); },
     exportToBlob: async () => { BackupChoiceModal.closeUI(); setTimeout(async () => { if (typeof JSZip === 'undefined') { await CustomDialog.alert("Aguarde a biblioteca carregar.", "Aviso"); return; } CustomDialog.alert("Enviando para a nuvem...", "Aguarde"); const zip = new JSZip(); zip.file("dados_oraculo.json", localStorage.getItem(DB_KEY) || "{}"); const zipBlob = await zip.generateAsync({type:"blob"}); const filename = `backup_oraculo_${Date.now()}.zip`; try { const res = await fetch(`/api/backup?filename=${filename}`, { method: 'POST', body: zipBlob }); if(res.ok) { await CustomDialog.alert(`Salvo na nuvem com sucesso!\nArquivo: ${filename}`, "Sucesso"); } else { throw new Error("API Falhou"); } } catch(e) { const url = URL.createObjectURL(zipBlob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); await CustomDialog.alert("A nuvem falhou. O arquivo foi baixado no seu dispositivo.", "Salvo Localmente"); } }, 100); },
     listBackupsFromBlob: async () => { document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">Buscando... ⏳</div>'; BackupModal.open(); try { const res = await fetch('/api/backup'); if(res.ok) { const data = await res.json(); const zips = (data.blobs || []).filter(b => b.pathname.endsWith('.zip')).sort((a,b) => new Date(b.uploadedAt) - new Date(a.uploadedAt)); if(zips.length === 0) { document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">Nenhum backup.</div>'; return; } document.getElementById('backupList').innerHTML = zips.map(b => `<div style="background:var(--surface-variant); padding:12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;"><div style="flex-grow: 1; cursor:pointer;" onclick="App.restoreFromBlob('${b.url}')"><div style="font-weight:500; font-size:14px; color:var(--on-surface); word-break: break-all;">${b.pathname}</div><div style="font-size:12px; color:var(--on-surface-variant); margin-top:4px;">${new Date(b.uploadedAt).toLocaleString('pt-BR')} • ${(b.size / (1024*1024)).toFixed(2)} MB</div></div><div style="display: flex; gap: 16px; margin-left: 12px; border-left: 1px solid var(--border); padding-left: 12px;"><i class="material-icons" style="color:var(--primary); font-size: 24px; cursor:pointer;" onclick="App.restoreFromBlob('${b.url}')">cloud_download</i><i class="material-icons danger" style="font-size: 24px; cursor:pointer;" onclick="App.deleteFromBlob('${b.url}')">delete</i></div></div>`).join(''); } else document.getElementById('backupList').innerHTML = `<div style="color:var(--danger); padding:20px;">Erro Servidor</div>`; } catch(e) { document.getElementById('backupList').innerHTML = `<div style="color:var(--danger); padding:20px; text-align:center;">Erro Conexão</div>`; } },
@@ -925,15 +926,15 @@ var App = {
     restoreFromBlob: async (url) => { 
         if(!await CustomDialog.confirm("Isso apagará e substituirá TODOS os dados pelo backup. Continuar?", "Aviso Crítico")) return; 
         
-        document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 40px; color: var(--primary);"><i class="material-icons" style="font-size:48px; animation: spin 1s linear infinite;">sync</i><br><br>Baixando e Restaurando...<br>Por favor, aguarde.</div>';
+        document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 40px; color: var(--primary);"><i class="material-icons" style="font-size:48px; animation: spin 1s linear infinite;">sync</i><br><br>A Baixar e a Restaurar...<br>Por favor, aguarde.</div>';
         
         try { 
             const res = await fetch(url); const blob = await res.blob(); const zip = new JSZip(); const contents = await zip.loadAsync(blob); 
             if(contents.files["dados_oraculo.json"]) { 
                 const data = await contents.files["dados_oraculo.json"].async("string"); 
                 try { JSON.parse(data); localStorage.setItem(DB_KEY, data); db = JSON.parse(data); App.goHome(); await CustomDialog.alert("Restaurado!", "Sucesso"); BackupModal.closeUI(); } 
-                catch(e) { await CustomDialog.alert("Arquivo corrompido.", "Erro"); BackupModal.closeUI(); } 
-            } else { await CustomDialog.alert("Arquivo inválido.", "Erro"); BackupModal.closeUI(); } 
+                catch(e) { await CustomDialog.alert("Ficheiro corrompido.", "Erro"); BackupModal.closeUI(); } 
+            } else { await CustomDialog.alert("Ficheiro inválido.", "Erro"); BackupModal.closeUI(); } 
         } catch(e) { await CustomDialog.alert("Erro ao baixar nuvem.", "Erro"); BackupModal.closeUI(); } 
     }
 };
@@ -961,7 +962,7 @@ var EntityModal = {
         this.closeUI();
     },
     delete: async function() {
-        if(await CustomDialog.confirm("Excluir esta entidade? TODOS os registros gerados nela e sub-tarefas serão apagados.", "Atenção (Cascata)")) {
+        if(await CustomDialog.confirm("Excluir esta entidade? TODOS os registos gerados nela e sub-tarefas serão apagados.", "Atenção (Cascata)")) {
             const id = this.currentTargetId;
             db.entities = db.entities.filter(e => e.parentId !== id && e.id !== id);
             db.logs = db.logs.filter(l => {
@@ -986,13 +987,13 @@ var LogModal = {
             textInput.value = log.text; 
             this.tempMedia = [...(log.images || [])]; 
             this.tempRelations = log.relatedEntities.filter(rel => rel.id !== this.originId).map(rel => ({ id: rel.id, type: rel.type }));
-            document.getElementById('logModalTitle').innerText = 'Editar Registro';
+            document.getElementById('logModalTitle').innerText = 'Editar Registo';
             document.getElementById('logModalDeleteBtn').style.display = 'block';
         } else { 
             this.originId = targetEntityId;
             textInput.value = ''; 
             this.tempRelations = [];
-            document.getElementById('logModalTitle').innerText = 'Registrar Evento'; 
+            document.getElementById('logModalTitle').innerText = 'Registar Evento'; 
             document.getElementById('logModalDeleteBtn').style.display = 'none';
         }
         
@@ -1033,7 +1034,7 @@ var LogModal = {
         }).join('');
     },
     delete: async function() {
-        if(this.editLogId && await CustomDialog.confirm("Excluir permanentemente este registro?", "Excluir Log")) {
+        if(this.editLogId && await CustomDialog.confirm("Excluir permanentemente este registo?", "Excluir Log")) {
             db.logs = db.logs.filter(l => l.id !== this.editLogId);
             saveDB(); App.renderList(); this.closeUI();
         }
@@ -1067,7 +1068,19 @@ var LogModal = {
     }
 };
 
-const handleLogMedia = async (e) => { await processMultipleMedia(e.target.files, (newMedia) => { LogModal.tempMedia.push(...newMedia); LogModal.updateUI(); }); e.target.value = ''; };
+const handleLogMedia = async (e) => { 
+    const files = Array.from(e.target.files);
+    if(files.length === 0) return;
+    
+    let hasVideo = files.some(f => f.type.startsWith('video/'));
+    if(hasVideo) { LogModal.tempMedia.push({ isPlaceholder: true }); LogModal.updateUI(); }
+    
+    await processMultipleMedia(files, (newMedia) => { 
+        if(hasVideo) LogModal.tempMedia = LogModal.tempMedia.filter(m => !m.isPlaceholder);
+        LogModal.tempMedia.push(...newMedia); LogModal.updateUI(); 
+    }); 
+    e.target.value = ''; 
+};
 document.getElementById('logCam').addEventListener('change', handleLogMedia); document.getElementById('logGal').addEventListener('change', handleLogMedia);
 
 var CarouselModal = {
@@ -1086,19 +1099,19 @@ var CarouselModal = {
     closeUI: function() { AppState.closeModalUI(); },
     next: function() { const itemW = window.innerWidth * 0.85 + 16; this.container.scrollBy({ left: itemW, behavior: 'smooth' }); },
     prev: function() { const itemW = window.innerWidth * 0.85 + 16; this.container.scrollBy({ left: -itemW, behavior: 'smooth' }); },
-    updateGlobalActions: function() { const img = this.imagesArray[this.currentIndex]; const editBtn = document.getElementById('carouselEditBtn'); if (img && (img.data.startsWith('data:application/pdf') || img.data.startsWith('data:video/'))) editBtn.style.display = 'none'; else editBtn.style.display = 'grid'; },
+    updateGlobalActions: function() { const img = this.imagesArray[this.currentIndex]; const editBtn = document.getElementById('carouselEditBtn'); if (img && (img.data.startsWith('data:application/pdf') || img.data.startsWith('data:video/') || img.isVideo)) editBtn.style.display = 'none'; else editBtn.style.display = 'grid'; },
     render: function() {
         this.container.innerHTML = this.imagesArray.map((img, idx) => {
             let media = '';
             if (img.data.startsWith('data:application/pdf')) { media = `<div class="carousel-pdf" onclick="App.openPDF('${img.data}')"><i class="material-icons" style="font-size:48px; color:var(--danger)">picture_as_pdf</i><span style="color:#fff; font-size:14px; margin-top:12px; text-align:center;">${AppUtils.getPdfName(img.data)}</span></div>`; } 
-            else if (img.data.startsWith('data:video/')) { media = `<div class="carousel-img-wrapper"><video src="${img.data}" class="carousel-img" controls playsinline></video></div>`; }
+            else if (img.isVideo || img.data.startsWith('data:video/')) { media = `<div class="carousel-img-wrapper"><video src="${img.data}" class="carousel-img" controls playsinline style="pointer-events: auto; z-index: 10;"></video></div>`; }
             else { media = `<div class="carousel-img-wrapper"><img src="${img.data}" class="carousel-img"><div class="carousel-touch-layer"></div></div>`; }
             return `<div class="carousel-item">${media}</div>`;
         }).join('');
     },
     editCurrent: function() { let img = this.imagesArray[this.currentIndex]; if (this.currentLogId === 'temp') { Editor.openForTemp(img.data, this.currentIndex); } else { Editor.openForDBLog(this.currentLogId, img.data, this.currentIndex); } },
     deleteCurrent: async function() {
-        if(await CustomDialog.confirm("Excluir imagem/arquivo permanentemente?", "Excluir")) {
+        if(await CustomDialog.confirm("Excluir imagem/ficheiro permanentemente?", "Excluir")) {
             this.imagesArray.splice(this.currentIndex, 1);
             if (this.currentLogId === 'temp') { LogModal.updateUI(); } else { saveDB(); App.renderList(); }
             if(this.imagesArray.length === 0) { this.closeUI(); } else {
@@ -1113,7 +1126,7 @@ var CarouselModal = {
     bindZoom: function() {
         const wrappers = this.container.querySelectorAll('.carousel-img-wrapper');
         wrappers.forEach(wrapper => {
-            const touchLayer = wrapper.querySelector('.carousel-touch-layer'); const img = wrapper.querySelector('.carousel-img'); if(!img || img.tagName === 'VIDEO') return;
+            const touchLayer = wrapper.querySelector('.carousel-touch-layer'); const img = wrapper.querySelector('.carousel-img'); if(!img || img.tagName === 'VIDEO' || !touchLayer) return;
             let scale = 1, currentX = 0, currentY = 0, startX = 0, startY = 0, initialDist = 0, initialScale = 1; let lastTap = 0, isPinching = false, isMoving = false;
             touchLayer.addEventListener('touchstart', (e) => {
                 img.style.transition = 'none';
@@ -1158,11 +1171,6 @@ var Editor = {
     closeUI: function() { AppState.closeModalUI(); },
     onHardwareBack: function() { document.getElementById('textOverlay').innerHTML = ''; document.getElementById('colorPopup').classList.remove('show'); this.isDraggingText = false; },
     
-    toggleColorPopup: function(e) {
-        e.stopPropagation();
-        document.getElementById('colorPopup').classList.toggle('show');
-    },
-
     save: function() {
         const texts = document.getElementById('textOverlay').children;
         if (texts.length > 0) {
