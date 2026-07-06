@@ -5,7 +5,6 @@
     <link rel="apple-touch-icon" href="icon.png">
 
     <script>
-        // Limpeza agressiva ao arrancar para evitar que fique preso em versões velhas
         if ('serviceWorker' in navigator) {
             caches.keys().then(function(names) { for (let name of names) caches.delete(name); });
             window.addEventListener('load', () => {
@@ -206,15 +205,14 @@
         /* Editor Overlay */
         .editor-overlay { position: fixed; inset: 0; background: #000; z-index: 2000; display: none; flex-direction: column; height: 100dvh; }
         .editor-overlay.active { display: flex; }
-        .canvas-container { flex-grow: 1; display: flex; justify-content: center; align-items: center; background: #1a1a1a; overflow: hidden; touch-action: none; position: relative; }
-        .canvas-wrapper { position: relative; display: inline-block; max-width: 100%; max-height: 100%; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-        canvas { max-width: 100%; max-height: 100%; display: block; }
+        .canvas-container { flex-grow: 1; display: flex; justify-content: center; align-items: center; background: #1a1a1a; overflow: hidden; touch-action: none; position: relative; padding: 16px; }
+        .canvas-wrapper { position: relative; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        canvas { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
         canvas.cursor-text { cursor: text; }
         canvas.cursor-crosshair { cursor: crosshair; }
         #textOverlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
         .editor-hint { position: absolute; top: 24px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 14px; pointer-events: none; z-index: 10; white-space: nowrap; }
         
-        /* Popup de Cores fora da barra para não ser escondido pelo overflow */
         .color-popup { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: #222; padding: 12px; border-radius: 12px; border: 1px solid #555; display: none; gap: 12px; flex-direction: row; box-shadow: 0 4px 16px rgba(0,0,0,0.9); z-index: 99999; pointer-events: auto; }
         .color-popup.show { display: flex; }
         .color-dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid #777; flex-shrink: 0; }
@@ -243,7 +241,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 2.4.0</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 2.5.0</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -445,7 +443,7 @@
         <div class="editor-sep"></div>
         
         <div class="color-palette-container">
-            <div id="activeColorBtn" class="active-color-dot" style="background-color: #ff3333;" onclick="event.stopPropagation(); document.getElementById('colorPopup').classList.toggle('show')"></div>
+            <div id="activeColorBtn" class="active-color-dot" style="background-color: #ff3333;" onclick="Editor.toggleColorPopup(event)"></div>
         </div>
         
         <div class="editor-sep"></div>
@@ -511,40 +509,61 @@ var AppUtils = {
     
     compressVideo: async function(file) {
         return new Promise((resolve) => {
+            const fallback = (f, tBase64) => {
+                if (f.size > 5 * 1024 * 1024) { 
+                    CustomDialog.alert("O vídeo é maior que 5MB. Para não corromper o banco de dados, a mídia foi rejeitada. Reduza o vídeo ou envie um menor.", "Erro de Memória");
+                    resolve({ error: true });
+                    return;
+                }
+                const r = new FileReader(); r.onloadend = () => resolve({ video: r.result, thumb: tBase64 || '' }); r.readAsDataURL(f);
+            };
+
             const video = document.createElement('video');
             video.muted = true;
-            video.playsInline = true;
-            video.src = URL.createObjectURL(file);
-            let thumbBase64 = '';
+            video.setAttribute('playsinline', '');
+            video.autoplay = true; 
+            video.style.display = 'none';
+            document.body.appendChild(video);
             
-            video.onloadedmetadata = () => { video.currentTime = 0.5; };
+            let timeoutId = setTimeout(() => {
+                if(document.body.contains(video)) document.body.removeChild(video);
+                fallback(file, '');
+            }, 8000);
+
+            let thumbBase64 = '';
+            video.onloadeddata = () => { video.currentTime = 0.5; };
             video.onseeked = () => {
-                const canvas = document.createElement('canvas');
-                const MAX = 180; let w = video.videoWidth, h = video.videoHeight;
-                if (w > MAX) { h = Math.floor(h * (MAX / w)); w = MAX; }
-                canvas.width = w; canvas.height = h;
-                const ctx = canvas.getContext('2d');
-                
-                ctx.drawImage(video, 0, 0, w, h);
-                thumbBase64 = canvas.toDataURL('image/jpeg', 0.6);
-
-                if (typeof MediaRecorder === 'undefined' || !canvas.captureStream) {
-                    return fallback(file, resolve, thumbBase64);
-                }
-
                 try {
-                    const stream = canvas.captureStream(15);
-                    const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8', videoBitsPerSecond: 50000 });
+                    const canvas = document.createElement('canvas');
+                    const MAX = 180; let w = video.videoWidth, h = video.videoHeight;
+                    if (w > MAX) { h = Math.floor(h * (MAX / w)); w = MAX; }
+                    canvas.width = w; canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(video, 0, 0, w, h);
+                    thumbBase64 = canvas.toDataURL('image/jpeg', 0.6);
+
+                    if (typeof MediaRecorder === 'undefined' || !canvas.captureStream) {
+                        clearTimeout(timeoutId);
+                        if(document.body.contains(video)) document.body.removeChild(video); 
+                        return fallback(file, thumbBase64);
+                    }
+
+                    const stream = canvas.captureStream(12);
+                    let mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8') ? 'video/webm;codecs=vp8' : (MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : '');
+                    const recorder = new MediaRecorder(stream, { mimeType: mimeType, videoBitsPerSecond: 50000 });
                     const chunks = [];
-                    recorder.ondataavailable = e => chunks.push(e.data);
+                    recorder.ondataavailable = e => { if(e.data.size > 0) chunks.push(e.data); };
                     recorder.onstop = () => {
-                        const blob = new Blob(chunks, { type: 'video/webm' });
+                        clearTimeout(timeoutId);
+                        if(document.body.contains(video)) document.body.removeChild(video);
+                        const blob = new Blob(chunks, { type: mimeType || 'video/mp4' });
                         const reader = new FileReader();
                         reader.onloadend = () => resolve({ video: reader.result, thumb: thumbBase64 });
                         reader.readAsDataURL(blob);
                     };
-                    recorder.start();
                     
+                    recorder.start();
+                    video.currentTime = 0;
                     video.playbackRate = 4.0;
                     video.play().then(() => {
                         const draw = () => {
@@ -553,13 +572,21 @@ var AppUtils = {
                             requestAnimationFrame(draw);
                         };
                         draw();
-                    }).catch(() => fallback(file, resolve, thumbBase64));
-                } catch(e) { fallback(file, resolve, thumbBase64); }
+                    }).catch(() => {
+                        if(recorder.state === 'recording') recorder.stop();
+                    });
+                } catch(e) { 
+                    clearTimeout(timeoutId);
+                    if(document.body.contains(video)) document.body.removeChild(video); 
+                    fallback(file, thumbBase64); 
+                }
             };
-            video.onerror = () => fallback(file, resolve, '');
-            function fallback(f, res, tBase64) {
-                const r = new FileReader(); r.onloadend = () => res({ video: r.result, thumb: tBase64 || '' }); r.readAsDataURL(f);
-            }
+            video.onerror = () => { 
+                clearTimeout(timeoutId);
+                if(document.body.contains(video)) document.body.removeChild(video); 
+                fallback(file, ''); 
+            };
+            video.src = URL.createObjectURL(file);
         });
     }
 };
@@ -577,7 +604,9 @@ async function processMultipleMedia(files, callback) {
             await new Promise((resolve) => { reader.onload = (e) => { let base64 = e.target.result.replace('data:application/pdf;base64,', `data:application/pdf;name=${encodedName};base64,`); processedArray.push({ data: base64, createdAt: captureTime }); resolve(); }; reader.readAsDataURL(file); });
         } else if (file.type.startsWith('video/')) {
             const result = await AppUtils.compressVideo(file);
-            processedArray.push({ data: result.video, thumbnail: result.thumb, isVideo: true, createdAt: captureTime });
+            if (!result.error) {
+                processedArray.push({ data: result.video, thumbnail: result.thumb, isVideo: true, createdAt: captureTime });
+            }
         } else if (file.type.startsWith('image/')) {
             const reader = new FileReader();
             await new Promise((resolve) => {
@@ -604,7 +633,7 @@ function renderStackedDeckHTML(images, logId) {
 
     if (images.length === 1) {
         let img = images[0];
-        if (img.isPlaceholder) return `<div class="pdf-preview deck-photo" style="position:relative; left:0; width:100%; height:auto; min-height:140px; background:#111;"><i class="material-icons" style="font-size:48px; color:var(--primary); animation: spin 1s linear infinite;">sync</i><span style="font-size: 13px; margin-top: 8px; color:var(--primary);">Processando... aguarde.</span></div>`;
+        if (img.isPlaceholder) return `<div class="pdf-preview deck-photo" style="position:relative; left:0; width:100%; height:auto; min-height:140px; background:#111;"><i class="material-icons" style="font-size:48px; color:var(--primary); animation: spin 1s linear infinite;">sync</i><span style="font-size: 13px; margin-top: 8px; color:var(--primary);">Processando...</span></div>`;
         if (img.data.startsWith('data:application/pdf')) return `<div class="pdf-preview deck-photo" style="position:relative; left:0; width:100%; height:auto; min-height:140px; padding:12px;" onclick="${clickHandler}"><i class="material-icons" style="font-size:32px;">picture_as_pdf</i><span style="font-size: 13px; margin-top: 8px; text-align:center;">${AppUtils.getPdfName(img.data)}</span></div>`;
         else if (img.isVideo || img.data.startsWith('data:video/')) return `<div class="pdf-preview deck-photo" style="position:relative; left:0; width:100%; height:auto; min-height:140px; background: url('${img.thumbnail || ''}') center/cover;" onclick="${clickHandler}"><div style="background:rgba(0,0,0,0.5); width:100%; height:100%; min-height:140px; display:flex; flex-direction:column; align-items:center; justify-content:center;"><i class="material-icons" style="font-size:48px; color:#fff;">play_circle_outline</i></div></div>`;
         else return `<img src="${img.data}" class="image-preview" onclick="${clickHandler}" style="margin:0;">`;
@@ -625,7 +654,15 @@ const DB_KEY = 'oraculo_p31_v4';
 let db = JSON.parse(localStorage.getItem(DB_KEY)) || { entities: [], logs: [] };
 db.entities.forEach(e => { if(e.parentId === undefined) e.parentId = null; });
 db.logs.forEach(l => { if(!l.relatedEntities) l.relatedEntities = []; if(!l.originEntityId) l.originEntityId = l.relatedEntities.length > 0 ? l.relatedEntities[0].id : null; });
-function saveDB() { localStorage.setItem(DB_KEY, JSON.stringify(db)); }
+function saveDB() { 
+    try {
+        localStorage.setItem(DB_KEY, JSON.stringify(db)); 
+    } catch(e) {
+        CustomDialog.alert("Limite de memória atingido! O anexo inserido é muito grande para o seu navegador. A sessão foi revertida por segurança.", "Erro Crítico de Armazenamento");
+        db = JSON.parse(localStorage.getItem(DB_KEY)) || { entities: [], logs: [] };
+        App.renderList();
+    }
+}
 
 // --- MAIN APPLICATION LOGIC ---
 var App = {
@@ -800,7 +837,7 @@ var App = {
             if (!hasExactMatch) { listEl.innerHTML += `<div class="create-btn-dynamic" onclick="App.createEntityOnTheFly('${rawSearchTerm.replace(/'/g, "\\'")}')"><i class="material-icons">add_circle_outline</i><span>Criar: <strong>${rawSearchTerm}</strong></span></div>`; }
         }
 
-        if (filtered.length === 0 && !searchTerm) { listEl.innerHTML = `<div class="empty-state"><i class="material-icons">${this.moduleIcon}</i><p>Nenhum registro.<br>Busque para criar.</p></div>`; return; }
+        if (filtered.length === 0 && !searchTerm) { listEl.innerHTML = `<div class="empty-state"><i class="material-icons">${this.moduleIcon}</i><p>Nenhum registo.<br>Busque para criar.</p></div>`; return; }
 
         let iterator = searchTerm ? filtered.sort((a, b) => b.entity.createdAt - a.entity.createdAt) : filtered.sort((a, b) => b.createdAt - a.createdAt).map(e => ({entity: e}));
 
@@ -1160,6 +1197,12 @@ var Editor = {
         this.undoStack = []; document.getElementById('textOverlay').innerHTML = ''; this.activeText = null; this.setTool('pen');
         const img = new Image();
         img.onload = () => {
+            const MAX_W = window.innerWidth - 32;
+            const MAX_H = window.innerHeight - 100;
+            let w = img.width, h = img.height;
+            if (w > MAX_W || h > MAX_H) { const ratio = Math.min(MAX_W / w, MAX_H / h); w = w * ratio; h = h * ratio; }
+            this.canvas.style.width = w + 'px'; this.canvas.style.height = h + 'px';
+            
             this.canvas.width = img.width; this.canvas.height = img.height; this.ctx.drawImage(img, 0, 0);
             let currentPhotoObj = this.targetMode === 'db' ? db.logs.find(l => l.id === this.logId).images[this.dbIdx] : LogModal.tempMedia[this.dbIdx];
             const dateStr = currentPhotoObj ? AppUtils.formatDate(currentPhotoObj.createdAt) : '';
@@ -1171,6 +1214,11 @@ var Editor = {
     closeUI: function() { AppState.closeModalUI(); },
     onHardwareBack: function() { document.getElementById('textOverlay').innerHTML = ''; document.getElementById('colorPopup').classList.remove('show'); this.isDraggingText = false; },
     
+    toggleColorPopup: function(e) {
+        e.stopPropagation();
+        document.getElementById('colorPopup').classList.toggle('show');
+    },
+
     save: function() {
         const texts = document.getElementById('textOverlay').children;
         if (texts.length > 0) {
