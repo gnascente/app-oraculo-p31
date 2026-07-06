@@ -5,10 +5,17 @@
     <link rel="apple-touch-icon" href="icon.png">
 
     <script>
+        // Limpeza agressiva de Cache e Service Worker para forçar atualização constante
         if ('serviceWorker' in navigator) {
+            caches.keys().then(function(names) {
+                for (let name of names) caches.delete(name);
+            });
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) registration.unregister();
+            });
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(() => console.log('Service Worker registrado.'))
+                navigator.serviceWorker.register('sw.js?v=' + new Date().getTime())
+                    .then(() => console.log('App forçado a atualizar com sucesso.'))
                     .catch((err) => console.log('Falha ao registrar:', err));
             });
         }
@@ -43,6 +50,8 @@
             --shadow-sm: 0 1px 2px rgba(0,0,0,0.5);
         }
         
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; -webkit-tap-highlight-color: transparent; }
         input, textarea { -webkit-user-select: auto; user-select: auto; }
         img { -webkit-user-drag: none; pointer-events: auto; }
@@ -116,7 +125,7 @@
 
         .search-snippets { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px; }
         .snippet-item { font-size: 12px; color: var(--on-surface-variant); font-style: italic; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 6px; line-height: 1.3; }
-        mark.highlight { background-color: rgba(255, 213, 79, 0.5); color: #fff; padding: 0 4px; border-radius: 4px; box-shadow: 0 0 4px rgba(255, 213, 79, 0.3); }
+        mark.highlight { background-color: rgba(255, 213, 79, 0.6); color: #111; padding: 0 4px; border-radius: 4px; box-shadow: 0 0 4px rgba(255, 213, 79, 0.4); font-weight: bold; }
 
         /* Logs Timeline & Pills */
         .log-list { margin-top: 8px; padding-left: 12px; border-left: 2px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
@@ -127,7 +136,7 @@
         .subtask-list { list-style: none; display: flex; flex-direction: column; gap: 12px; padding-top: 8px; }
         .subtask-item { display: flex; flex-direction: column; gap: 8px; font-size: 14px; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; }
         .subtask-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-        .subtask-text-wrapper { display: flex; align-items: center; gap: 8px; flex-grow: 1; }
+        .subtask-text-wrapper { display: flex; align-items: center; gap: 8px; flex-grow: 1; cursor: pointer; }
         .subtask-text { font-weight: 500; color: var(--primary); font-size: 15px; }
         
         .log-links-bar { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); }
@@ -228,9 +237,10 @@
         .tool-btn.danger { color: var(--danger); }
         .editor-sep { width: 1px; height: 24px; background: #444; flex-shrink: 0; margin: 0 4px; }
         .size-slider { flex-grow: 1; min-width: 60px; max-width: 100px; accent-color: var(--primary); }
+        
         .color-palette-container { position: relative; display: flex; align-items: center; }
         .active-color-dot { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid #fff; flex-shrink: 0; box-shadow: 0 0 4px rgba(255,255,255,0.3); }
-        .color-popup { position: absolute; bottom: 45px; left: 50%; transform: translateX(-50%); background: #222; padding: 8px; border-radius: 8px; border: 1px solid #444; display: none; gap: 8px; flex-direction: row; box-shadow: 0 4px 12px rgba(0,0,0,0.8); z-index: 9999; }
+        .color-popup { position: absolute; bottom: 70px; left: 50%; transform: translateX(-50%); background: #222; padding: 8px; border-radius: 8px; border: 1px solid #444; display: none; gap: 8px; flex-direction: row; box-shadow: 0 4px 12px rgba(0,0,0,0.8); z-index: 9999; }
         .color-popup.show { display: flex; }
         .color-dot { width: 24px; height: 24px; border-radius: 50%; cursor: pointer; border: 1px solid #555; flex-shrink: 0; }
 
@@ -250,7 +260,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 2.1.0</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 2.2.0</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -426,7 +436,6 @@
     <div class="carousel-container" id="carouselContainer"></div>
 </div>
 
-<!-- Editor Overlay -->
 <div class="editor-overlay" id="editorOverlay">
     <div class="canvas-container" id="canvasContainer">
         <div class="editor-hint" id="editorHint">Desenhe livremente na imagem</div>
@@ -436,6 +445,15 @@
         </div>
     </div>
     
+    <div id="colorPopup" class="color-popup">
+        <div class="color-dot" style="background-color: #ff3333" onclick="Editor.setColor('#ff3333')"></div>
+        <div class="color-dot" style="background-color: #33cc33" onclick="Editor.setColor('#33cc33')"></div>
+        <div class="color-dot" style="background-color: #3366ff" onclick="Editor.setColor('#3366ff')"></div>
+        <div class="color-dot" style="background-color: #ffff33" onclick="Editor.setColor('#ffff33')"></div>
+        <div class="color-dot" style="background-color: #ffffff" onclick="Editor.setColor('#ffffff')"></div>
+        <div class="color-dot" style="background-color: #000000" onclick="Editor.setColor('#000000')"></div>
+    </div>
+
     <div class="editor-toolbar">
         <button class="tool-btn" onclick="Editor.closeUI()"><i class="material-icons">close</i></button>
         <div class="editor-sep"></div>
@@ -444,15 +462,7 @@
         <div class="editor-sep"></div>
         
         <div class="color-palette-container">
-            <div id="activeColorBtn" class="active-color-dot" style="background-color: #ff3333;" onclick="document.getElementById('colorPopup').classList.toggle('show')"></div>
-            <div id="colorPopup" class="color-popup">
-                <div class="color-dot" style="background-color: #ff3333" onclick="Editor.setColor('#ff3333')"></div>
-                <div class="color-dot" style="background-color: #33cc33" onclick="Editor.setColor('#33cc33')"></div>
-                <div class="color-dot" style="background-color: #3366ff" onclick="Editor.setColor('#3366ff')"></div>
-                <div class="color-dot" style="background-color: #ffff33" onclick="Editor.setColor('#ffff33')"></div>
-                <div class="color-dot" style="background-color: #ffffff" onclick="Editor.setColor('#ffffff')"></div>
-                <div class="color-dot" style="background-color: #000000" onclick="Editor.setColor('#000000')"></div>
-            </div>
+            <div id="activeColorBtn" class="active-color-dot" style="background-color: #ff3333;" onclick="Editor.toggleColorPopup(event)"></div>
         </div>
         
         <div class="editor-sep"></div>
@@ -483,7 +493,7 @@ var CustomDialog = {
     btnConfirm: document.getElementById('customDialogConfirm'), resolvePromise: null,
     show: function(title, message, type, defaultValue = '') {
         return new Promise((resolve) => {
-            this.titleEl.innerText = title || 'Aviso'; this.msgEl.innerText = message;
+            this.titleEl.innerText = title || 'Aviso'; this.msgEl.innerHTML = message;
             this.inputContainer.style.display = type === 'prompt' ? 'block' : 'none';
             if (type === 'prompt') this.inputEl.value = defaultValue;
             this.btnCancel.style.display = (type === 'confirm' || type === 'prompt') ? 'block' : 'none';
@@ -523,7 +533,7 @@ var AppUtils = {
             video.src = URL.createObjectURL(file);
             video.onloadedmetadata = () => {
                 const canvas = document.createElement('canvas');
-                const MAX = 240; 
+                const MAX = 180; // Compressão extremamente agressiva
                 let w = video.videoWidth, h = video.videoHeight;
                 if (w > MAX) { h = Math.floor(h * (MAX / w)); w = MAX; }
                 canvas.width = w; canvas.height = h;
@@ -531,7 +541,7 @@ var AppUtils = {
                 
                 try {
                     const stream = canvas.captureStream(15);
-                    const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8', videoBitsPerSecond: 100000 });
+                    const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8', videoBitsPerSecond: 50000 });
                     const chunks = [];
                     recorder.ondataavailable = e => chunks.push(e.data);
                     recorder.onstop = () => {
@@ -542,7 +552,7 @@ var AppUtils = {
                     };
                     recorder.start();
                     
-                    video.playbackRate = 4.0; // Acelera gravação em 4x
+                    video.playbackRate = 4.0; // Acelera gravação
                     video.play().then(() => {
                         const draw = () => {
                             if (video.ended || video.paused) {
@@ -577,7 +587,6 @@ async function processMultipleMedia(files, callback) {
             const reader = new FileReader();
             await new Promise((resolve) => { reader.onload = (e) => { let base64 = e.target.result.replace('data:application/pdf;base64,', `data:application/pdf;name=${encodedName};base64,`); processedArray.push({ data: base64, createdAt: captureTime }); resolve(); }; reader.readAsDataURL(file); });
         } else if (file.type.startsWith('video/')) {
-            if (file.size > 20 * 1024 * 1024) { CustomDialog.alert(`Vídeo muito grande (máx 20MB)`, "Aviso"); continue; }
             const compressedBase64 = await AppUtils.compressVideo(file);
             processedArray.push({ data: compressedBase64, createdAt: captureTime });
         } else if (file.type.startsWith('image/')) {
@@ -714,15 +723,32 @@ var App = {
             if(MODULE_MAPPING[entity.type]) { targetModuleType = entity.type; targetModuleName = MODULE_MAPPING[entity.type][0]; targetModuleIcon = MODULE_MAPPING[entity.type][1]; }
         }
 
-        this.openModule(targetModuleType, targetModuleName, targetModuleIcon);
+        this.currentView = 'list'; this.moduleType = targetModuleType; this.moduleName = targetModuleName; this.moduleIcon = targetModuleIcon;
+        document.getElementById('viewHome').classList.remove('active'); document.getElementById('viewList').classList.add('active');
+        document.getElementById('headerIcon').innerText = targetModuleIcon; document.getElementById('headerText').innerText = targetModuleName;
+        document.getElementById('btnBack').style.display = 'block'; document.getElementById('headerVersion').style.display = 'none';
+        
+        // Passar termo de busca pra listagem pra preservar highlight
+        document.getElementById('searchInput').value = focusTerm;
+        this.renderList(); 
+        history.pushState({ view: 'list' }, '');
 
         setTimeout(() => {
             const elId = focusLogId ? 'log-' + focusLogId : 'entity-' + id;
             const el = document.getElementById(elId);
             if (el) {
+                // Se o item estiver dentro de uma tarefa fechada, abra-a
+                let parentList = el.closest('.log-list');
+                if(parentList && parentList.style.display === 'none') {
+                    parentList.style.display = 'flex';
+                    let taskId = parentList.id.replace('task-logs-', '');
+                    let iconEl = document.getElementById('task-icon-' + taskId);
+                    if(iconEl) iconEl.innerText = 'expand_less';
+                }
+
                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                el.style.backgroundColor = 'rgba(168, 199, 250, 0.2)';
-                setTimeout(() => el.style.backgroundColor = 'var(--surface-variant)', 1500);
+                el.style.backgroundColor = 'rgba(168, 199, 250, 0.3)';
+                setTimeout(() => el.style.backgroundColor = '', 1500);
             }
         }, 300);
     },
@@ -819,12 +845,12 @@ var App = {
                 let tasks = db.entities.filter(t => t.parentId === e.id && t.type === 'tarefa');
                 if (tasks.length > 0) {
                     cardHtml += `<div style="font-size:12px; font-weight:bold; color:var(--on-surface-variant); margin-top:20px; margin-bottom: 8px; text-transform:uppercase;">Tarefas do Serviço</div><ul class="subtask-list">`;
-                    tasks.sort((a, b) => b.createdAt - a.createdAt).forEach(t => {
+                    tasks.sort((a, b) => a.createdAt - b.createdAt).forEach(t => {
                         cardHtml += `
                         <li class="subtask-item" id="entity-${t.id}">
                             <div class="subtask-row">
-                                <div class="subtask-text-wrapper">
-                                    <i class="material-icons action-icon" style="font-size:24px;" id="task-icon-${t.id}" onclick="App.toggleTaskLogs('${t.id}')">expand_less</i>
+                                <div class="subtask-text-wrapper" onclick="App.toggleTaskLogs('${t.id}')">
+                                    <i class="material-icons action-icon" style="font-size:24px;" id="task-icon-${t.id}">expand_more</i>
                                     <span class="subtask-text selectable-text">${AppUtils.highlight(t.name, searchTerm)}</span>
                                 </div>
                                 <div class="task-actions" style="gap:8px;">
@@ -835,7 +861,7 @@ var App = {
                         `;
                         let taskLogs = db.logs.filter(log => log.relatedEntities.some(rel => rel.id === t.id));
                         if (taskLogs.length > 0) {
-                            cardHtml += `<div class="log-list" id="task-logs-${t.id}" style="margin-left: 26px; display:flex;">`;
+                            cardHtml += `<div class="log-list" id="task-logs-${t.id}" style="margin-left: 26px; display:none;">`;
                             taskLogs.sort((a, b) => b.createdAt - a.createdAt).forEach(log => {
                                 cardHtml += App.renderLogItemHTML(log, t.id, searchTerm);
                             });
@@ -896,7 +922,20 @@ var App = {
     exportToBlob: async () => { BackupChoiceModal.closeUI(); setTimeout(async () => { if (typeof JSZip === 'undefined') { await CustomDialog.alert("Aguarde a biblioteca carregar.", "Aviso"); return; } CustomDialog.alert("Enviando para a nuvem...", "Aguarde"); const zip = new JSZip(); zip.file("dados_oraculo.json", localStorage.getItem(DB_KEY) || "{}"); const zipBlob = await zip.generateAsync({type:"blob"}); const filename = `backup_oraculo_${Date.now()}.zip`; try { const res = await fetch(`/api/backup?filename=${filename}`, { method: 'POST', body: zipBlob }); if(res.ok) { await CustomDialog.alert(`Salvo na nuvem com sucesso!\nArquivo: ${filename}`, "Sucesso"); } else { throw new Error("API Falhou"); } } catch(e) { const url = URL.createObjectURL(zipBlob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); await CustomDialog.alert("A nuvem falhou. O arquivo foi baixado no seu dispositivo.", "Salvo Localmente"); } }, 100); },
     listBackupsFromBlob: async () => { document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">Buscando... ⏳</div>'; BackupModal.open(); try { const res = await fetch('/api/backup'); if(res.ok) { const data = await res.json(); const zips = (data.blobs || []).filter(b => b.pathname.endsWith('.zip')).sort((a,b) => new Date(b.uploadedAt) - new Date(a.uploadedAt)); if(zips.length === 0) { document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">Nenhum backup.</div>'; return; } document.getElementById('backupList').innerHTML = zips.map(b => `<div style="background:var(--surface-variant); padding:12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;"><div style="flex-grow: 1; cursor:pointer;" onclick="App.restoreFromBlob('${b.url}')"><div style="font-weight:500; font-size:14px; color:var(--on-surface); word-break: break-all;">${b.pathname}</div><div style="font-size:12px; color:var(--on-surface-variant); margin-top:4px;">${new Date(b.uploadedAt).toLocaleString('pt-BR')} • ${(b.size / (1024*1024)).toFixed(2)} MB</div></div><div style="display: flex; gap: 16px; margin-left: 12px; border-left: 1px solid var(--border); padding-left: 12px;"><i class="material-icons" style="color:var(--primary); font-size: 24px; cursor:pointer;" onclick="App.restoreFromBlob('${b.url}')">cloud_download</i><i class="material-icons danger" style="font-size: 24px; cursor:pointer;" onclick="App.deleteFromBlob('${b.url}')">delete</i></div></div>`).join(''); } else document.getElementById('backupList').innerHTML = `<div style="color:var(--danger); padding:20px;">Erro Servidor</div>`; } catch(e) { document.getElementById('backupList').innerHTML = `<div style="color:var(--danger); padding:20px; text-align:center;">Erro Conexão</div>`; } },
     deleteFromBlob: async (blobUrl) => { if(!await CustomDialog.confirm("DELETAR PERMANENTEMENTE da nuvem?", "Deletar")) return; try { document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">Apagando...</div>'; const res = await fetch(`/api/backup?url=${encodeURIComponent(blobUrl)}`, { method: 'DELETE' }); if(res.ok) { await CustomDialog.alert("Apagado com sucesso!", "Sucesso"); App.listBackupsFromBlob(); } else { await CustomDialog.alert("Erro ao apagar.", "Erro"); App.listBackupsFromBlob(); } } catch(e) { await CustomDialog.alert("Erro de conexão.", "Erro"); App.listBackupsFromBlob(); } },
-    restoreFromBlob: async (url) => { if(!await CustomDialog.confirm("Isso apagará e substituirá TODOS os dados pelo backup. Continuar?", "Aviso Crítico")) return; BackupModal.closeUI(); CustomDialog.alert("Restaurando...", "Aguarde"); try { const res = await fetch(url); const blob = await res.blob(); const zip = new JSZip(); const contents = await zip.loadAsync(blob); if(contents.files["dados_oraculo.json"]) { const data = await contents.files["dados_oraculo.json"].async("string"); try { JSON.parse(data); localStorage.setItem(DB_KEY, data); db = JSON.parse(data); App.goHome(); await CustomDialog.alert("Restaurado!", "Sucesso"); } catch(e) { await CustomDialog.alert("Arquivo corrompido.", "Erro"); } } else { await CustomDialog.alert("Arquivo inválido.", "Erro"); } } catch(e) { await CustomDialog.alert("Erro ao baixar nuvem.", "Erro"); } }
+    restoreFromBlob: async (url) => { 
+        if(!await CustomDialog.confirm("Isso apagará e substituirá TODOS os dados pelo backup. Continuar?", "Aviso Crítico")) return; 
+        
+        document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 40px; color: var(--primary);"><i class="material-icons" style="font-size:48px; animation: spin 1s linear infinite;">sync</i><br><br>Baixando e Restaurando...<br>Por favor, aguarde.</div>';
+        
+        try { 
+            const res = await fetch(url); const blob = await res.blob(); const zip = new JSZip(); const contents = await zip.loadAsync(blob); 
+            if(contents.files["dados_oraculo.json"]) { 
+                const data = await contents.files["dados_oraculo.json"].async("string"); 
+                try { JSON.parse(data); localStorage.setItem(DB_KEY, data); db = JSON.parse(data); App.goHome(); await CustomDialog.alert("Restaurado!", "Sucesso"); BackupModal.closeUI(); } 
+                catch(e) { await CustomDialog.alert("Arquivo corrompido.", "Erro"); BackupModal.closeUI(); } 
+            } else { await CustomDialog.alert("Arquivo inválido.", "Erro"); BackupModal.closeUI(); } 
+        } catch(e) { await CustomDialog.alert("Erro ao baixar nuvem.", "Erro"); BackupModal.closeUI(); } 
+    }
 };
 
 var BackupChoiceModal = { el: document.getElementById('backupChoiceModal'), open: function() { AppState.openModal(this); }, closeUI: function() { AppState.closeModalUI(); } };
@@ -1119,6 +1158,11 @@ var Editor = {
     closeUI: function() { AppState.closeModalUI(); },
     onHardwareBack: function() { document.getElementById('textOverlay').innerHTML = ''; document.getElementById('colorPopup').classList.remove('show'); this.isDraggingText = false; },
     
+    toggleColorPopup: function(e) {
+        e.stopPropagation();
+        document.getElementById('colorPopup').classList.toggle('show');
+    },
+
     save: function() {
         const texts = document.getElementById('textOverlay').children;
         if (texts.length > 0) {
