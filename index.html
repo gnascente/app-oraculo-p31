@@ -55,28 +55,15 @@
         body { 
             background-color: var(--background); 
             color: var(--on-surface); 
-            display: flex; 
-            justify-content: center; 
-            padding: 16px; 
-            height: 100vh; 
-            overflow: hidden; 
-            box-sizing: border-box; 
-            outline: none; 
-            margin: 0; 
-            -webkit-touch-callout: none !important; 
-            -webkit-user-select: none !important;   
-            user-select: none !important;           
+            display: flex; justify-content: center; padding: 16px; height: 100vh; overflow: hidden; box-sizing: border-box; outline: none; margin: 0; 
+            -webkit-touch-callout: none !important; -webkit-user-select: none !important; user-select: none !important;           
         }
 
-        input, textarea, .selectable-text { 
-            -webkit-user-select: auto !important; 
-            user-select: auto !important; 
-        }
-
+        input, textarea, .selectable-text { -webkit-user-select: auto !important; user-select: auto !important; }
         img, video { -webkit-user-drag: none; pointer-events: auto; }
         
-        .material-icons { pointer-events: none; -webkit-user-select: none !important; user-select: none !important; }
-        .action-icon, .tool-btn, .carousel-btn, .carousel-nav-btn { pointer-events: auto; } 
+        .material-icons { pointer-events: none; -webkit-user-select: none !important; user-select: none !important; -webkit-touch-callout: none !important; }
+        .action-icon, .tool-btn, .carousel-btn, .carousel-nav-btn { pointer-events: auto; -webkit-user-select: none !important; user-select: none !important; -webkit-touch-callout: none !important; } 
 
         .container { width: 100%; max-width: 480px; background: var(--surface); border-radius: 16px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; overflow: hidden; position: relative; height: 100%; }
         
@@ -232,7 +219,6 @@
         #textOverlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
         .editor-hint { position: absolute; top: 24px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 14px; pointer-events: none; z-index: 10; white-space: nowrap; }
         
-        /* Popup de Cores Seguro */
         .color-popup { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: #222; padding: 12px; border-radius: 12px; border: 1px solid #555; display: none; gap: 12px; flex-direction: row; box-shadow: 0 4px 16px rgba(0,0,0,0.9); z-index: 999999; pointer-events: auto; }
         .color-popup.show { display: flex; }
         .color-dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid #777; flex-shrink: 0; }
@@ -250,29 +236,13 @@
         
         .module-link-badge { font-size: 10px; background: var(--background); padding: 2px 6px; border-radius: 8px; color: var(--on-surface-variant); display: inline-block; text-transform: uppercase; margin-left: 8px;}
 
-        /* Rodapé Fixo na Base do Container */
         .storage-footer { height: 36px; line-height: 36px; text-align: center; font-size: 11px; color: var(--on-surface-variant); background: var(--surface); border-top: 1px solid var(--surface-variant); z-index: 5; flex-shrink: 0; display: flex; justify-content: center; align-items: center; gap: 6px; width: 100%; }
 
-        /* Área Dedicada e Protegida para a Impressão */
         #printArea { display: none; }
         @media print {
-            body { 
-                background: #fff !important; 
-                color: #000 !important; 
-                height: auto !important; 
-                overflow: auto !important; 
-                padding: 0 !important; 
-                display: block !important; 
-                -webkit-user-select: auto !important; 
-                user-select: auto !important;
-            }
-            .container, .fab, .modal-overlay, .dialog-overlay, .progress-modal, .carousel-overlay, .editor-overlay { 
-                display: none !important; 
-            }
-            #printArea { 
-                display: block !important; 
-                padding: 20px; 
-            }
+            body { background: #fff !important; color: #000 !important; height: auto !important; overflow: auto !important; padding: 0 !important; display: block !important; -webkit-user-select: auto !important; user-select: auto !important; }
+            .container, .fab, .modal-overlay, .dialog-overlay, .progress-modal, .carousel-overlay, .editor-overlay { display: none !important; }
+            #printArea { display: block !important; padding: 20px; }
             .print-log-item { border-bottom: 1px solid #ccc; padding-bottom: 15px; margin-bottom: 15px; page-break-inside: avoid; }
             .print-header { font-size: 12px; color: #555; margin-bottom: 6px; font-weight: bold; }
             .print-entity { font-size: 16px; font-weight: bold; margin-bottom: 6px; color: #000; }
@@ -292,7 +262,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 3.8.0</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 3.9.0</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -595,12 +565,15 @@ var AppUtils = {
                 canvas.width = w; canvas.height = h;
                 const ctx = canvas.getContext('2d');
                 
+                // Constrói um novo stream unindo o vídeo do canvas processado + áudio original
+                const canvasStream = canvas.captureStream(10);
                 const combinedStream = new MediaStream([
-                    canvas.captureStream(10).getVideoTracks()[0],
+                    canvasStream.getVideoTracks()[0],
                     ...audioTracks
                 ]);
 
-                const recorder = new MediaRecorder(combinedStream, { mimeType: 'video/webm;codecs=vp8,opus' });
+                // Ajuste de codec para reduzir tamanho sem perder qualidade de áudio
+                const recorder = new MediaRecorder(combinedStream, { mimeType: 'video/webm;codecs=vp8,opus', videoBitsPerSecond: 600000 });
                 const chunks = [];
                 recorder.ondataavailable = e => chunks.push(e.data);
                 recorder.onstop = async () => {
@@ -608,7 +581,6 @@ var AppUtils = {
                     const blob = new Blob(chunks, { type: 'video/webm' });
                     const reader = new FileReader();
                     reader.onloadend = () => {
-                        // Gera thumbnail do primeiro frame do original
                         const thumbCanvas = document.createElement('canvas');
                         thumbCanvas.width = 100; thumbCanvas.height = 100;
                         thumbCanvas.getContext('2d').drawImage(video, 0, 0, 100, 100);
@@ -730,6 +702,7 @@ var App = {
         setTimeout(async () => {
             try {
                 const fourteenDaysAgo = Date.now() - (14 * 24 * 60 * 60 * 1000);
+                const allEntities = await AppDB.entities.toArray();
                 const allLogs = (await AppDB.logs.toArray()).filter(l => l.createdAt >= fourteenDaysAgo).sort((a,b) => b.createdAt - a.createdAt);
                 
                 if (allLogs.length === 0) {
@@ -741,18 +714,30 @@ var App = {
                 let printArea = document.getElementById('printArea');
                 printArea.innerHTML = `<h1 style="font-size:24px; margin-bottom:20px; border-bottom:2px solid #000;">Relatório P-31 (14 Dias)</h1>`;
                 
-                for(let log of allLogs) {
-                    let origin = await AppDB.entities.get(log.originEntityId);
-                    let badge = MODULE_MAPPING[origin ? origin.type : 'servico']?.[0] || 'Geral';
+                // Agrupa logs por entidade para manter a organização lógica
+                for(let entity of allEntities) {
+                    let logsOfEntity = allLogs.filter(l => l.relatedEntities.some(rel => rel.id === entity.id));
                     
-                    printArea.innerHTML += `
-                        <div class="print-log-item">
-                            <div class="print-header">${AppUtils.formatDate(log.createdAt)} | <span style="background:#ddd; padding:2px 6px; border-radius:4px;">${badge}</span></div>
-                            <div class="print-entity">${origin ? origin.name : 'Entidade Removida'}</div>
-                            <div class="print-text">${log.text || ''}</div>
-                            ${log.images ? log.images.map(img => `<div class="print-media-box"><img src="${img.data}" class="print-media-img"></div>`).join('') : ''}
-                        </div>
-                    `;
+                    if(logsOfEntity.length > 0) {
+                        let badge = MODULE_MAPPING[entity.type]?.[0] || 'Geral';
+                        printArea.innerHTML += `<div style="margin-top:20px; font-size:18px; font-weight:bold; border-bottom:1px solid #ccc;">${entity.name} <span style="background:#ddd; font-size:10px; padding:2px 6px; border-radius:4px;">${badge}</span></div>`;
+                        
+                        for(let log of logsOfEntity) {
+                            let mediaHtml = log.images ? log.images.map(img => {
+                                if(img.data.startsWith('data:application/pdf')) return `<div class="print-media-box"><div style="font-weight:bold;">PDF</div><div style="font-size:10px;word-break:break-all;">${AppUtils.getPdfName(img.data)}</div></div>`;
+                                if(img.isVideo || img.data.startsWith('data:video/')) return `<div class="print-media-box"><div style="font-weight:bold;font-size:10px;">VÍDEO</div></div>`;
+                                return `<div class="print-media-box"><img src="${img.data}" class="print-media-img"></div>`;
+                            }).join('') : '';
+
+                            printArea.innerHTML += `
+                                <div class="print-log-item">
+                                    <div class="print-header">${AppUtils.formatDate(log.createdAt)}</div>
+                                    <div class="print-text">${log.text || ''}</div>
+                                    <div style="margin-top:5px;">${mediaHtml}</div>
+                                </div>
+                            `;
+                        }
+                    }
                 }
                 
                 document.getElementById('progressModal').classList.remove('active');
@@ -1535,7 +1520,7 @@ var Editor = {
             const dataUrl = this.canvas.toDataURL('image/jpeg', 0.8);
             if (this.targetMode === 'db') { const log = await AppDB.logs.get(this.logId); if(log && log.images[this.dbIdx]) { log.images[this.dbIdx].data = dataUrl; log.images[this.dbIdx].size = dataUrl.length * 0.75; } await AppDB.logs.put(log); App.renderList(); App.calculateStorage(); } 
             else if (this.targetMode === 'temp') { if(LogModal.tempMedia[this.dbIdx]) { LogModal.tempMedia[this.dbIdx].data = dataUrl; LogModal.tempMedia[this.dbIdx].size = dataUrl.length * 0.75; } LogModal.updateUI(); }
-            if (CarouselModal.el.classList.contains('active') && CarouselModal.imagesArray[this.dbIdx]) { CarouselModal.imagesArray[this.dbIdx].data = dataUrl; CarouselModal.imagesArray[this.dbIdx].size = dataUrl.length * 0.75; CarouselModal.render(); CarouselModal.bindZoom(); CarouselModal.updateGlobalActions(); }
+            if (CarouselModal.el.classList.contains('active') && CarouselModal.imagesArray[this.dbIdx]) { CarouselModal.imagesArray[this.dbIdx].data = dataUrl; CarouselModal.imagesArray[this.dbIdx].size = CarouselModal.imagesArray[this.dbIdx].data.length * 0.75; CarouselModal.render(); CarouselModal.bindZoom(); CarouselModal.updateGlobalActions(); }
             this.closeUI();
         } catch(e) { CustomDialog.alert("Erro ao guardar edição.", "Erro"); }
     },
