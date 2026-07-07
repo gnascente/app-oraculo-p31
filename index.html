@@ -65,20 +65,31 @@
             box-sizing: border-box; 
             outline: none; 
             margin: 0; 
-            -webkit-touch-callout: none; /* Proíbe o menu de contexto nativo */
-            -webkit-user-select: none;   /* Proíbe seleção no iOS/Safari */
-            user-select: none;           /* Proíbe seleção no Android/Chrome */
+            -webkit-touch-callout: none !important; 
+            -webkit-user-select: none !important;   
+            user-select: none !important;           
         }
 
         /* Libera explicitamente a digitação apenas em campos de formulário */
         input, textarea, .selectable-text { 
-            -webkit-user-select: auto; 
-            user-select: auto; 
+            -webkit-user-select: auto !important; 
+            user-select: auto !important; 
         }
 
         img, video { -webkit-user-drag: none; pointer-events: auto; }
-        .material-icons { pointer-events: none; }
-        .action-icon, .tool-btn, .carousel-btn, .carousel-nav-btn { pointer-events: auto; } 
+        
+        .material-icons { 
+            pointer-events: none; 
+            -webkit-user-select: none !important; 
+            user-select: none !important; 
+            -webkit-touch-callout: none !important; 
+        }
+        .action-icon, .tool-btn, .carousel-btn, .carousel-nav-btn { 
+            pointer-events: auto; 
+            -webkit-user-select: none !important; 
+            user-select: none !important; 
+            -webkit-touch-callout: none !important; 
+        } 
 
         .container { width: 100%; max-width: 480px; background: var(--surface); border-radius: 16px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; overflow: hidden; position: relative; height: 100%; }
         
@@ -265,8 +276,8 @@
                 overflow: auto !important; 
                 padding: 0 !important; 
                 display: block !important; 
-                -webkit-user-select: auto; 
-                user-select: auto;
+                -webkit-user-select: auto !important; 
+                user-select: auto !important;
             }
             .container, .fab, .modal-overlay, .dialog-overlay, .progress-modal, .carousel-overlay, .editor-overlay { 
                 display: none !important; 
@@ -294,7 +305,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 3.6.0</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 3.7.0</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -771,12 +782,13 @@ var App = {
         document.getElementById('progressTitle').innerText = "A Gerar Relatório...";
         document.getElementById('progressText').innerText = "A compilar os últimos 14 dias...";
 
-        // Usamos um pequeno atraso para garantir que a UI mostre o modal de loading 
-        // antes do Javascript começar a processar o banco de dados pesado.
         setTimeout(async () => {
             try {
                 const fourteenDaysAgo = Date.now() - (14 * 24 * 60 * 60 * 1000);
-                const allLogs = await AppDB.logs.where('createdAt').aboveOrEqual(fourteenDaysAgo).toArray();
+                
+                // CORREÇÃO DO DEXIE: Buscar todos como array primeiro e depois filtrar na memória
+                const allLogsData = await AppDB.logs.toArray();
+                const allLogs = allLogsData.filter(log => log.createdAt >= fourteenDaysAgo);
                 
                 if (allLogs.length === 0) {
                     document.getElementById('progressModal').classList.remove('active');
