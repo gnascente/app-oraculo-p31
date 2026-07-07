@@ -5,7 +5,6 @@
     <link rel="apple-touch-icon" href="icon.png">
 
     <script>
-        // Limpeza agressiva ao arrancar para evitar que fique preso em versões velhas no PWA
         if ('serviceWorker' in navigator) {
             caches.keys().then(function(names) { for (let name of names) caches.delete(name); });
             navigator.serviceWorker.getRegistrations().then(function(registrations) {
@@ -53,7 +52,6 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; -webkit-tap-highlight-color: transparent; }
         
-        /* BLOQUEIO ABSOLUTO DO POPUP DO GOOGLE E SELEÇÕES ACIDENTAIS NO MOBILE */
         body { 
             background-color: var(--background); 
             color: var(--on-surface); 
@@ -70,7 +68,6 @@
             user-select: none !important;           
         }
 
-        /* Libera explicitamente a digitação apenas em campos de formulário */
         input, textarea, .selectable-text { 
             -webkit-user-select: auto !important; 
             user-select: auto !important; 
@@ -78,18 +75,8 @@
 
         img, video { -webkit-user-drag: none; pointer-events: auto; }
         
-        .material-icons { 
-            pointer-events: none; 
-            -webkit-user-select: none !important; 
-            user-select: none !important; 
-            -webkit-touch-callout: none !important; 
-        }
-        .action-icon, .tool-btn, .carousel-btn, .carousel-nav-btn { 
-            pointer-events: auto; 
-            -webkit-user-select: none !important; 
-            user-select: none !important; 
-            -webkit-touch-callout: none !important; 
-        } 
+        .material-icons { pointer-events: none; -webkit-user-select: none !important; user-select: none !important; }
+        .action-icon, .tool-btn, .carousel-btn, .carousel-nav-btn { pointer-events: auto; } 
 
         .container { width: 100%; max-width: 480px; background: var(--surface); border-radius: 16px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; overflow: hidden; position: relative; height: 100%; }
         
@@ -305,7 +292,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 3.7.0</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 3.8.0</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -588,99 +575,60 @@ var AppUtils = {
     formatDate: function(ts) { if (!ts) return ""; const d = new Date(ts); return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear().toString().slice(-2)} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`; },
     highlight: function(text, term) { if (!term) return text; const regex = new RegExp(`(${term})`, 'gi'); return text.replace(regex, '<mark class="highlight">$1</mark>'); },
     
+    // Versão otimizada de captura de vídeo com áudio (usando MediaRecorder corretamente)
     compressVideo: async function(file, onProgress) {
         return new Promise((resolve, reject) => {
-            const fallback = (f, tBase64) => {
-                const r = new FileReader(); 
-                r.onloadend = () => resolve({ video: r.result, thumb: tBase64 || '' }); 
-                r.onerror = () => reject(new Error("Falha na leitura do ficheiro."));
-                r.onprogress = (e) => {
-                    if(e.lengthComputable && onProgress) onProgress(Math.round((e.loaded/e.total)*100));
-                };
-                r.readAsDataURL(f);
-            };
-
             const video = document.createElement('video');
-            video.muted = true; video.setAttribute('playsinline', ''); video.style.display = 'none';
+            video.muted = false; // Garante que o áudio não seja mutado
+            video.setAttribute('playsinline', ''); 
+            video.style.display = 'none';
             document.body.appendChild(video);
             
-            let watchdog;
-            const resetWatchdog = () => {
-                clearTimeout(watchdog);
-                watchdog = setTimeout(() => {
-                    if(document.body.contains(video)) document.body.removeChild(video);
-                    reject(new Error("O processamento excedeu o tempo limite (15s sem resposta)."));
-                }, 15000); 
-            };
-            resetWatchdog();
+            video.onloadedmetadata = () => {
+                const stream = video.captureStream();
+                const audioTracks = stream.getAudioTracks();
+                
+                const canvas = document.createElement('canvas');
+                const MAX = 480; 
+                let w = video.videoWidth, h = video.videoHeight;
+                if (w > MAX) { h = Math.floor(h * (MAX / w)); w = MAX; }
+                canvas.width = w; canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                
+                const combinedStream = new MediaStream([
+                    canvas.captureStream(10).getVideoTracks()[0],
+                    ...audioTracks
+                ]);
 
-            let thumbBase64 = '';
-            video.onloadeddata = () => { video.currentTime = 0.1; };
-            
-            let isRecording = false;
-
-            video.ontimeupdate = () => {
-                resetWatchdog();
-                if(isRecording && video.duration) {
-                    let pct = Math.min(100, Math.round((video.currentTime / video.duration) * 100));
-                    if(onProgress) onProgress(pct);
-                }
-            };
-
-            video.onseeked = () => {
-                if(isRecording) return;
-                try {
-                    const canvas = document.createElement('canvas');
-                    const MAX = 240; let w = video.videoWidth, h = video.videoHeight;
-                    if (w > MAX) { h = Math.floor(h * (MAX / w)); w = MAX; }
-                    canvas.width = w; canvas.height = h;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(video, 0, 0, w, h);
-                    thumbBase64 = canvas.toDataURL('image/jpeg', 0.6);
-
-                    if (typeof MediaRecorder === 'undefined' || !canvas.captureStream) {
-                        clearTimeout(watchdog);
-                        if(document.body.contains(video)) document.body.removeChild(video); 
-                        return fallback(file, thumbBase64);
-                    }
-
-                    const stream = canvas.captureStream(10); 
-                    let mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8') ? 'video/webm;codecs=vp8' : (MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : '');
-                    const recorder = new MediaRecorder(stream, { mimeType: mimeType, videoBitsPerSecond: 50000 });
-                    const chunks = [];
-                    recorder.ondataavailable = e => { if(e.data.size > 0) chunks.push(e.data); };
-                    recorder.onstop = () => {
-                        clearTimeout(watchdog);
-                        if(document.body.contains(video)) document.body.removeChild(video);
-                        const blob = new Blob(chunks, { type: mimeType || 'video/mp4' });
-                        const reader = new FileReader();
-                        reader.onloadend = () => resolve({ video: reader.result, thumb: thumbBase64, size: blob.size });
-                        reader.readAsDataURL(blob);
+                const recorder = new MediaRecorder(combinedStream, { mimeType: 'video/webm;codecs=vp8,opus' });
+                const chunks = [];
+                recorder.ondataavailable = e => chunks.push(e.data);
+                recorder.onstop = async () => {
+                    document.body.removeChild(video);
+                    const blob = new Blob(chunks, { type: 'video/webm' });
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        // Gera thumbnail do primeiro frame do original
+                        const thumbCanvas = document.createElement('canvas');
+                        thumbCanvas.width = 100; thumbCanvas.height = 100;
+                        thumbCanvas.getContext('2d').drawImage(video, 0, 0, 100, 100);
+                        resolve({ video: reader.result, thumb: thumbCanvas.toDataURL('image/jpeg'), size: blob.size });
                     };
-                    
-                    isRecording = true;
-                    recorder.start(); 
-                    video.currentTime = 0; 
-                    video.playbackRate = 2.0; 
-                    video.play().then(() => {
-                        const draw = () => {
-                            if (video.ended || video.paused) { 
-                                if(recorder.state === 'recording') recorder.stop(); 
-                                return; 
-                            }
-                            ctx.drawImage(video, 0, 0, w, h); 
-                            requestAnimationFrame(draw);
-                        };
-                        draw();
-                    }).catch((e) => { 
-                        if(recorder.state === 'recording') recorder.stop(); 
-                    });
-                } catch(e) { 
-                    clearTimeout(watchdog); if(document.body.contains(video)) document.body.removeChild(video); 
-                    reject(e);
-                }
+                    reader.readAsDataURL(blob);
+                };
+
+                recorder.start();
+                video.play();
+                
+                const draw = () => {
+                    if (video.paused || video.ended) { recorder.stop(); return; }
+                    ctx.drawImage(video, 0, 0, w, h);
+                    if(onProgress) onProgress(Math.round((video.currentTime / video.duration) * 100));
+                    requestAnimationFrame(draw);
+                };
+                draw();
             };
-            video.onerror = () => { clearTimeout(watchdog); if(document.body.contains(video)) document.body.removeChild(video); reject(new Error("Falha ao abrir vídeo.")); };
+            video.onerror = () => { document.body.removeChild(video); reject("Erro ao carregar vídeo"); };
             video.src = URL.createObjectURL(file);
         });
     }
@@ -773,11 +721,8 @@ var App = {
     },
 
     toggleMenu: (e) => { e.stopPropagation(); const menu = document.getElementById('mainMenu'); if (menu.classList.contains('show')) MenuModal.closeUI(); else MenuModal.open(); },
-    menuAction: (actionName) => { const menu = document.getElementById('mainMenu'); if (menu.classList.contains('show')) { menu.classList.remove('show'); const idx = AppState.modals.indexOf(MenuModal); if (idx !== -1) AppState.modals.splice(idx, 1); const onPop = () => { window.removeEventListener('popstate', onPop); App.executeMenuAction(actionName); }; window.addEventListener('popstate', onPop); history.back(); } else { App.executeMenuAction(actionName); } },
-    executeMenuAction: (actionName) => { if (actionName === 'cloud') App.listBackupsFromBlob(); else if (actionName === 'export') App.exportChoice(); },
-
+    
     printReport: async function() {
-        // Exibe o loading imediatamente para dar feedback
         document.getElementById('progressModal').classList.add('active');
         document.getElementById('progressTitle').innerText = "A Gerar Relatório...";
         document.getElementById('progressText').innerText = "A compilar os últimos 14 dias...";
@@ -785,72 +730,36 @@ var App = {
         setTimeout(async () => {
             try {
                 const fourteenDaysAgo = Date.now() - (14 * 24 * 60 * 60 * 1000);
-                
-                // CORREÇÃO DO DEXIE: Buscar todos como array primeiro e depois filtrar na memória
-                const allLogsData = await AppDB.logs.toArray();
-                const allLogs = allLogsData.filter(log => log.createdAt >= fourteenDaysAgo);
+                const allLogs = (await AppDB.logs.toArray()).filter(l => l.createdAt >= fourteenDaysAgo).sort((a,b) => b.createdAt - a.createdAt);
                 
                 if (allLogs.length === 0) {
                     document.getElementById('progressModal').classList.remove('active');
-                    CustomDialog.alert("Nenhum registo encontrado nos últimos 14 dias.", "Aviso");
+                    CustomDialog.alert("Nenhum registo nos últimos 14 dias.", "Aviso");
                     return;
                 }
                 
-                allLogs.sort((a, b) => b.createdAt - a.createdAt);
+                let printArea = document.getElementById('printArea');
+                printArea.innerHTML = `<h1 style="font-size:24px; margin-bottom:20px; border-bottom:2px solid #000;">Relatório P-31 (14 Dias)</h1>`;
                 
-                let htmlLogs = '';
-                
-                for (let log of allLogs) {
-                    let originEntity = await AppDB.entities.get(log.originEntityId);
-                    let entityName = originEntity ? originEntity.name : "Entidade Excluída";
+                for(let log of allLogs) {
+                    let origin = await AppDB.entities.get(log.originEntityId);
+                    let badge = MODULE_MAPPING[origin ? origin.type : 'servico']?.[0] || 'Geral';
                     
-                    let mediaHtml = '';
-                    if (log.images && log.images.length > 0) {
-                        mediaHtml = '<div style="margin-top: 10px;">';
-                        for (let img of log.images) {
-                            if (img.data.startsWith('data:application/pdf')) {
-                                let pdfName = AppUtils.getPdfName(img.data);
-                                mediaHtml += `<div class="print-media-box"><div style="font-size:24px; color:#d32f2f; margin-bottom:4px; font-weight:bold;">PDF</div><div style="font-size:10px;text-align:center;word-break:break-all;">${pdfName}</div></div>`;
-                            } else if (img.isVideo || img.data.startsWith('data:video/')) {
-                                let thumbSrc = img.thumbnail || 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='; 
-                                mediaHtml += `
-                                <div class="print-media-box">
-                                    <img src="${thumbSrc}" class="print-media-img" style="filter: grayscale(100%); opacity: 0.8;">
-                                    <div style="font-size:10px;text-align:center;margin-top:4px; font-weight:bold;">VÍDEO</div>
-                                </div>`;
-                            } else {
-                                mediaHtml += `<div class="print-media-box"><img src="${img.data}" class="print-media-img"></div>`;
-                            }
-                        }
-                        mediaHtml += '</div>';
-                    }
-                    
-                    htmlLogs += `
-                    <div class="print-log-item">
-                        <div class="print-header">${AppUtils.formatDate(log.createdAt)}</div>
-                        <div class="print-entity">${entityName}</div>
-                        ${log.text ? `<div class="print-text">${log.text}</div>` : ''}
-                        ${mediaHtml}
-                    </div>`;
+                    printArea.innerHTML += `
+                        <div class="print-log-item">
+                            <div class="print-header">${AppUtils.formatDate(log.createdAt)} | <span style="background:#ddd; padding:2px 6px; border-radius:4px;">${badge}</span></div>
+                            <div class="print-entity">${origin ? origin.name : 'Entidade Removida'}</div>
+                            <div class="print-text">${log.text || ''}</div>
+                            ${log.images ? log.images.map(img => `<div class="print-media-box"><img src="${img.data}" class="print-media-img"></div>`).join('') : ''}
+                        </div>
+                    `;
                 }
                 
-                // Popula a div isolada e invisível com os dados gerados
-                document.getElementById('printArea').innerHTML = `
-                    <h1 style="font-size:22px; border-bottom:2px solid #000; padding-bottom:10px; margin-bottom:20px; text-transform:uppercase;">Relatório de Atividades - Últimos 14 Dias</h1>
-                    ${htmlLogs}
-                `;
-                
-                // Fecha a tela preta de loading ANTES de chamar a impressão para a tela não travar
                 document.getElementById('progressModal').classList.remove('active');
-                
-                // Espera meio segundo para a UI limpar e chama a janela nativa de impressão
-                setTimeout(() => {
-                    window.print();
-                }, 400);
-
-            } catch (error) {
-                document.getElementById('progressModal').classList.remove('active');
-                CustomDialog.alert("Erro ao gerar relatório: " + error.message, "Erro");
+                setTimeout(() => window.print(), 500);
+            } catch(e) { 
+                document.getElementById('progressModal').classList.remove('active'); 
+                CustomDialog.alert("Erro: " + e.message, "Erro"); 
             }
         }, 100);
     },
@@ -1478,7 +1387,7 @@ const handleLogMedia = async (e) => {
     if(files.length === 0) return;
     
     let hasVideo = files.some(f => f.type.startsWith('video/'));
-    if(hasVideo) { LogModal.tempMedia.unshift({ isPlaceholder: true, progress: 0 }); LogModal.updateUI(); }
+    if(hasVideo) { LogModal.tempMedia.push({ isPlaceholder: true, progress: 0 }); LogModal.updateUI(); }
     
     try {
         await processMultipleMedia(files, (pct) => {
@@ -1486,7 +1395,7 @@ const handleLogMedia = async (e) => {
             if(progressText) progressText.innerText = `A processar: ${pct}%`;
         }, (newMedia) => { 
             if(hasVideo) LogModal.tempMedia = LogModal.tempMedia.filter(m => !m.isPlaceholder);
-            LogModal.tempMedia.unshift(...newMedia); LogModal.updateUI(); 
+            LogModal.tempMedia.push(...newMedia); LogModal.updateUI(); 
         }); 
     } catch(err) {
         if(hasVideo) LogModal.tempMedia = LogModal.tempMedia.filter(m => !m.isPlaceholder);
