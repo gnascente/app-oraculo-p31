@@ -52,15 +52,34 @@
         @keyframes spin { 100% { transform: rotate(360deg); } }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; -webkit-tap-highlight-color: transparent; }
-        input, textarea { -webkit-user-select: auto; user-select: auto; }
-        img, video { -webkit-user-drag: none; pointer-events: auto; }
         
-        /* BLOQUEIO DO POPUP DO GOOGLE: Impede que os nomes dos ícones sejam selecionados */
-        .material-icons { user-select: none; -webkit-user-select: none; pointer-events: none; }
-        .action-icon, .tool-btn, .carousel-btn, .carousel-nav-btn { pointer-events: auto; } /* Reativa os cliques nas áreas clicáveis contendo ícones */
+        /* BLOQUEIO ABSOLUTO DO POPUP DO GOOGLE E SELEÇÕES ACIDENTAIS NO MOBILE */
+        body { 
+            background-color: var(--background); 
+            color: var(--on-surface); 
+            display: flex; 
+            justify-content: center; 
+            padding: 16px; 
+            height: 100vh; 
+            overflow: hidden; 
+            box-sizing: border-box; 
+            outline: none; 
+            margin: 0; 
+            -webkit-touch-callout: none; /* Proíbe o menu de contexto nativo */
+            -webkit-user-select: none;   /* Proíbe seleção no iOS/Safari */
+            user-select: none;           /* Proíbe seleção no Android/Chrome */
+        }
 
-        /* Estrutura Fixa para não ter scroll duplo - App Like */
-        body { background-color: var(--background); color: var(--on-surface); display: flex; justify-content: center; padding: 16px; height: 100vh; overflow: hidden; box-sizing: border-box; outline: none; margin: 0; }
+        /* Libera explicitamente a digitação apenas em campos de formulário */
+        input, textarea, .selectable-text { 
+            -webkit-user-select: auto; 
+            user-select: auto; 
+        }
+
+        img, video { -webkit-user-drag: none; pointer-events: auto; }
+        .material-icons { pointer-events: none; }
+        .action-icon, .tool-btn, .carousel-btn, .carousel-nav-btn { pointer-events: auto; } 
+
         .container { width: 100%; max-width: 480px; background: var(--surface); border-radius: 16px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; overflow: hidden; position: relative; height: 100%; }
         
         header { padding: 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--surface-variant); background: var(--surface); z-index: 10; flex-shrink: 0; }
@@ -98,7 +117,6 @@
         .search-box i.search-icon { position: absolute; left: 14px; color: var(--on-surface-variant); font-size: 20px; pointer-events: none; }
         .search-box input:focus { border-color: var(--primary); }
 
-        /* Área com Scroll */
         .view-section { display: none; flex-direction: column; flex-grow: 1; overflow-y: auto; position: relative; }
         .view-section.active { display: flex; }
         
@@ -236,9 +254,39 @@
 
         /* Rodapé Fixo na Base do Container */
         .storage-footer { height: 36px; line-height: 36px; text-align: center; font-size: 11px; color: var(--on-surface-variant); background: var(--surface); border-top: 1px solid var(--surface-variant); z-index: 5; flex-shrink: 0; display: flex; justify-content: center; align-items: center; gap: 6px; width: 100%; }
+
+        /* Área Dedicada e Protegida para a Impressão */
+        #printArea { display: none; }
+        @media print {
+            body { 
+                background: #fff !important; 
+                color: #000 !important; 
+                height: auto !important; 
+                overflow: auto !important; 
+                padding: 0 !important; 
+                display: block !important; 
+                -webkit-user-select: auto; 
+                user-select: auto;
+            }
+            .container, .fab, .modal-overlay, .dialog-overlay, .progress-modal, .carousel-overlay, .editor-overlay { 
+                display: none !important; 
+            }
+            #printArea { 
+                display: block !important; 
+                padding: 20px; 
+            }
+            .print-log-item { border-bottom: 1px solid #ccc; padding-bottom: 15px; margin-bottom: 15px; page-break-inside: avoid; }
+            .print-header { font-size: 12px; color: #555; margin-bottom: 6px; font-weight: bold; }
+            .print-entity { font-size: 16px; font-weight: bold; margin-bottom: 6px; color: #000; }
+            .print-text { font-size: 14px; margin-bottom: 12px; white-space: pre-wrap; word-break: break-word; }
+            .print-media-box { border: 1px solid #aaa; padding: 6px; border-radius: 6px; display: inline-flex; flex-direction: column; align-items: center; width: 140px; vertical-align: top; margin-right: 10px; margin-bottom: 10px; box-sizing: border-box;}
+            .print-media-img { width: 100%; height: 90px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; }
+        }
     </style>
 </head>
 <body>
+
+<div id="printArea"></div>
 
 <div class="container">
     <header id="mainHeader">
@@ -246,7 +294,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 3.5.0</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 3.6.0</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -531,43 +579,98 @@ var AppUtils = {
     
     compressVideo: async function(file, onProgress) {
         return new Promise((resolve, reject) => {
-            const r = new FileReader(); 
-            r.onloadend = () => {
-                const videoBase64 = r.result;
-                const video = document.createElement('video');
-                video.muted = true; video.setAttribute('playsinline', ''); video.style.display = 'none';
-                video.src = URL.createObjectURL(file);
-                
-                let timeout = setTimeout(() => {
-                    resolve({ video: videoBase64, thumb: '', size: file.size });
-                }, 5000); 
+            const fallback = (f, tBase64) => {
+                const r = new FileReader(); 
+                r.onloadend = () => resolve({ video: r.result, thumb: tBase64 || '' }); 
+                r.onerror = () => reject(new Error("Falha na leitura do ficheiro."));
+                r.onprogress = (e) => {
+                    if(e.lengthComputable && onProgress) onProgress(Math.round((e.loaded/e.total)*100));
+                };
+                r.readAsDataURL(f);
+            };
 
-                video.onloadeddata = () => { video.currentTime = 1.0; };
-                video.onseeked = () => {
-                    clearTimeout(timeout);
-                    try {
-                        const canvas = document.createElement('canvas');
-                        const MAX = 240; let w = video.videoWidth, h = video.videoHeight;
-                        if (w > MAX) { h = Math.floor(h * (MAX / w)); w = MAX; }
-                        canvas.width = w; canvas.height = h;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(video, 0, 0, w, h);
-                        let thumbBase64 = canvas.toDataURL('image/jpeg', 0.6);
-                        resolve({ video: videoBase64, thumb: thumbBase64, size: file.size });
-                    } catch(e) {
-                        resolve({ video: videoBase64, thumb: '', size: file.size });
+            const video = document.createElement('video');
+            video.muted = true; video.setAttribute('playsinline', ''); video.style.display = 'none';
+            document.body.appendChild(video);
+            
+            let watchdog;
+            const resetWatchdog = () => {
+                clearTimeout(watchdog);
+                watchdog = setTimeout(() => {
+                    if(document.body.contains(video)) document.body.removeChild(video);
+                    reject(new Error("O processamento excedeu o tempo limite (15s sem resposta)."));
+                }, 15000); 
+            };
+            resetWatchdog();
+
+            let thumbBase64 = '';
+            video.onloadeddata = () => { video.currentTime = 0.1; };
+            
+            let isRecording = false;
+
+            video.ontimeupdate = () => {
+                resetWatchdog();
+                if(isRecording && video.duration) {
+                    let pct = Math.min(100, Math.round((video.currentTime / video.duration) * 100));
+                    if(onProgress) onProgress(pct);
+                }
+            };
+
+            video.onseeked = () => {
+                if(isRecording) return;
+                try {
+                    const canvas = document.createElement('canvas');
+                    const MAX = 240; let w = video.videoWidth, h = video.videoHeight;
+                    if (w > MAX) { h = Math.floor(h * (MAX / w)); w = MAX; }
+                    canvas.width = w; canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(video, 0, 0, w, h);
+                    thumbBase64 = canvas.toDataURL('image/jpeg', 0.6);
+
+                    if (typeof MediaRecorder === 'undefined' || !canvas.captureStream) {
+                        clearTimeout(watchdog);
+                        if(document.body.contains(video)) document.body.removeChild(video); 
+                        return fallback(file, thumbBase64);
                     }
-                };
-                video.onerror = () => {
-                    clearTimeout(timeout);
-                    resolve({ video: videoBase64, thumb: '', size: file.size }); 
-                };
+
+                    const stream = canvas.captureStream(10); 
+                    let mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8') ? 'video/webm;codecs=vp8' : (MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : '');
+                    const recorder = new MediaRecorder(stream, { mimeType: mimeType, videoBitsPerSecond: 50000 });
+                    const chunks = [];
+                    recorder.ondataavailable = e => { if(e.data.size > 0) chunks.push(e.data); };
+                    recorder.onstop = () => {
+                        clearTimeout(watchdog);
+                        if(document.body.contains(video)) document.body.removeChild(video);
+                        const blob = new Blob(chunks, { type: mimeType || 'video/mp4' });
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve({ video: reader.result, thumb: thumbBase64, size: blob.size });
+                        reader.readAsDataURL(blob);
+                    };
+                    
+                    isRecording = true;
+                    recorder.start(); 
+                    video.currentTime = 0; 
+                    video.playbackRate = 2.0; 
+                    video.play().then(() => {
+                        const draw = () => {
+                            if (video.ended || video.paused) { 
+                                if(recorder.state === 'recording') recorder.stop(); 
+                                return; 
+                            }
+                            ctx.drawImage(video, 0, 0, w, h); 
+                            requestAnimationFrame(draw);
+                        };
+                        draw();
+                    }).catch((e) => { 
+                        if(recorder.state === 'recording') recorder.stop(); 
+                    });
+                } catch(e) { 
+                    clearTimeout(watchdog); if(document.body.contains(video)) document.body.removeChild(video); 
+                    reject(e);
+                }
             };
-            r.onerror = () => reject(new Error("Falha na leitura do ficheiro."));
-            r.onprogress = (e) => {
-                if(e.lengthComputable && onProgress) onProgress(Math.round((e.loaded/e.total)*100));
-            };
-            r.readAsDataURL(file);
+            video.onerror = () => { clearTimeout(watchdog); if(document.body.contains(video)) document.body.removeChild(video); reject(new Error("Falha ao abrir vídeo.")); };
+            video.src = URL.createObjectURL(file);
         });
     }
 };
@@ -663,103 +766,81 @@ var App = {
     executeMenuAction: (actionName) => { if (actionName === 'cloud') App.listBackupsFromBlob(); else if (actionName === 'export') App.exportChoice(); },
 
     printReport: async function() {
-        // Exibe o loading imediatamente para dar feedback tátil ao usuário
+        // Exibe o loading imediatamente para dar feedback
         document.getElementById('progressModal').classList.add('active');
         document.getElementById('progressTitle').innerText = "A Gerar Relatório...";
         document.getElementById('progressText').innerText = "A compilar os últimos 14 dias...";
 
-        const fourteenDaysAgo = Date.now() - (14 * 24 * 60 * 60 * 1000);
-        const allLogs = await AppDB.logs.where('createdAt').aboveOrEqual(fourteenDaysAgo).toArray();
-        
-        if (allLogs.length === 0) {
-            document.getElementById('progressModal').classList.remove('active');
-            CustomDialog.alert("Nenhum registo encontrado nos últimos 14 dias.", "Aviso");
-            return;
-        }
-        
-        allLogs.sort((a, b) => b.createdAt - a.createdAt);
-        
-        let html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório Oráculo P-31 (14 Dias)</title>
-            <style>
-                body { font-family: Arial, sans-serif; padding: 20px; color: #000; background: #fff; line-height: 1.4; }
-                h1 { font-size: 22px; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; text-transform: uppercase; }
-                .log-item { border-bottom: 1px solid #ddd; padding-bottom: 15px; margin-bottom: 15px; page-break-inside: avoid; }
-                .log-header { font-size: 12px; color: #555; margin-bottom: 6px; font-weight: bold; }
-                .log-entity { font-size: 16px; font-weight: bold; margin-bottom: 6px; color: #062e6f; }
-                .log-text { font-size: 14px; margin-bottom: 12px; white-space: pre-wrap; word-break: break-word; }
-                .media-container { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
-                .media-box { border: 1px solid #aaa; padding: 6px; border-radius: 6px; display: flex; flex-direction: column; align-items: center; width: 140px; box-sizing: border-box; position: relative; overflow: hidden;}
-                .media-img { width: 100%; height: 90px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; }
-                .media-pdf { width: 100%; height: 90px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f5f5f5; border-radius: 4px; border: 1px solid #ddd; }
-                .pdf-name { font-size: 11px; text-align: center; margin-top: 6px; word-break: break-all; color: #333; font-weight: 500; }
-                @media print { body { padding: 0; } }
-            </style>
-            <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-        </head><body>
-        <h1>Relatório de Atividades - Últimos 14 Dias</h1>`;
-        
-        for (let log of allLogs) {
-            let originEntity = await AppDB.entities.get(log.originEntityId);
-            let entityName = originEntity ? originEntity.name : "Entidade Excluída";
-            
-            let mediaHtml = '';
-            if (log.images && log.images.length > 0) {
-                mediaHtml = '<div class="media-container">';
-                for (let img of log.images) {
-                    if (img.data.startsWith('data:application/pdf')) {
-                        let pdfName = AppUtils.getPdfName(img.data);
-                        mediaHtml += `<div class="media-box"><div class="media-pdf"><i class="material-icons" style="font-size:40px;color:#d32f2f;">picture_as_pdf</i></div><div class="pdf-name">${pdfName}</div></div>`;
-                    } else if (img.isVideo || img.data.startsWith('data:video/')) {
-                        let thumbSrc = img.thumbnail || 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='; // Transparente caso não tenha thumb
-                        mediaHtml += `
-                        <div class="media-box">
-                            <img src="${thumbSrc}" class="media-img" style="filter: brightness(0.6);">
-                            <i class="material-icons" style="position: absolute; top: 35px; color: white; font-size: 32px; text-shadow: 0px 0px 4px #000;">play_circle_outline</i>
-                            <div class="pdf-name">Vídeo</div>
-                        </div>`;
-                    } else {
-                        mediaHtml += `<div class="media-box"><img src="${img.data}" class="media-img"><div class="pdf-name">Imagem</div></div>`;
-                    }
+        // Usamos um pequeno atraso para garantir que a UI mostre o modal de loading 
+        // antes do Javascript começar a processar o banco de dados pesado.
+        setTimeout(async () => {
+            try {
+                const fourteenDaysAgo = Date.now() - (14 * 24 * 60 * 60 * 1000);
+                const allLogs = await AppDB.logs.where('createdAt').aboveOrEqual(fourteenDaysAgo).toArray();
+                
+                if (allLogs.length === 0) {
+                    document.getElementById('progressModal').classList.remove('active');
+                    CustomDialog.alert("Nenhum registo encontrado nos últimos 14 dias.", "Aviso");
+                    return;
                 }
-                mediaHtml += '</div>';
+                
+                allLogs.sort((a, b) => b.createdAt - a.createdAt);
+                
+                let htmlLogs = '';
+                
+                for (let log of allLogs) {
+                    let originEntity = await AppDB.entities.get(log.originEntityId);
+                    let entityName = originEntity ? originEntity.name : "Entidade Excluída";
+                    
+                    let mediaHtml = '';
+                    if (log.images && log.images.length > 0) {
+                        mediaHtml = '<div style="margin-top: 10px;">';
+                        for (let img of log.images) {
+                            if (img.data.startsWith('data:application/pdf')) {
+                                let pdfName = AppUtils.getPdfName(img.data);
+                                mediaHtml += `<div class="print-media-box"><div style="font-size:24px; color:#d32f2f; margin-bottom:4px; font-weight:bold;">PDF</div><div style="font-size:10px;text-align:center;word-break:break-all;">${pdfName}</div></div>`;
+                            } else if (img.isVideo || img.data.startsWith('data:video/')) {
+                                let thumbSrc = img.thumbnail || 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='; 
+                                mediaHtml += `
+                                <div class="print-media-box">
+                                    <img src="${thumbSrc}" class="print-media-img" style="filter: grayscale(100%); opacity: 0.8;">
+                                    <div style="font-size:10px;text-align:center;margin-top:4px; font-weight:bold;">VÍDEO</div>
+                                </div>`;
+                            } else {
+                                mediaHtml += `<div class="print-media-box"><img src="${img.data}" class="print-media-img"></div>`;
+                            }
+                        }
+                        mediaHtml += '</div>';
+                    }
+                    
+                    htmlLogs += `
+                    <div class="print-log-item">
+                        <div class="print-header">${AppUtils.formatDate(log.createdAt)}</div>
+                        <div class="print-entity">${entityName}</div>
+                        ${log.text ? `<div class="print-text">${log.text}</div>` : ''}
+                        ${mediaHtml}
+                    </div>`;
+                }
+                
+                // Popula a div isolada e invisível com os dados gerados
+                document.getElementById('printArea').innerHTML = `
+                    <h1 style="font-size:22px; border-bottom:2px solid #000; padding-bottom:10px; margin-bottom:20px; text-transform:uppercase;">Relatório de Atividades - Últimos 14 Dias</h1>
+                    ${htmlLogs}
+                `;
+                
+                // Fecha a tela preta de loading ANTES de chamar a impressão para a tela não travar
+                document.getElementById('progressModal').classList.remove('active');
+                
+                // Espera meio segundo para a UI limpar e chama a janela nativa de impressão
+                setTimeout(() => {
+                    window.print();
+                }, 400);
+
+            } catch (error) {
+                document.getElementById('progressModal').classList.remove('active');
+                CustomDialog.alert("Erro ao gerar relatório: " + error.message, "Erro");
             }
-            
-            html += `
-            <div class="log-item">
-                <div class="log-header">${AppUtils.formatDate(log.createdAt)}</div>
-                <div class="log-entity">${entityName}</div>
-                ${log.text ? `<div class="log-text">${log.text}</div>` : ''}
-                ${mediaHtml}
-            </div>`;
-        }
-        
-        html += `</body></html>`;
-        
-        // Estratégia de Iframe Oculto para evitar bloqueadores de pop-up no PWA
-        let iframe = document.getElementById('printIframe');
-        if(iframe) iframe.remove();
-
-        iframe = document.createElement('iframe');
-        iframe.id = 'printIframe';
-        iframe.style.position = 'fixed';
-        iframe.style.right = '-1000px';
-        iframe.style.bottom = '-1000px';
-        iframe.style.width = '0';
-        iframe.style.height = '0';
-        iframe.style.border = '0';
-        document.body.appendChild(iframe);
-
-        iframe.contentWindow.document.open();
-        iframe.contentWindow.document.write(html);
-        iframe.contentWindow.document.close();
-        
-        iframe.onload = function() {
-            document.getElementById('progressModal').classList.remove('active');
-            setTimeout(() => { 
-                iframe.contentWindow.focus();
-                iframe.contentWindow.print(); 
-            }, 500);
-        };
+        }, 100);
     },
 
     goHome: function() {
