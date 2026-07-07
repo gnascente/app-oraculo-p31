@@ -242,10 +242,11 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 3.3.0</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 3.4.0</span>
             </div>
         </h1>
         <div class="header-actions">
+            <i class="material-icons action-icon" onclick="App.printReport()" title="Imprimir Relatório (14 dias)">print</i>
             <i class="material-icons action-icon" id="btnBack" style="display:none;" onclick="App.goBack()">arrow_back</i>
             <div style="position: relative;" id="menuWrapper">
                 <i class="material-icons action-icon" onclick="App.toggleMenu(event)">more_vert</i>
@@ -261,7 +262,7 @@
         <div class="home-search-container">
             <div class="search-box">
                 <i class="material-icons search-icon">search</i>
-                <input type="text" id="homeSearchInput" placeholder="Busca global em tudo..." oninput="App.renderHomeSearch()">
+                <input type="text" id="homeSearchInput" placeholder="Busca global em tudo..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" oninput="App.renderHomeSearch()">
             </div>
         </div>
         <div class="home-grid" id="homeGrid">
@@ -291,7 +292,7 @@
         <div class="search-container">
             <div class="search-box">
                 <i class="material-icons search-icon">search</i>
-                <input type="text" id="searchInput" placeholder="Buscar ou criar novo..." oninput="App.renderList()">
+                <input type="text" id="searchInput" placeholder="Buscar ou criar novo..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" oninput="App.renderList()">
             </div>
         </div>
         <ul class="task-list" id="entityList"></ul>
@@ -311,7 +312,7 @@
         <h3 id="customDialogTitle" style="text-align:left;">Aviso</h3>
         <p id="customDialogMessage" style="text-align:left; line-height: 1.4; margin-bottom: 24px;"></p>
         <div id="customDialogInputContainer" style="display: none; margin-bottom: 20px;">
-            <input type="text" id="customDialogInput" class="input-field">
+            <input type="text" id="customDialogInput" class="input-field" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
         </div>
         <div class="modal-actions" style="justify-content: flex-end;">
             <button class="btn btn-text" id="customDialogCancel" style="display: none;">Cancelar</button>
@@ -356,7 +357,7 @@
             <i class="material-icons action-icon danger" onclick="EntityModal.delete()">delete</i>
         </div>
         <div class="input-group">
-            <input type="text" id="entityNameEditInput" class="input-field" placeholder="Nome">
+            <input type="text" id="entityNameEditInput" class="input-field" placeholder="Nome" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
         </div>
         <div class="modal-actions">
             <button class="btn btn-text" onclick="EntityModal.closeUI()">Cancelar</button>
@@ -374,13 +375,13 @@
         
         <div class="input-group" id="logLinkContainer">
             <label style="font-size: 13px; font-weight: 500; color: var(--on-surface-variant); margin-bottom: 8px; display: block;">Vincular a:</label>
-            <input type="text" id="logLinkInput" class="input-field" placeholder="Buscar entidade primária..." onfocus="LogModal.searchLinks()" oninput="LogModal.searchLinks()">
+            <input type="text" id="logLinkInput" class="input-field" placeholder="Buscar entidade primária..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" onfocus="LogModal.searchLinks()" oninput="LogModal.searchLinks()">
             <div id="logLinkAutocomplete" class="autocomplete-dropdown"></div>
             <div id="logLinkPills" class="pills-container" style="margin-top: 12px;"></div>
         </div>
 
         <div class="input-group">
-            <textarea id="logText" class="input-field" placeholder="Descreva o andamento, evento ou observação..."></textarea>
+            <textarea id="logText" class="input-field" placeholder="Descreva o andamento, evento ou observação..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true"></textarea>
         </div>
         
         <div class="input-group" style="display: flex; gap: 8px;">
@@ -407,7 +408,7 @@
     <div class="modal-content">
         <h2>Nova Tarefa de Serviço</h2>
         <div class="input-group" style="margin-top: 16px;">
-            <input type="text" id="taskNameInput" class="input-field" placeholder="Nome da Tarefa (Ex: Desmontagem)">
+            <input type="text" id="taskNameInput" class="input-field" placeholder="Nome da Tarefa (Ex: Desmontagem)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
         </div>
         <div class="modal-actions">
             <button class="btn btn-text" onclick="TaskModal.closeUI()">Cancelar</button>
@@ -526,98 +527,43 @@ var AppUtils = {
     
     compressVideo: async function(file, onProgress) {
         return new Promise((resolve, reject) => {
-            const fallback = (f, tBase64) => {
-                const r = new FileReader(); 
-                r.onloadend = () => resolve({ video: r.result, thumb: tBase64 || '' }); 
-                r.onerror = () => reject(new Error("Falha na leitura do ficheiro."));
-                r.onprogress = (e) => {
-                    if(e.lengthComputable && onProgress) onProgress(Math.round((e.loaded/e.total)*100));
-                };
-                r.readAsDataURL(f);
-            };
+            const r = new FileReader(); 
+            r.onloadend = () => {
+                const videoBase64 = r.result;
+                const video = document.createElement('video');
+                video.muted = true; video.setAttribute('playsinline', ''); video.style.display = 'none';
+                video.src = URL.createObjectURL(file);
+                
+                let timeout = setTimeout(() => {
+                    resolve({ video: videoBase64, thumb: '', size: file.size });
+                }, 5000); 
 
-            const video = document.createElement('video');
-            video.muted = true; video.setAttribute('playsinline', ''); video.style.display = 'none';
-            document.body.appendChild(video);
-            
-            let watchdog;
-            const resetWatchdog = () => {
-                clearTimeout(watchdog);
-                watchdog = setTimeout(() => {
-                    if(document.body.contains(video)) document.body.removeChild(video);
-                    reject(new Error("O processamento excedeu o tempo limite (15s sem resposta)."));
-                }, 15000); 
-            };
-            resetWatchdog();
-
-            let thumbBase64 = '';
-            video.onloadeddata = () => { video.currentTime = 0.1; };
-            
-            let isRecording = false;
-
-            video.ontimeupdate = () => {
-                resetWatchdog();
-                if(isRecording && video.duration) {
-                    let pct = Math.min(100, Math.round((video.currentTime / video.duration) * 100));
-                    if(onProgress) onProgress(pct);
-                }
-            };
-
-            video.onseeked = () => {
-                if(isRecording) return;
-                try {
-                    const canvas = document.createElement('canvas');
-                    const MAX = 240; let w = video.videoWidth, h = video.videoHeight;
-                    if (w > MAX) { h = Math.floor(h * (MAX / w)); w = MAX; }
-                    canvas.width = w; canvas.height = h;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(video, 0, 0, w, h);
-                    thumbBase64 = canvas.toDataURL('image/jpeg', 0.6);
-
-                    if (typeof MediaRecorder === 'undefined' || !canvas.captureStream) {
-                        clearTimeout(watchdog);
-                        if(document.body.contains(video)) document.body.removeChild(video); 
-                        return fallback(file, thumbBase64);
+                video.onloadeddata = () => { video.currentTime = 1.0; };
+                video.onseeked = () => {
+                    clearTimeout(timeout);
+                    try {
+                        const canvas = document.createElement('canvas');
+                        const MAX = 240; let w = video.videoWidth, h = video.videoHeight;
+                        if (w > MAX) { h = Math.floor(h * (MAX / w)); w = MAX; }
+                        canvas.width = w; canvas.height = h;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(video, 0, 0, w, h);
+                        let thumbBase64 = canvas.toDataURL('image/jpeg', 0.6);
+                        resolve({ video: videoBase64, thumb: thumbBase64, size: file.size });
+                    } catch(e) {
+                        resolve({ video: videoBase64, thumb: '', size: file.size });
                     }
-
-                    const stream = canvas.captureStream(10); 
-                    let mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8') ? 'video/webm;codecs=vp8' : (MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : '');
-                    const recorder = new MediaRecorder(stream, { mimeType: mimeType, videoBitsPerSecond: 50000 });
-                    const chunks = [];
-                    recorder.ondataavailable = e => { if(e.data.size > 0) chunks.push(e.data); };
-                    recorder.onstop = () => {
-                        clearTimeout(watchdog);
-                        if(document.body.contains(video)) document.body.removeChild(video);
-                        const blob = new Blob(chunks, { type: mimeType || 'video/mp4' });
-                        const reader = new FileReader();
-                        reader.onloadend = () => resolve({ video: reader.result, thumb: thumbBase64, size: blob.size });
-                        reader.readAsDataURL(blob);
-                    };
-                    
-                    isRecording = true;
-                    recorder.start(); 
-                    video.currentTime = 0; 
-                    video.playbackRate = 2.0; 
-                    video.play().then(() => {
-                        const draw = () => {
-                            if (video.ended || video.paused) { 
-                                if(recorder.state === 'recording') recorder.stop(); 
-                                return; 
-                            }
-                            ctx.drawImage(video, 0, 0, w, h); 
-                            requestAnimationFrame(draw);
-                        };
-                        draw();
-                    }).catch((e) => { 
-                        if(recorder.state === 'recording') recorder.stop(); 
-                    });
-                } catch(e) { 
-                    clearTimeout(watchdog); if(document.body.contains(video)) document.body.removeChild(video); 
-                    reject(e);
-                }
+                };
+                video.onerror = () => {
+                    clearTimeout(timeout);
+                    resolve({ video: videoBase64, thumb: '', size: file.size }); 
+                };
             };
-            video.onerror = () => { clearTimeout(watchdog); if(document.body.contains(video)) document.body.removeChild(video); reject(new Error("Falha ao abrir vídeo.")); };
-            video.src = URL.createObjectURL(file);
+            r.onerror = () => reject(new Error("Falha na leitura do ficheiro."));
+            r.onprogress = (e) => {
+                if(e.lengthComputable && onProgress) onProgress(Math.round((e.loaded/e.total)*100));
+            };
+            r.readAsDataURL(file);
         });
     }
 };
@@ -711,6 +657,78 @@ var App = {
     toggleMenu: (e) => { e.stopPropagation(); const menu = document.getElementById('mainMenu'); if (menu.classList.contains('show')) MenuModal.closeUI(); else MenuModal.open(); },
     menuAction: (actionName) => { const menu = document.getElementById('mainMenu'); if (menu.classList.contains('show')) { menu.classList.remove('show'); const idx = AppState.modals.indexOf(MenuModal); if (idx !== -1) AppState.modals.splice(idx, 1); const onPop = () => { window.removeEventListener('popstate', onPop); App.executeMenuAction(actionName); }; window.addEventListener('popstate', onPop); history.back(); } else { App.executeMenuAction(actionName); } },
     executeMenuAction: (actionName) => { if (actionName === 'cloud') App.listBackupsFromBlob(); else if (actionName === 'export') App.exportChoice(); },
+
+    printReport: async function() {
+        const fourteenDaysAgo = Date.now() - (14 * 24 * 60 * 60 * 1000);
+        const allLogs = await AppDB.logs.where('createdAt').aboveOrEqual(fourteenDaysAgo).toArray();
+        
+        if (allLogs.length === 0) {
+            CustomDialog.alert("Nenhum registo encontrado nos últimos 14 dias.", "Aviso");
+            return;
+        }
+        
+        allLogs.sort((a, b) => b.createdAt - a.createdAt);
+        
+        let html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório Oráculo P-31 (14 Dias)</title>
+            <style>
+                body { font-family: Arial, sans-serif; padding: 20px; color: #000; background: #fff; line-height: 1.4; }
+                h1 { font-size: 22px; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; text-transform: uppercase; }
+                .log-item { border-bottom: 1px solid #ddd; padding-bottom: 15px; margin-bottom: 15px; page-break-inside: avoid; }
+                .log-header { font-size: 12px; color: #555; margin-bottom: 6px; font-weight: bold; }
+                .log-entity { font-size: 16px; font-weight: bold; margin-bottom: 6px; color: #062e6f; }
+                .log-text { font-size: 14px; margin-bottom: 12px; white-space: pre-wrap; word-break: break-word; }
+                .media-container { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+                .media-box { border: 1px solid #aaa; padding: 6px; border-radius: 6px; display: flex; flex-direction: column; align-items: center; width: 140px; box-sizing: border-box; }
+                .media-img { width: 100%; height: 90px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; }
+                .media-video { width: 100%; height: 90px; background-color: #eee; position: relative; display: flex; align-items: center; justify-content: center; border-radius: 4px; background-size: cover; background-position: center; border: 1px solid #ddd; }
+                .play-icon { font-size: 32px; color: #fff; background: rgba(0,0,0,0.6); border-radius: 50%; padding: 4px; display: inline-block; line-height: 1; }
+                .media-pdf { width: 100%; height: 90px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f5f5f5; border-radius: 4px; border: 1px solid #ddd; }
+                .pdf-name { font-size: 11px; text-align: center; margin-top: 6px; word-break: break-all; color: #333; font-weight: 500; }
+                @media print { body { padding: 0; } }
+            </style>
+            <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+        </head><body>
+        <h1>Relatório de Atividades - Últimos 14 Dias</h1>`;
+        
+        for (let log of allLogs) {
+            let originEntity = await AppDB.entities.get(log.originEntityId);
+            let entityName = originEntity ? originEntity.name : "Entidade Excluída";
+            
+            let mediaHtml = '';
+            if (log.images && log.images.length > 0) {
+                mediaHtml = '<div class="media-container">';
+                for (let img of log.images) {
+                    if (img.data.startsWith('data:application/pdf')) {
+                        let pdfName = AppUtils.getPdfName(img.data);
+                        mediaHtml += `<div class="media-box"><div class="media-pdf"><i class="material-icons" style="font-size:40px;color:#d32f2f;">picture_as_pdf</i></div><div class="pdf-name">${pdfName}</div></div>`;
+                    } else if (img.isVideo || img.data.startsWith('data:video/')) {
+                        mediaHtml += `<div class="media-box"><div class="media-video" style="background-image: url('${img.thumbnail || ''}')"><span class="play-icon material-icons">play_arrow</span></div><div class="pdf-name">Vídeo</div></div>`;
+                    } else {
+                        mediaHtml += `<div class="media-box"><img src="${img.data}" class="media-img"><div class="pdf-name">Imagem</div></div>`;
+                    }
+                }
+                mediaHtml += '</div>';
+            }
+            
+            html += `
+            <div class="log-item">
+                <div class="log-header">${AppUtils.formatDate(log.createdAt)}</div>
+                <div class="log-entity">${entityName}</div>
+                ${log.text ? `<div class="log-text">${log.text}</div>` : ''}
+                ${mediaHtml}
+            </div>`;
+        }
+        
+        html += `</body></html>`;
+        
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(html);
+        printWindow.document.close();
+        
+        printWindow.onload = function() {
+            setTimeout(() => { printWindow.print(); }, 800);
+        };
+    },
 
     goHome: function() {
         this.currentView = 'home';
@@ -1115,7 +1133,7 @@ var App = {
     },
 
     restoreFromBlob: async (url) => { 
-        BackupModal.el.classList.remove('active'); // Fecha o modal silenciosamente para não desestruturar o popstate
+        BackupModal.el.classList.remove('active'); 
         setTimeout(async () => {
             if(!await CustomDialog.confirm("Isto apagará e substituirá TODOS os dados pelo backup. Continuar?", "Aviso Crítico")) return; 
             
@@ -1290,6 +1308,7 @@ var LogModal = {
             const originEntity = await AppDB.entities.get(this.originId);
             const coreRelation = { type: originEntity.type, id: originEntity.id };
             const finalRelations = [coreRelation, ...this.tempRelations.map(rel => ({ type: rel.type, id: rel.id }))];
+            let targetLogId = this.editLogId;
 
             if (this.editLogId) {
                 const log = await AppDB.logs.get(this.editLogId); 
@@ -1302,9 +1321,13 @@ var LogModal = {
                     id: Date.now().toString(), text: text, images: [...this.tempMedia], createdAt: Date.now(), 
                     originEntityId: this.originId, relatedEntities: finalRelations 
                 };
+                targetLogId = newLog.id;
                 await AppDB.logs.put(newLog);
             }
-            App.renderList(); this.closeUI(); App.calculateStorage();
+            await App.renderList(); 
+            this.closeUI(); 
+            App.calculateStorage();
+            App.focusEntity(this.originId, '', targetLogId);
         } catch (e) {
             console.error("Erro no IndexedDB:", e);
             await CustomDialog.alert("Erro ao guardar o registo. A sua base de dados não foi danificada, mas o anexo pode ser demasiado grande.", "Erro de Memória");
@@ -1330,7 +1353,7 @@ const handleLogMedia = async (e) => {
     if(files.length === 0) return;
     
     let hasVideo = files.some(f => f.type.startsWith('video/'));
-    if(hasVideo) { LogModal.tempMedia.push({ isPlaceholder: true, progress: 0 }); LogModal.updateUI(); }
+    if(hasVideo) { LogModal.tempMedia.unshift({ isPlaceholder: true, progress: 0 }); LogModal.updateUI(); }
     
     try {
         await processMultipleMedia(files, (pct) => {
@@ -1338,7 +1361,7 @@ const handleLogMedia = async (e) => {
             if(progressText) progressText.innerText = `A processar: ${pct}%`;
         }, (newMedia) => { 
             if(hasVideo) LogModal.tempMedia = LogModal.tempMedia.filter(m => !m.isPlaceholder);
-            LogModal.tempMedia.push(...newMedia); LogModal.updateUI(); 
+            LogModal.tempMedia.unshift(...newMedia); LogModal.updateUI(); 
         }); 
     } catch(err) {
         if(hasVideo) LogModal.tempMedia = LogModal.tempMedia.filter(m => !m.isPlaceholder);
