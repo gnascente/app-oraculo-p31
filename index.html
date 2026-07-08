@@ -219,6 +219,7 @@
         #textOverlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
         .editor-hint { position: absolute; top: 24px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 14px; pointer-events: none; z-index: 10; white-space: nowrap; }
         
+        /* Popup de Cores Seguro */
         .color-popup { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: #222; padding: 12px; border-radius: 12px; border: 1px solid #555; display: none; gap: 12px; flex-direction: row; box-shadow: 0 4px 16px rgba(0,0,0,0.9); z-index: 999999; pointer-events: auto; }
         .color-popup.show { display: flex; }
         .color-dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid #777; flex-shrink: 0; }
@@ -267,7 +268,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.1.0</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.2.0</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -634,7 +635,6 @@ async function processMultipleMedia(files, onProgress, callback) {
                 processedArray.push({ data: result.video, thumbnail: result.thumb, size: result.size, isVideo: true, createdAt: captureTime });
             }
         } else if (file.type.startsWith('image/')) {
-            // Se o arquivo for muito pequeno (ex: < 250KB), salva original para não perder qualidade
             if (file.size <= 250 * 1024) { 
                 const reader = new FileReader();
                 await new Promise((resolve) => {
@@ -650,11 +650,11 @@ async function processMultipleMedia(files, onProgress, callback) {
                     reader.onload = (e) => {
                         const img = new Image();
                         img.onload = () => {
-                            const canvas = document.createElement('canvas'); const MAX_SIZE = 800; // Aumentado para 800px
+                            const canvas = document.createElement('canvas'); const MAX_SIZE = 800; 
                             let width = img.width, height = img.height;
                             if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
                             canvas.width = width; canvas.height = height; canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-                            let b64 = canvas.toDataURL('image/jpeg', 0.6); // Compressão com qualidade 60%
+                            let b64 = canvas.toDataURL('image/jpeg', 0.6); 
                             processedArray.push({ data: b64, size: b64.length * 0.75, createdAt: captureTime }); resolve();
                         }; img.src = e.target.result;
                     }; reader.readAsDataURL(file);
@@ -729,14 +729,18 @@ var App = {
                     return;
                 }
 
-                const todayStr = new Date().toLocaleDateString('pt-BR');
-                const pastStr = new Date(fourteenDaysAgo).toLocaleDateString('pt-BR');
+                // Cálculo rigoroso da menor e maior data real nos dados processados
+                let minTime = Math.min(...allLogs.map(l => l.createdAt));
+                let maxTime = Math.max(...allLogs.map(l => l.createdAt));
+                
+                const dataInicioStr = new Date(minTime).toLocaleDateString('pt-BR');
+                const dataFimStr = new Date(maxTime).toLocaleDateString('pt-BR');
                 
                 let printArea = document.getElementById('printArea');
                 printArea.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2px solid #000; padding-bottom:10px; margin-bottom:20px;">
                         <h1 style="font-size:24px; margin:0; text-transform:uppercase;">Relatório P-31</h1>
-                        <div style="font-size:12px; font-weight:bold;">Período: de ${pastStr} até ${todayStr}</div>
+                        <div style="font-size:12px; font-weight:bold;">Período: de ${dataInicioStr} até ${dataFimStr}</div>
                     </div>
                 `;
 
@@ -754,7 +758,6 @@ var App = {
                         
                         if (logsOfEntity.length > 0) {
                             hasLogsInCat = true;
-                            // Ordena inverso: mais recentes sendo mostrados primeiro
                             logsOfEntity.sort((a,b) => b.createdAt - a.createdAt);
 
                             let logsHtml = '';
@@ -1172,7 +1175,13 @@ var App = {
             const zip = new JSZip(); 
             const dump = { entities: await AppDB.entities.toArray(), logs: await AppDB.logs.toArray() }; 
             zip.file("dados_oraculo.json", JSON.stringify(dump)); 
-            const zipBlob = await zip.generateAsync({type:"blob"}, function updateCallback(metadata) {
+            
+            // Adicionado Compressão DEFLATE
+            const zipBlob = await zip.generateAsync({
+                type:"blob", 
+                compression: "DEFLATE", 
+                compressionOptions: { level: 9 }
+            }, function updateCallback(metadata) {
                 if(!isCancelled) document.getElementById('progressText').innerText = `A compactar: ${Math.round(metadata.percent)}%`;
             });
             
@@ -1202,9 +1211,16 @@ var App = {
             const zip = new JSZip(); 
             const dump = { entities: await AppDB.entities.toArray(), logs: await AppDB.logs.toArray() }; 
             zip.file("dados_oraculo.json", JSON.stringify(dump)); 
-            const zipBlob = await zip.generateAsync({type:"blob"}, function updateCallback(metadata) {
+            
+            // Adicionado Compressão DEFLATE
+            const zipBlob = await zip.generateAsync({
+                type:"blob", 
+                compression: "DEFLATE", 
+                compressionOptions: { level: 9 }
+            }, function updateCallback(metadata) {
                 if(!isCancelled) document.getElementById('progressText').innerText = `A compactar: ${Math.round(metadata.percent)}%`;
             });
+            
             if(isCancelled) return;
 
             const filename = `backup_oraculo_${Date.now()}.zip`; 
@@ -1224,8 +1240,16 @@ var App = {
             xhr.onload = function() {
                 document.getElementById('progressModal').classList.remove('active');
                 if(isCancelled) return;
-                if (xhr.status === 200) { CustomDialog.alert(`Salvo na nuvem com sucesso!\nArquivo: ${filename}`, "Sucesso"); } 
-                else { CustomDialog.alert("Falha no servidor. Status: " + xhr.status, "Erro"); }
+                
+                if (xhr.status === 200) { 
+                    CustomDialog.alert(`Salvo na nuvem com sucesso!\nArquivo: ${filename}`, "Sucesso"); 
+                } else if (xhr.status === 413) {
+                    // Trata o erro de arquivo grande, efetuando o download local imediato
+                    const url = URL.createObjectURL(zipBlob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); 
+                    CustomDialog.alert("Seu banco de dados ficou muito grande para o servidor na nuvem (Erro 413). O backup de segurança foi baixado no seu celular automaticamente. Use a opção 'Local' ou apague vídeos antigos.", "Limite Atingido");
+                } else { 
+                    CustomDialog.alert("Falha no servidor. Status: " + xhr.status, "Erro"); 
+                }
             };
             xhr.onerror = function() {
                 document.getElementById('progressModal').classList.remove('active');
