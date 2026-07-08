@@ -268,7 +268,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.2.0</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.3.0</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -729,7 +729,6 @@ var App = {
                     return;
                 }
 
-                // Cálculo rigoroso da menor e maior data real nos dados processados
                 let minTime = Math.min(...allLogs.map(l => l.createdAt));
                 let maxTime = Math.max(...allLogs.map(l => l.createdAt));
                 
@@ -1176,7 +1175,6 @@ var App = {
             const dump = { entities: await AppDB.entities.toArray(), logs: await AppDB.logs.toArray() }; 
             zip.file("dados_oraculo.json", JSON.stringify(dump)); 
             
-            // Adicionado Compressão DEFLATE
             const zipBlob = await zip.generateAsync({
                 type:"blob", 
                 compression: "DEFLATE", 
@@ -1212,7 +1210,6 @@ var App = {
             const dump = { entities: await AppDB.entities.toArray(), logs: await AppDB.logs.toArray() }; 
             zip.file("dados_oraculo.json", JSON.stringify(dump)); 
             
-            // Adicionado Compressão DEFLATE
             const zipBlob = await zip.generateAsync({
                 type:"blob", 
                 compression: "DEFLATE", 
@@ -1244,7 +1241,6 @@ var App = {
                 if (xhr.status === 200) { 
                     CustomDialog.alert(`Salvo na nuvem com sucesso!\nArquivo: ${filename}`, "Sucesso"); 
                 } else if (xhr.status === 413) {
-                    // Trata o erro de arquivo grande, efetuando o download local imediato
                     const url = URL.createObjectURL(zipBlob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); 
                     CustomDialog.alert("Seu banco de dados ficou muito grande para o servidor na nuvem (Erro 413). O backup de segurança foi baixado no seu celular automaticamente. Use a opção 'Local' ou apague vídeos antigos.", "Limite Atingido");
                 } else { 
@@ -1273,7 +1269,7 @@ var App = {
                 const data = await res.json(); 
                 const zips = (data.blobs || []).filter(b => b.pathname.endsWith('.zip')).sort((a,b) => new Date(b.uploadedAt) - new Date(a.uploadedAt)); 
                 if(zips.length === 0) { document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">Nenhum backup encontrado na nuvem.</div>'; return; } 
-                document.getElementById('backupList').innerHTML = zips.map(b => `<div style="background:var(--surface-variant); padding:12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;"><div style="flex-grow: 1; cursor:pointer;" onclick="App.restoreFromBlob('${b.url}')"><div style="font-weight:500; font-size:14px; color:var(--on-surface); word-break: break-all;">${b.pathname}</div><div style="font-size:12px; color:var(--on-surface-variant); margin-top:4px;">${new Date(b.uploadedAt).toLocaleString('pt-BR')} • ${(b.size / (1024*1024)).toFixed(2)} MB</div></div><div style="display: flex; gap: 16px; margin-left: 12px; border-left: 1px solid var(--border); padding-left: 12px;"><i class="material-icons" style="color:var(--primary); font-size: 24px; cursor:pointer;" onclick="App.restoreFromBlob('${b.url}')">cloud_download</i><i class="material-icons danger" style="font-size: 24px; cursor:pointer;" onclick="App.deleteFromBlob('${b.url}')">delete</i></div></div>`).join(''); 
+                document.getElementById('backupList').innerHTML = zips.map(b => `<div style="background:var(--surface-variant); padding:12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;"><div style="flex-grow: 1; cursor:pointer;" onclick="App.restoreFromBlob('${b.url}')"><div style="font-weight:500; font-size:14px; color:var(--on-surface); word-break: break-all;">${b.pathname}</div><div style="font-size:12px; color:var(--on-surface-variant); margin-top:4px;">${new Date(b.uploadedAt).toLocaleString('pt-BR')} • ${(b.size / (1024*1024)).toFixed(2)} MB</div></div><div style="display: flex; gap: 16px; margin-left: 12px; border-left: 1px solid var(--border); padding-left: 12px;"><i class="material-icons action-icon" style="color:var(--primary); font-size: 24px;" title="Restaurar" onclick="App.restoreFromBlob('${b.url}')">cloud_download</i><i class="material-icons action-icon danger" style="font-size: 24px;" title="Apagar" onclick="App.deleteFromBlob('${b.url}')">delete</i></div></div>`).join(''); 
             } else document.getElementById('backupList').innerHTML = `<div style="color:var(--danger); padding:20px;">Erro Servidor</div>`; 
         } catch(e) { document.getElementById('backupList').innerHTML = `<div style="color:var(--danger); padding:20px; text-align:center;">Erro de Ligação</div>`; } 
     },
@@ -1517,7 +1513,6 @@ var LogModal = {
             const originEntity = await AppDB.entities.get(this.originId);
             const coreRelation = { type: originEntity.type, id: originEntity.id };
             const finalRelations = [coreRelation, ...this.tempRelations.map(rel => ({ type: rel.type, id: rel.id }))];
-            let targetLogId = this.editLogId;
 
             if (this.editLogId) {
                 const log = await AppDB.logs.get(this.editLogId); 
@@ -1530,13 +1525,9 @@ var LogModal = {
                     id: Date.now().toString(), text: text, images: [...this.tempMedia], createdAt: Date.now(), 
                     originEntityId: this.originId, relatedEntities: finalRelations 
                 };
-                targetLogId = newLog.id;
                 await AppDB.logs.put(newLog);
             }
-            await App.renderList(); 
-            this.closeUI(); 
-            App.calculateStorage();
-            App.focusEntity(this.originId, '', targetLogId);
+            App.renderList(); this.closeUI(); App.calculateStorage();
         } catch (e) {
             console.error("Erro no IndexedDB:", e);
             await CustomDialog.alert("Erro ao guardar o registo. A sua base de dados não foi danificada, mas o anexo pode ser demasiado grande.", "Erro de Memória");
