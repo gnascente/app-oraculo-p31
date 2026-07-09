@@ -722,7 +722,7 @@ var App = {
         document.getElementById('progressModal').classList.add('active');
         document.getElementById('progressTitle').innerText = "A Sincronizar...";
         document.getElementById('progressText').innerText = "A buscar dados da nuvem...";
-        document.getElementById('progressCancelBtn').style.display = 'none'; // Desabilita cancelamento para não corromper o meio da sync
+        document.getElementById('progressCancelBtn').style.display = 'none';
         
         try {
             let remoteData = { entities: [], logs: [] };
@@ -1377,7 +1377,7 @@ var App = {
     restoreFromBlob: async (url) => { 
         BackupModal.el.classList.remove('active'); 
         setTimeout(async () => {
-            if(!await CustomDialog.confirm("Isto apagará e substituirá TODOS os dados pelo backup. Continuar?", "Aviso Crítico")) return; 
+            if(!await CustomDialog.confirm("Isto unificará os dados do backup com os seus dados atuais (mesclagem inteligente). Dados mais recentes prevalecem. Continuar?", "Sincronização via Backup")) return; 
             
             let isCancelled = false; let xhr = new XMLHttpRequest();
             document.getElementById('progressModal').classList.add('active');
@@ -1403,12 +1403,37 @@ var App = {
                         if(contents.files["dados_oraculo.json"]) { 
                             const data = await contents.files["dados_oraculo.json"].async("string"); 
                             const parsed = JSON.parse(data);
+                            
+                            const localEntities = await AppDB.entities.toArray();
+                            const localLogs = await AppDB.logs.toArray();
+
+                            const mergeArrays = (localArr, remoteArr) => {
+                                const map = new Map();
+                                localArr.forEach(item => map.set(item.id, item));
+                                remoteArr.forEach(rItem => {
+                                    const lItem = map.get(rItem.id);
+                                    if(lItem) {
+                                        const lTime = lItem.updatedAt || lItem.createdAt || 0;
+                                        const rTime = rItem.updatedAt || rItem.createdAt || 0;
+                                        if(rTime > lTime) map.set(rItem.id, rItem);
+                                    } else {
+                                        map.set(rItem.id, rItem);
+                                    }
+                                });
+                                return Array.from(map.values());
+                            };
+
+                            const mergedEntities = mergeArrays(localEntities, parsed.entities || []);
+                            const mergedLogs = mergeArrays(localLogs, parsed.logs || []);
+                            
+                            document.getElementById('progressText').innerText = "A guardar unificação na base local...";
+
                             await AppDB.transaction('rw', AppDB.entities, AppDB.logs, async () => {
                                 await AppDB.entities.clear(); await AppDB.logs.clear();
-                                await AppDB.entities.bulkPut(parsed.entities); await AppDB.logs.bulkPut(parsed.logs);
+                                await AppDB.entities.bulkPut(mergedEntities); await AppDB.logs.bulkPut(mergedLogs);
                             });
                             document.getElementById('progressModal').classList.remove('active');
-                            App.goHome(); await CustomDialog.alert("Restaurado com sucesso!", "Sucesso");  
+                            App.goHome(); await CustomDialog.alert("Dados mesclados e restaurados com sucesso!", "Sucesso");  
                         } else { 
                             document.getElementById('progressModal').classList.remove('active');
                             await CustomDialog.alert("Ficheiro inválido ou ausente.", "Erro"); 
@@ -1436,7 +1461,7 @@ var App = {
         MenuModal.closeUI();
         
         setTimeout(async () => {
-            if(!await CustomDialog.confirm("Isto apagará e substituirá TODOS os dados pelo backup selecionado. Continuar?", "Aviso Crítico")) {
+            if(!await CustomDialog.confirm("Isto unificará os dados do backup com os seus dados atuais (mesclagem inteligente). Dados mais recentes prevalecem. Continuar?", "Sincronização Local via Arquivo")) {
                 e.target.value = '';
                 return; 
             }
@@ -1466,13 +1491,38 @@ var App = {
                 }
                 
                 if (parsedData && parsedData.entities && parsedData.logs) {
+                    const localEntities = await AppDB.entities.toArray();
+                    const localLogs = await AppDB.logs.toArray();
+
+                    const mergeArrays = (localArr, remoteArr) => {
+                        const map = new Map();
+                        localArr.forEach(item => map.set(item.id, item));
+                        remoteArr.forEach(rItem => {
+                            const lItem = map.get(rItem.id);
+                            if(lItem) {
+                                const lTime = lItem.updatedAt || lItem.createdAt || 0;
+                                const rTime = rItem.updatedAt || rItem.createdAt || 0;
+                                if(rTime > lTime) map.set(rItem.id, rItem);
+                            } else {
+                                map.set(rItem.id, rItem);
+                            }
+                        });
+                        return Array.from(map.values());
+                    };
+
+                    const mergedEntities = mergeArrays(localEntities, parsedData.entities || []);
+                    const mergedLogs = mergeArrays(localLogs, parsedData.logs || []);
+                    
+                    document.getElementById('progressText').innerText = "A guardar unificação na base local...";
+
                     await AppDB.transaction('rw', AppDB.entities, AppDB.logs, async () => {
                         await AppDB.entities.clear(); await AppDB.logs.clear();
-                        await AppDB.entities.bulkPut(parsedData.entities); await AppDB.logs.bulkPut(parsedData.logs);
+                        await AppDB.entities.bulkPut(mergedEntities); await AppDB.logs.bulkPut(mergedLogs);
                     });
+                    
                     document.getElementById('progressModal').classList.remove('active');
                     App.goHome();
-                    await CustomDialog.alert("Restaurado com sucesso!", "Sucesso");
+                    await CustomDialog.alert("Dados mesclados e restaurados com sucesso!", "Sucesso");
                 } else {
                     throw new Error("Estrutura de dados inválida.");
                 }
