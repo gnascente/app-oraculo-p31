@@ -280,8 +280,6 @@
                 <div id="mainMenu" class="dropdown-menu">
                     <input type="file" id="restoreLocalFile" accept=".zip,.json" style="display:none" onchange="App.restoreFromLocal(event)">
                     <div class="menu-item" onclick="document.getElementById('restoreLocalFile').click()"><i class="material-icons">folder_zip</i> Restaurar (Local)</div>
-                    <div class="menu-item" onclick="App.listBackupsFromBlob()"><i class="material-icons">cloud_download</i> Restaurar (Nuvem)</div>
-                    <div class="menu-item" onclick="App.exportChoice()"><i class="material-icons">cloud_upload</i> Exportar Backup</div>
                 </div>
             </div>
         </div>
@@ -355,27 +353,6 @@
         <h3 id="progressTitle" style="margin-bottom: 16px; color: var(--on-surface); text-align:center;">Aguarde...</h3>
         <p id="progressText" style="margin-bottom: 24px; font-weight: bold; color: var(--primary); font-size: 16px; text-align:center;">0%</p>
         <button class="btn btn-filled" id="progressCancelBtn" style="width: 100%; background-color: var(--surface-variant); color: var(--danger);">Cancelar</button>
-    </div>
-</div>
-
-<div class="dialog-overlay" id="backupChoiceModal">
-    <div class="dialog-content">
-        <h3 id="backupChoiceTitle" style="text-align:left;">Exportar Backup</h3>
-        <p style="margin-bottom: 24px; text-align:left;">Escolha onde deseja salvar o backup:</p>
-        <div class="modal-actions" style="margin-top: 24px; justify-content: flex-end;">
-            <button class="btn btn-filled" style="background: var(--surface-variant); color: var(--on-surface); margin-right: 8px;" onclick="App.exportToLocal()">Local (ZIP)</button>
-            <button class="btn btn-filled" onclick="App.exportToBlob()">Nuvem</button>
-        </div>
-    </div>
-</div>
-
-<div class="modal-overlay" id="backupModal">
-    <div class="modal-content">
-        <h2>Gerenciar Nuvem</h2>
-        <div id="backupList"></div>
-        <div class="modal-actions">
-            <button class="btn btn-text" onclick="BackupModal.closeUI()">Fechar</button>
-        </div>
     </div>
 </div>
 
@@ -713,7 +690,11 @@ var App = {
     toggleMenu: (e) => { e.stopPropagation(); const menu = document.getElementById('mainMenu'); if (menu.classList.contains('show')) MenuModal.closeUI(); else MenuModal.open(); },
     
     syncCloud: async function() {
-        if(!navigator.onLine) { await CustomDialog.alert("Verifique a sua conexão de internet.", "Sem conexão"); return; }
+        if(!navigator.onLine) { 
+            await CustomDialog.alert("Verifique a sua conexão de internet. Será gerado um backup local offline.", "Sem conexão"); 
+            this.exportToLocal(true, "Sem conexão de internet");
+            return; 
+        }
         if(!await CustomDialog.confirm("Iniciar sincronização bidirecional com a nuvem? Dados conflitantes usarão o registro mais recente.", "Sincronizar")) return;
 
         const token = "vercel_blob_rw_lSwvXX6stWnRHpgK_Txuyw1Wkl2opkBzxnWf1mGFW01IJZc";
@@ -790,7 +771,49 @@ var App = {
         } catch(e) {
             document.getElementById('progressModal').classList.remove('active');
             document.getElementById('progressCancelBtn').style.display = 'block';
-            await CustomDialog.alert("Falha na sincronização: " + e.message, "Erro");
+            this.exportToLocal(true, e.message);
+        }
+    },
+
+    exportToLocal: async (isAutoBackup = false, errorMsg = "") => { 
+        if (typeof JSZip === 'undefined') { await CustomDialog.alert("Aguarde a biblioteca carregar.", "Aviso"); return; } 
+        
+        let isCancelled = false;
+        document.getElementById('progressModal').classList.add('active');
+        document.getElementById('progressTitle').innerText = isAutoBackup ? "Falha na Nuvem" : "A Gerar Ficheiro Local...";
+        document.getElementById('progressText').innerText = isAutoBackup ? "A gerar backup de segurança..." : "0%";
+        document.getElementById('progressCancelBtn').style.display = isAutoBackup ? 'none' : 'block';
+        document.getElementById('progressCancelBtn').onclick = () => { isCancelled = true; document.getElementById('progressModal').classList.remove('active'); };
+
+        try {
+            const zip = new JSZip(); 
+            const dump = { entities: await AppDB.entities.toArray(), logs: await AppDB.logs.toArray() }; 
+            zip.file("dados_oraculo.json", JSON.stringify(dump)); 
+            
+            const zipBlob = await zip.generateAsync({
+                type:"blob", 
+                compression: "DEFLATE", 
+                compressionOptions: { level: 9 }
+            }, function updateCallback(metadata) {
+                if(!isCancelled) document.getElementById('progressText').innerText = `A compactar: ${Math.round(metadata.percent)}%`;
+            });
+            
+            document.getElementById('progressModal').classList.remove('active');
+            if(isCancelled) return;
+
+            const filename = `backup_oraculo_${Date.now()}.zip`; 
+            const url = URL.createObjectURL(zipBlob); const a = document.createElement('a'); a.href = url; a.download = filename; 
+            document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); 
+            
+            if (isAutoBackup) {
+                let failReason = errorMsg === "Failed to fetch" || errorMsg.includes("NetworkError") ? "Sem conexão ou bloqueio de firewall" : errorMsg;
+                await CustomDialog.alert(`Não foi possível sincronizar com a nuvem (${failReason}). Um arquivo de backup local (${filename}) foi gerado e baixado automaticamente.`, "Sincronização Falhou");
+            } else {
+                await CustomDialog.alert(`Backup gerado: ${filename}`, "Sucesso");
+            }
+        } catch(e) {
+            document.getElementById('progressModal').classList.remove('active');
+            if(!isCancelled) CustomDialog.alert("Erro ao exportar: " + e.message, "Erro");
         }
     },
 
@@ -1243,218 +1266,6 @@ var App = {
         } catch(e) { CustomDialog.alert("Não foi possível abrir o PDF.", "Erro"); }
     },
 
-    exportChoice: function() { BackupChoiceModal.open(); },
-
-    exportToLocal: async () => { 
-        BackupChoiceModal.closeUI(); 
-        if (typeof JSZip === 'undefined') { await CustomDialog.alert("Aguarde a biblioteca carregar.", "Aviso"); return; } 
-        
-        let isCancelled = false;
-        document.getElementById('progressModal').classList.add('active');
-        document.getElementById('progressTitle').innerText = "A Gerar Ficheiro Local...";
-        document.getElementById('progressText').innerText = "0%";
-        document.getElementById('progressCancelBtn').style.display = 'block';
-        document.getElementById('progressCancelBtn').onclick = () => { isCancelled = true; document.getElementById('progressModal').classList.remove('active'); };
-
-        try {
-            const zip = new JSZip(); 
-            const dump = { entities: await AppDB.entities.toArray(), logs: await AppDB.logs.toArray() }; 
-            zip.file("dados_oraculo.json", JSON.stringify(dump)); 
-            
-            const zipBlob = await zip.generateAsync({
-                type:"blob", 
-                compression: "DEFLATE", 
-                compressionOptions: { level: 9 }
-            }, function updateCallback(metadata) {
-                if(!isCancelled) document.getElementById('progressText').innerText = `A compactar: ${Math.round(metadata.percent)}%`;
-            });
-            
-            document.getElementById('progressModal').classList.remove('active');
-            if(isCancelled) return;
-
-            const filename = `backup_oraculo_${Date.now()}.zip`; 
-            const url = URL.createObjectURL(zipBlob); const a = document.createElement('a'); a.href = url; a.download = filename; 
-            document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); 
-        } catch(e) {
-            document.getElementById('progressModal').classList.remove('active');
-            if(!isCancelled) CustomDialog.alert("Erro ao exportar: " + e.message, "Erro");
-        }
-    },
-
-    exportToBlob: async () => { 
-        BackupChoiceModal.closeUI(); 
-        if (typeof JSZip === 'undefined') { await CustomDialog.alert("Aguarde a biblioteca carregar.", "Aviso"); return; } 
-        
-        let isCancelled = false; let xhr = null;
-        document.getElementById('progressModal').classList.add('active');
-        document.getElementById('progressTitle').innerText = "A Compactar Banco...";
-        document.getElementById('progressText').innerText = "0%";
-        document.getElementById('progressCancelBtn').style.display = 'block';
-        document.getElementById('progressCancelBtn').onclick = () => { isCancelled = true; if(xhr) xhr.abort(); document.getElementById('progressModal').classList.remove('active'); };
-
-        try {
-            const zip = new JSZip(); 
-            const dump = { entities: await AppDB.entities.toArray(), logs: await AppDB.logs.toArray() }; 
-            zip.file("dados_oraculo.json", JSON.stringify(dump)); 
-            
-            const zipBlob = await zip.generateAsync({
-                type:"blob", 
-                compression: "DEFLATE", 
-                compressionOptions: { level: 9 }
-            }, function updateCallback(metadata) {
-                if(!isCancelled) document.getElementById('progressText').innerText = `A compactar: ${Math.round(metadata.percent)}%`;
-            });
-            
-            if(isCancelled) return;
-
-            const filename = `backup_oraculo_${Date.now()}.zip`; 
-            const token = "vercel_blob_rw_lSwvXX6stWnRHpgK_Txuyw1Wkl2opkBzxnWf1mGFW01IJZc";
-            
-            document.getElementById('progressTitle').innerText = "A enviar direto para a Nuvem...";
-            document.getElementById('progressText').innerText = "A Iniciar upload...";
-
-            xhr = new XMLHttpRequest();
-            xhr.open('PUT', `https://blob.vercel-storage.com/${filename}`, true);
-            xhr.setRequestHeader('authorization', `Bearer ${token}`);
-            
-            xhr.upload.onprogress = function(e) {
-                if (e.lengthComputable && !isCancelled) {
-                    let loaded = (e.loaded / 1024 / 1024).toFixed(2);
-                    let total = (e.total / 1024 / 1024).toFixed(2);
-                    let percent = Math.round((e.loaded / e.total) * 100);
-                    document.getElementById('progressText').innerText = `${loaded} MB / ${total} MB (${percent}%)`;
-                }
-            };
-            
-            xhr.onload = function() {
-                document.getElementById('progressModal').classList.remove('active');
-                if(isCancelled) return;
-                
-                if (xhr.status === 200) { 
-                    CustomDialog.alert(`Salvo na nuvem com sucesso!\nArquivo: ${filename}`, "Sucesso"); 
-                } else { 
-                    const url = URL.createObjectURL(zipBlob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); 
-                    CustomDialog.alert("Falha no servidor. O backup de segurança foi baixado no seu dispositivo. Status: " + xhr.status, "Erro"); 
-                }
-            };
-            
-            xhr.onerror = function() {
-                document.getElementById('progressModal').classList.remove('active');
-                if(isCancelled) return;
-                const url = URL.createObjectURL(zipBlob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); 
-                CustomDialog.alert("A nuvem falhou. O arquivo foi baixado no seu dispositivo.", "Salvo Localmente");
-            };
-            xhr.send(zipBlob);
-        } catch(e) {
-            document.getElementById('progressModal').classList.remove('active');
-            if(!isCancelled) CustomDialog.alert("Erro ao exportar: " + e.message, "Erro");
-        }
-    },
-
-    listBackupsFromBlob: async () => { 
-        document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;"><i class="material-icons" style="font-size:32px; animation: spin 1s linear infinite; color:var(--primary);">sync</i><br>A procurar...</div>'; 
-        BackupModal.open(); 
-        try { 
-            const res = await fetch('/api/backup'); 
-            if(res.ok) { 
-                const data = await res.json(); 
-                const zips = (data.blobs || []).filter(b => b.pathname.endsWith('.zip')).sort((a,b) => new Date(b.uploadedAt) - new Date(a.uploadedAt)); 
-                if(zips.length === 0) { document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">Nenhum backup encontrado na nuvem.</div>'; return; } 
-                document.getElementById('backupList').innerHTML = zips.map(b => `<div style="background:var(--surface-variant); padding:12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;"><div style="flex-grow: 1; cursor:pointer;" onclick="App.restoreFromBlob('${b.url}')"><div style="font-weight:500; font-size:14px; color:var(--on-surface); word-break: break-all;">${b.pathname}</div><div style="font-size:12px; color:var(--on-surface-variant); margin-top:4px;">${new Date(b.uploadedAt).toLocaleString('pt-BR')} • ${(b.size / (1024*1024)).toFixed(2)} MB</div></div><div style="display: flex; gap: 16px; margin-left: 12px; border-left: 1px solid var(--border); padding-left: 12px;"><i class="material-icons action-icon" style="color:var(--primary); font-size: 24px;" title="Restaurar" onclick="App.restoreFromBlob('${b.url}')">cloud_download</i><i class="material-icons action-icon danger" style="font-size: 24px;" title="Apagar" onclick="App.deleteFromBlob('${b.url}')">delete</i></div></div>`).join(''); 
-            } else document.getElementById('backupList').innerHTML = `<div style="color:var(--danger); padding:20px;">Erro Servidor</div>`; 
-        } catch(e) { document.getElementById('backupList').innerHTML = `<div style="color:var(--danger); padding:20px; text-align:center;">Erro de Ligação</div>`; } 
-    },
-
-    deleteFromBlob: async (blobUrl) => { 
-        if(!await CustomDialog.confirm("APAGAR PERMANENTEMENTE da nuvem?", "Apagar")) return; 
-        try { 
-            document.getElementById('backupList').innerHTML = '<div style="text-align:center; padding: 20px;">A apagar...</div>'; 
-            const res = await fetch(`/api/backup?url=${encodeURIComponent(blobUrl)}`, { method: 'DELETE' }); 
-            if(res.ok) { await CustomDialog.alert("Apagado com sucesso!", "Sucesso"); App.listBackupsFromBlob(); } else { await CustomDialog.alert("Erro ao apagar.", "Erro"); App.listBackupsFromBlob(); } 
-        } catch(e) { await CustomDialog.alert("Erro de ligação.", "Erro"); App.listBackupsFromBlob(); } 
-    },
-
-    restoreFromBlob: async (url) => { 
-        BackupModal.el.classList.remove('active'); 
-        setTimeout(async () => {
-            if(!await CustomDialog.confirm("Isto unificará os dados do backup com os seus dados atuais (mesclagem inteligente). Dados mais recentes prevalecem. Continuar?", "Sincronização via Backup")) return; 
-            
-            let isCancelled = false; let xhr = new XMLHttpRequest();
-            document.getElementById('progressModal').classList.add('active');
-            document.getElementById('progressTitle').innerText = "A Baixar Backup...";
-            document.getElementById('progressText').innerText = "0 MB / 0 MB";
-            document.getElementById('progressCancelBtn').style.display = 'block';
-            document.getElementById('progressCancelBtn').onclick = () => { isCancelled = true; xhr.abort(); document.getElementById('progressModal').classList.remove('active'); };
-
-            xhr.open('GET', url, true); xhr.responseType = 'blob';
-            xhr.onprogress = function(e) {
-                if(e.lengthComputable && !isCancelled) {
-                    let loaded = (e.loaded / 1024 / 1024).toFixed(2); let total = (e.total / 1024 / 1024).toFixed(2);
-                    document.getElementById('progressText').innerText = `${loaded} MB / ${total} MB`;
-                }
-            };
-            xhr.onload = async function() {
-                if(isCancelled) return;
-                if(xhr.status === 200) {
-                    document.getElementById('progressTitle').innerText = "Descompactando...";
-                    document.getElementById('progressText').innerText = "A processar base de dados...";
-                    try {
-                        const blob = xhr.response; const zip = new JSZip(); const contents = await zip.loadAsync(blob); 
-                        if(contents.files["dados_oraculo.json"]) { 
-                            const data = await contents.files["dados_oraculo.json"].async("string"); 
-                            const parsed = JSON.parse(data);
-                            
-                            const localEntities = await AppDB.entities.toArray();
-                            const localLogs = await AppDB.logs.toArray();
-
-                            const mergeArrays = (localArr, remoteArr) => {
-                                const map = new Map();
-                                localArr.forEach(item => map.set(item.id, item));
-                                remoteArr.forEach(rItem => {
-                                    const lItem = map.get(rItem.id);
-                                    if(lItem) {
-                                        const lTime = lItem.updatedAt || lItem.createdAt || 0;
-                                        const rTime = rItem.updatedAt || rItem.createdAt || 0;
-                                        if(rTime > lTime) map.set(rItem.id, rItem);
-                                    } else {
-                                        map.set(rItem.id, rItem);
-                                    }
-                                });
-                                return Array.from(map.values());
-                            };
-
-                            const mergedEntities = mergeArrays(localEntities, parsed.entities || []);
-                            const mergedLogs = mergeArrays(localLogs, parsed.logs || []);
-                            
-                            document.getElementById('progressText').innerText = "A guardar unificação na base local...";
-
-                            await AppDB.transaction('rw', AppDB.entities, AppDB.logs, async () => {
-                                await AppDB.entities.clear(); await AppDB.logs.clear();
-                                await AppDB.entities.bulkPut(mergedEntities); await AppDB.logs.bulkPut(mergedLogs);
-                            });
-                            document.getElementById('progressModal').classList.remove('active');
-                            App.goHome(); await CustomDialog.alert("Dados mesclados e restaurados com sucesso!", "Sucesso");  
-                        } else { 
-                            document.getElementById('progressModal').classList.remove('active');
-                            await CustomDialog.alert("Ficheiro inválido ou ausente.", "Erro"); 
-                        } 
-                    } catch(e) { 
-                        document.getElementById('progressModal').classList.remove('active');
-                        await CustomDialog.alert("Erro ao restaurar a base de dados.", "Erro"); 
-                    }
-                } else {
-                    document.getElementById('progressModal').classList.remove('active');
-                    await CustomDialog.alert("Falha no download.", "Erro");
-                }
-            };
-            xhr.onerror = function() {
-                document.getElementById('progressModal').classList.remove('active');
-                if(!isCancelled) CustomDialog.alert("Erro de conexão.", "Erro");
-            };
-            xhr.send();
-        }, 300);
-    },
-
     restoreFromLocal: async function(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -1536,9 +1347,6 @@ var App = {
         }, 300);
     }
 };
-
-var BackupChoiceModal = { el: document.getElementById('backupChoiceModal'), open: function() { AppState.openModal(this); }, closeUI: function() { AppState.closeModalUI(); } };
-var BackupModal = { el: document.getElementById('backupModal'), open: function() { AppState.openModal(this); }, closeUI: function() { AppState.closeModalUI(); } };
 
 var EntityModal = {
     el: document.getElementById('entityModal'), currentTargetId: null,
