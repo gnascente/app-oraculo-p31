@@ -6,7 +6,6 @@ export default async function handler(req, res) {
     const token = "vercel_blob_rw_lSwvXX6stWnRHpgK_Txuyw1Wkl2opkBzxnWf1mGFW01IJZc";
     
     try {
-        // LISTAR BACKUPS OU ARQUIVO MASTER
         if (req.method === 'GET') {
             const prefix = req.query.prefix || ''; 
             const response = await fetch(`https://blob.vercel-storage.com/?prefix=${prefix}`, {
@@ -15,7 +14,6 @@ export default async function handler(req, res) {
             return res.status(response.status).json(await response.json());
         }
 
-        // DELETAR
         if (req.method === 'DELETE') {
             const url = req.query.url;
             const response = await fetch('https://blob.vercel-storage.com/delete', {
@@ -26,19 +24,31 @@ export default async function handler(req, res) {
             return res.status(response.status).json({});
         }
 
-        // SALVAR NOVO BACKUP / SOBRESCREVER MASTER DA SYNC
         if (req.method === 'POST') {
             const filename = req.query.filename;
+            
+            // Ler o stream em blocos (chunks) para a memória e formar o ficheiro completo
+            const chunks = [];
+            for await (const chunk of req) {
+                chunks.push(chunk);
+            }
+            const buffer = Buffer.concat(chunks);
+
             const response = await fetch(`https://blob.vercel-storage.com/${filename}`, {
                 method: 'PUT',
                 headers: { 
                     authorization: `Bearer ${token}`,
-                    'x-add-random-suffix': 'false' // A mágica: Força a sobrescrita, zero lixo!
+                    'x-add-random-suffix': 'false' // Força a sobrescrita do ficheiro exato, evitando lixo
                 },
-                body: req,
-                duplex: 'half' 
+                body: buffer
             });
-            return res.status(response.status).json(await response.json());
+            
+            if (!response.ok) {
+                const errText = await response.text();
+                return res.status(response.status).json({ error: errText });
+            }
+            
+            return res.status(200).json(await response.json());
         }
 
         return res.status(405).json({ error: 'Método não permitido.' });
