@@ -269,7 +269,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.4.0</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.4.1</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -289,7 +289,7 @@
         <div class="home-search-container">
             <div class="search-box">
                 <i class="material-icons search-icon">search</i>
-                <input type="text" id="homeSearchInput" name="q_search_home" placeholder="Busca global em tudo..." autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" oninput="App.renderHomeSearch()">
+                <input type="text" id="homeSearchInput" placeholder="Busca global em tudo..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" oninput="clearTimeout(App.searchTimeout); App.searchTimeout = setTimeout(() => App.renderHomeSearch(), 200);">
             </div>
         </div>
         <div class="home-grid" id="homeGrid">
@@ -319,7 +319,7 @@
         <div class="search-container">
             <div class="search-box">
                 <i class="material-icons search-icon">search</i>
-                <input type="text" id="searchInput" name="q_search_list" placeholder="Buscar ou criar novo..." autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" oninput="App.renderList()">
+                <input type="text" id="searchInput" placeholder="Buscar ou criar novo..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" oninput="clearTimeout(App.searchTimeout); App.searchTimeout = setTimeout(() => App.renderList(), 200);">
             </div>
         </div>
         <ul class="task-list" id="entityList"></ul>
@@ -339,7 +339,7 @@
         <h3 id="customDialogTitle" style="text-align:left;">Aviso</h3>
         <p id="customDialogMessage" style="text-align:left; line-height: 1.4; margin-bottom: 24px;"></p>
         <div id="customDialogInputContainer" style="display: none; margin-bottom: 20px;">
-            <input type="text" id="customDialogInput" name="q_dialog" class="input-field" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
+            <input type="text" id="customDialogInput" class="input-field" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
         </div>
         <div class="modal-actions" style="justify-content: flex-end;">
             <button class="btn btn-text" id="customDialogCancel" style="display: none;">Cancelar</button>
@@ -363,7 +363,7 @@
             <i class="material-icons action-icon danger" onclick="EntityModal.delete()">delete</i>
         </div>
         <div class="input-group">
-            <input type="text" id="entityNameEditInput" name="q_entity_edit" class="input-field" placeholder="Nome" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
+            <input type="text" id="entityNameEditInput" class="input-field" placeholder="Nome" autocomplete="off" role="presentation" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
         </div>
         <div class="modal-actions">
             <button class="btn btn-text" onclick="EntityModal.closeUI()">Cancelar</button>
@@ -381,13 +381,13 @@
         
         <div class="input-group" id="logLinkContainer">
             <label style="font-size: 13px; font-weight: 500; color: var(--on-surface-variant); margin-bottom: 8px; display: block;">Vincular a:</label>
-            <input type="text" id="logLinkInput" name="q_log_link" class="input-field" placeholder="Buscar entidade primária..." autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" onfocus="LogModal.searchLinks()" oninput="LogModal.searchLinks()">
+            <input type="text" id="logLinkInput" class="input-field" placeholder="Buscar entidade primária..." autocomplete="off" role="presentation" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" onfocus="LogModal.searchLinks()" oninput="LogModal.searchLinks()">
             <div id="logLinkAutocomplete" class="autocomplete-dropdown"></div>
             <div id="logLinkPills" class="pills-container" style="margin-top: 12px;"></div>
         </div>
 
         <div class="input-group">
-            <textarea id="logText" name="q_log_text" class="input-field" placeholder="Descreva o andamento, evento ou observação..." autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true"></textarea>
+            <textarea id="logText" class="input-field" placeholder="Descreva o andamento, evento ou observação..." autocomplete="off" role="presentation" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true"></textarea>
         </div>
         
         <div class="input-group" style="display: flex; gap: 8px;">
@@ -414,7 +414,7 @@
     <div class="modal-content">
         <h2>Nova Tarefa de Serviço</h2>
         <div class="input-group" style="margin-top: 16px;">
-            <input type="text" id="taskNameInput" name="q_task_name" class="input-field" placeholder="Nome da Tarefa (Ex: Desmontagem)" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
+            <input type="text" id="taskNameInput" class="input-field" placeholder="Nome da Tarefa (Ex: Desmontagem)" autocomplete="off" role="presentation" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
         </div>
         <div class="modal-actions">
             <button class="btn btn-text" onclick="TaskModal.closeUI()">Cancelar</button>
@@ -670,6 +670,7 @@ function renderStackedDeckHTML(images, logId) {
 // --- MAIN APPLICATION LOGIC ---
 var App = {
     currentView: 'home', moduleType: null, moduleName: null, moduleIcon: null, currentEntityId: null, searchFocusTerm: '',
+    searchTimeout: null, currentSearchId: 0,
 
     init: async function() { this.goHome(); this.calculateStorage(); },
     
@@ -724,17 +725,38 @@ var App = {
             const localEntities = await AppDB.entities.toArray();
             const localLogs = await AppDB.logs.toArray();
             
+            let changesReceived = 0;
+            let changesSent = 0;
+
             const mergeArrays = (localArr, remoteArr) => {
                 const map = new Map();
-                localArr.forEach(item => map.set(item.id, item));
+                const remoteMap = new Map();
+                remoteArr.forEach(r => remoteMap.set(r.id, r));
+
+                localArr.forEach(lItem => {
+                    map.set(lItem.id, lItem);
+                    const rItem = remoteMap.get(lItem.id);
+                    if (!rItem) {
+                        changesSent++;
+                    } else {
+                        const lTime = lItem.updatedAt || lItem.createdAt || 0;
+                        const rTime = rItem.updatedAt || rItem.createdAt || 0;
+                        if (lTime > rTime) changesSent++;
+                    }
+                });
+
                 remoteArr.forEach(rItem => {
                     const lItem = map.get(rItem.id);
                     if(lItem) {
                         const lTime = lItem.updatedAt || lItem.createdAt || 0;
                         const rTime = rItem.updatedAt || rItem.createdAt || 0;
-                        if(rTime > lTime) map.set(rItem.id, rItem);
+                        if(rTime > lTime) {
+                            map.set(rItem.id, rItem);
+                            changesReceived++;
+                        }
                     } else {
                         map.set(rItem.id, rItem);
+                        changesReceived++;
                     }
                 });
                 return Array.from(map.values());
@@ -766,7 +788,14 @@ var App = {
             document.getElementById('progressModal').classList.remove('active');
             document.getElementById('progressCancelBtn').style.display = 'block';
             this.goHome();
-            await CustomDialog.alert("Sincronização concluída com sucesso! Os seus dados estão atualizados e protegidos.", "Sincronizado");
+            
+            let msg = "";
+            if (changesReceived === 0 && changesSent === 0) {
+                msg = "O App já estava totalmente atualizado com a nuvem. Nenhuma alteração nova foi detectada.";
+            } else {
+                msg = `Sincronização concluída com sucesso!\n\n📋 Resumo das alterações:\n⬇️ ${changesReceived} registros atualizados da nuvem\n⬆️ ${changesSent} registros enviados para a nuvem`;
+            }
+            await CustomDialog.alert(msg, "Sincronizado");
 
         } catch(e) {
             document.getElementById('progressModal').classList.remove('active');
@@ -983,12 +1012,13 @@ var App = {
     },
 
     renderHomeSearch: async function() {
+        this.currentSearchId++;
+        const searchId = this.currentSearchId;
         const term = document.getElementById('homeSearchInput').value.toLowerCase().trim();
         const grid = document.getElementById('homeGrid');
         const list = document.getElementById('homeSearchList');
         
         if(!term) { grid.style.display = 'grid'; list.style.display = 'none'; return; }
-        grid.style.display = 'none'; list.style.display = 'flex'; list.innerHTML = '';
         
         let resultList = [];
         let allEntities = await AppDB.entities.toArray();
@@ -997,6 +1027,12 @@ var App = {
             let relatedLogs = await AppDB.logs.filter(l => l.relatedEntities.some(rel => rel.id === e.id) && l.text && l.text.toLowerCase().includes(term)).toArray();
             if(matchesName || relatedLogs.length > 0) resultList.push({ entity: e, logsMatched: relatedLogs });
         }
+
+        if (this.currentSearchId !== searchId) return;
+
+        grid.style.display = 'none'; 
+        list.style.display = 'flex'; 
+        list.innerHTML = '';
 
         if (resultList.length === 0) { list.innerHTML = `<div class="empty-state"><i class="material-icons">search_off</i><p>Nenhum resultado encontrado.</p></div>`; return; }
 
@@ -1033,7 +1069,7 @@ var App = {
         this.currentView = 'list'; this.moduleType = type; this.moduleName = name; this.moduleIcon = icon;
         document.getElementById('viewHome').classList.remove('active'); document.getElementById('viewList').classList.add('active');
         document.getElementById('headerIcon').innerText = icon; document.getElementById('headerText').innerText = name;
-        document.getElementById('btnBack').style.display = 'block'; document.getElementById('headerVersion').style.display = 'none';
+        document.getElementById('btnBack').style.display = 'inline-block'; document.getElementById('headerVersion').style.display = 'none';
         document.getElementById('searchInput').value = ''; this.renderList(); history.pushState({ view: 'list' }, '');
     },
 
@@ -1052,7 +1088,7 @@ var App = {
         this.currentView = 'list'; this.moduleType = targetModuleType; this.moduleName = targetModuleName; this.moduleIcon = targetModuleIcon;
         document.getElementById('viewHome').classList.remove('active'); document.getElementById('viewList').classList.add('active');
         document.getElementById('headerIcon').innerText = targetModuleIcon; document.getElementById('headerText').innerText = targetModuleName;
-        document.getElementById('btnBack').style.display = 'block'; document.getElementById('headerVersion').style.display = 'none';
+        document.getElementById('btnBack').style.display = 'inline-block'; document.getElementById('headerVersion').style.display = 'none';
         
         document.getElementById('searchInput').value = focusTerm;
         await this.renderList(); 
@@ -1106,7 +1142,10 @@ var App = {
     },
 
     renderList: async function() {
-        const rawSearchTerm = document.getElementById('searchInput').value; const searchTerm = rawSearchTerm.toLowerCase().trim(); const listEl = document.getElementById('entityList'); listEl.innerHTML = '';
+        this.currentSearchId++;
+        const searchId = this.currentSearchId;
+        const rawSearchTerm = document.getElementById('searchInput').value; 
+        const searchTerm = rawSearchTerm.toLowerCase().trim();
         
         let allEntities = await AppDB.entities.where('type').equals(this.moduleType).toArray();
         let filtered = allEntities.filter(e => e.parentId === null); let hasExactMatch = false;
@@ -1133,7 +1172,15 @@ var App = {
                 }
             }
             filtered = resultList;
-            if (!hasExactMatch) { listEl.innerHTML += `<div class="create-btn-dynamic" onclick="App.createEntityOnTheFly('${rawSearchTerm.replace(/'/g, "\\'")}')"><i class="material-icons">add_circle_outline</i><span>Criar: <strong>${rawSearchTerm}</strong></span></div>`; }
+        }
+
+        if (this.currentSearchId !== searchId) return;
+
+        const listEl = document.getElementById('entityList');
+        listEl.innerHTML = '';
+        
+        if (searchTerm && !hasExactMatch) { 
+            listEl.innerHTML += `<div class="create-btn-dynamic" onclick="App.createEntityOnTheFly('${rawSearchTerm.replace(/'/g, "\\'")}')"><i class="material-icons">add_circle_outline</i><span>Criar: <strong>${rawSearchTerm}</strong></span></div>`; 
         }
 
         if (filtered.length === 0 && !searchTerm) { listEl.innerHTML = `<div class="empty-state"><i class="material-icons">${this.moduleIcon}</i><p>Nenhum registo.<br>Busque para criar.</p></div>`; return; }
@@ -1305,17 +1352,38 @@ var App = {
                     const localEntities = await AppDB.entities.toArray();
                     const localLogs = await AppDB.logs.toArray();
 
+                    let changesReceived = 0;
+                    let changesSent = 0;
+
                     const mergeArrays = (localArr, remoteArr) => {
                         const map = new Map();
-                        localArr.forEach(item => map.set(item.id, item));
+                        const remoteMap = new Map();
+                        remoteArr.forEach(r => remoteMap.set(r.id, r));
+
+                        localArr.forEach(lItem => {
+                            map.set(lItem.id, lItem);
+                            const rItem = remoteMap.get(lItem.id);
+                            if (!rItem) {
+                                changesSent++;
+                            } else {
+                                const lTime = lItem.updatedAt || lItem.createdAt || 0;
+                                const rTime = rItem.updatedAt || rItem.createdAt || 0;
+                                if (lTime > rTime) changesSent++;
+                            }
+                        });
+
                         remoteArr.forEach(rItem => {
                             const lItem = map.get(rItem.id);
                             if(lItem) {
                                 const lTime = lItem.updatedAt || lItem.createdAt || 0;
                                 const rTime = rItem.updatedAt || rItem.createdAt || 0;
-                                if(rTime > lTime) map.set(rItem.id, rItem);
+                                if(rTime > lTime) {
+                                    map.set(rItem.id, rItem);
+                                    changesReceived++;
+                                }
                             } else {
                                 map.set(rItem.id, rItem);
+                                changesReceived++;
                             }
                         });
                         return Array.from(map.values());
@@ -1333,7 +1401,14 @@ var App = {
                     
                     document.getElementById('progressModal').classList.remove('active');
                     App.goHome();
-                    await CustomDialog.alert("Dados mesclados e restaurados com sucesso!", "Sucesso");
+                    
+                    let msg = "";
+                    if (changesReceived === 0 && changesSent === 0) {
+                        msg = "Os dados locais já estavam idênticos ao backup selecionado. Nenhuma alteração foi necessária.";
+                    } else {
+                        msg = `Dados mesclados e restaurados com sucesso!\n\n📋 Resumo:\n⬇️ ${changesReceived} registros atualizados usando o backup\n⬆️ ${changesSent} registros locais mantidos (mais recentes que o backup)`;
+                    }
+                    await CustomDialog.alert(msg, "Sucesso");
                 } else {
                     throw new Error("Estrutura de dados inválida.");
                 }
