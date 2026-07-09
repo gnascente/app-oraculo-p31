@@ -108,7 +108,6 @@
         .task-list { list-style: none; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
         .task-item { background: var(--surface-variant); border-radius: 12px; padding: 16px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; transition: background-color 0.5s; border: 1px solid transparent; }
         
-        /* Nova Formatação do Header do Cartão (Float para o texto fluir abaixo dos botões) */
         .task-header { display: block; margin-bottom: 12px; }
         .task-header::after { content: ""; display: table; clear: both; }
         .entity-icon { float: left; width: 36px; height: 36px; border-radius: 8px; background: rgba(168, 199, 250, 0.1); display: grid; place-content: center; color: var(--primary); margin-right: 12px; margin-bottom: 4px; pointer-events:none;}
@@ -271,7 +270,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.4.3</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.4.4</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -700,7 +699,6 @@ var App = {
         }
         if(!await CustomDialog.confirm("Iniciar sincronização bidirecional com a nuvem? Dados conflitantes usarão o registro mais recente.", "Sincronizar")) return;
 
-        const token = "vercel_blob_rw_lSwvXX6stWnRHpgK_Txuyw1Wkl2opkBzxnWf1mGFW01IJZc";
         const filename = "oraculo_sync_master.json";
         
         document.getElementById('progressModal').classList.add('active');
@@ -711,30 +709,16 @@ var App = {
         try {
             let remoteData = { entities: [], logs: [] };
             try {
-                // Buscando pelo prefixo base (sem a extensão) para capturar também lixo com sufixos gerados pelo Vercel anteriormente
-                const listRes = await fetch(`https://blob.vercel-storage.com/?prefix=oraculo_sync_master`, { headers: { authorization: `Bearer ${token}` } });
-                const listData = await listRes.json();
-                
-                if(listData.blobs && listData.blobs.length > 0) {
-                    listData.blobs.sort((a,b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-                    const blobInfo = listData.blobs[0]; // Pega sempre o mais recente da nuvem
-                    
-                    if(blobInfo) {
-                        const getRes = await fetch(blobInfo.url, { cache: 'no-store' }); // Impede que o navegador traga versão velha do cache
+                const listRes = await fetch(`/api/backup?prefix=${filename}`);
+                if (listRes.ok) {
+                    const listData = await listRes.json();
+                    if(listData.blobs && listData.blobs.length > 0) {
+                        const blobInfo = listData.blobs[0]; 
+                        const getRes = await fetch(blobInfo.url, { cache: 'no-store' }); 
                         if(getRes.ok) remoteData = await getRes.json();
                     }
-
-                    // Limpeza em background de arquivos lixo que acumularam na nuvem pelo bug anterior
-                    if (listData.blobs.length > 1) {
-                        const urlsToDelete = listData.blobs.slice(1).map(b => b.url);
-                        fetch('https://blob.vercel-storage.com/delete', {
-                            method: 'POST',
-                            headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-                            body: JSON.stringify({ urls: urlsToDelete })
-                        }).catch(()=>{});
-                    }
                 }
-            } catch(e) { console.warn("Nenhum backup mestre na nuvem ou erro de leitura.", e); }
+            } catch(e) { console.warn("Sem backup mestre na nuvem ou erro de leitura.", e); }
 
             document.getElementById('progressText').innerText = "A analisar conflitos e mesclar dados...";
             
@@ -793,13 +777,8 @@ var App = {
             const mergedJSON = JSON.stringify({ entities: mergedEntities, logs: mergedLogs });
             const blobFile = new Blob([mergedJSON], { type: 'application/json' });
             
-            const putRes = await fetch(`https://blob.vercel-storage.com/${filename}`, {
-                method: 'PUT',
-                headers: { 
-                    authorization: `Bearer ${token}`,
-                    'x-add-random-suffix': 'false', // FORÇA NOME EXATO PARA LER NO FUTURO SEM ERRO
-                    'content-type': 'application/json'
-                },
+            const putRes = await fetch(`/api/backup?filename=${filename}`, {
+                method: 'POST',
                 body: blobFile
             });
             
