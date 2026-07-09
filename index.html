@@ -271,7 +271,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.4.2</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.4.3</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -341,7 +341,7 @@
         <h3 id="customDialogTitle" style="text-align:left;">Aviso</h3>
         <p id="customDialogMessage" style="text-align:left; line-height: 1.4; margin-bottom: 24px;"></p>
         <div id="customDialogInputContainer" style="display: none; margin-bottom: 20px;">
-            <input type="text" id="customDialogInput" name="q_dialog" class="input-field" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
+            <input type="text" id="customDialogInput" class="input-field" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
         </div>
         <div class="modal-actions" style="justify-content: flex-end;">
             <button class="btn btn-text" id="customDialogCancel" style="display: none;">Cancelar</button>
@@ -365,7 +365,7 @@
             <i class="material-icons action-icon danger" onclick="EntityModal.delete()">delete</i>
         </div>
         <div class="input-group">
-            <input type="text" id="entityNameEditInput" name="q_entity_edit" class="input-field" placeholder="Nome" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
+            <input type="text" id="entityNameEditInput" name="q_entity_edit" class="input-field" placeholder="Nome" autocomplete="new-password" role="presentation" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
         </div>
         <div class="modal-actions">
             <button class="btn btn-text" onclick="EntityModal.closeUI()">Cancelar</button>
@@ -383,13 +383,13 @@
         
         <div class="input-group" id="logLinkContainer">
             <label style="font-size: 13px; font-weight: 500; color: var(--on-surface-variant); margin-bottom: 8px; display: block;">Vincular a:</label>
-            <input type="text" id="logLinkInput" name="q_log_link" class="input-field" placeholder="Buscar entidade primária..." autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" onfocus="LogModal.searchLinks()" oninput="LogModal.searchLinks()">
+            <input type="text" id="logLinkInput" name="q_log_link" class="input-field" placeholder="Buscar entidade primária..." autocomplete="new-password" role="presentation" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" onfocus="LogModal.searchLinks()" oninput="LogModal.searchLinks()">
             <div id="logLinkAutocomplete" class="autocomplete-dropdown"></div>
             <div id="logLinkPills" class="pills-container" style="margin-top: 12px;"></div>
         </div>
 
         <div class="input-group">
-            <textarea id="logText" name="q_log_text" class="input-field" placeholder="Descreva o andamento, evento ou observação..." autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true"></textarea>
+            <textarea id="logText" name="q_log_text" class="input-field" placeholder="Descreva o andamento, evento ou observação..." autocomplete="new-password" role="presentation" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true"></textarea>
         </div>
         
         <div class="input-group" style="display: flex; gap: 8px;">
@@ -416,7 +416,7 @@
     <div class="modal-content">
         <h2>Nova Tarefa de Serviço</h2>
         <div class="input-group" style="margin-top: 16px;">
-            <input type="text" id="taskNameInput" name="q_task_name" class="input-field" placeholder="Nome da Tarefa (Ex: Desmontagem)" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
+            <input type="text" id="taskNameInput" name="q_task_name" class="input-field" placeholder="Nome da Tarefa (Ex: Desmontagem)" autocomplete="new-password" role="presentation" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
         </div>
         <div class="modal-actions">
             <button class="btn btn-text" onclick="TaskModal.closeUI()">Cancelar</button>
@@ -711,16 +711,30 @@ var App = {
         try {
             let remoteData = { entities: [], logs: [] };
             try {
-                const listRes = await fetch(`https://blob.vercel-storage.com/?prefix=${filename}`, { headers: { authorization: `Bearer ${token}` } });
+                // Buscando pelo prefixo base (sem a extensão) para capturar também lixo com sufixos gerados pelo Vercel anteriormente
+                const listRes = await fetch(`https://blob.vercel-storage.com/?prefix=oraculo_sync_master`, { headers: { authorization: `Bearer ${token}` } });
                 const listData = await listRes.json();
+                
                 if(listData.blobs && listData.blobs.length > 0) {
-                    const blobInfo = listData.blobs.find(b => b.pathname === filename);
+                    listData.blobs.sort((a,b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+                    const blobInfo = listData.blobs[0]; // Pega sempre o mais recente da nuvem
+                    
                     if(blobInfo) {
-                        const getRes = await fetch(blobInfo.url);
+                        const getRes = await fetch(blobInfo.url, { cache: 'no-store' }); // Impede que o navegador traga versão velha do cache
                         if(getRes.ok) remoteData = await getRes.json();
                     }
+
+                    // Limpeza em background de arquivos lixo que acumularam na nuvem pelo bug anterior
+                    if (listData.blobs.length > 1) {
+                        const urlsToDelete = listData.blobs.slice(1).map(b => b.url);
+                        fetch('https://blob.vercel-storage.com/delete', {
+                            method: 'POST',
+                            headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+                            body: JSON.stringify({ urls: urlsToDelete })
+                        }).catch(()=>{});
+                    }
                 }
-            } catch(e) { console.warn("Sem backup mestre anterior na nuvem. Será criado um novo.", e); }
+            } catch(e) { console.warn("Nenhum backup mestre na nuvem ou erro de leitura.", e); }
 
             document.getElementById('progressText').innerText = "A analisar conflitos e mesclar dados...";
             
@@ -781,7 +795,11 @@ var App = {
             
             const putRes = await fetch(`https://blob.vercel-storage.com/${filename}`, {
                 method: 'PUT',
-                headers: { authorization: `Bearer ${token}` },
+                headers: { 
+                    authorization: `Bearer ${token}`,
+                    'x-add-random-suffix': 'false', // FORÇA NOME EXATO PARA LER NO FUTURO SEM ERRO
+                    'content-type': 'application/json'
+                },
                 body: blobFile
             });
             
