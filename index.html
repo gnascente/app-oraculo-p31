@@ -264,6 +264,7 @@
 
 <div class="container">
     <header id="mainHeader">
+        <i class="material-icons action-icon" id="btnBack" style="display:none; margin-right: 12px;" onclick="App.goBack()">arrow_back</i>
         <h1 id="headerTitle">
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
@@ -274,7 +275,6 @@
         <div class="header-actions">
             <i class="material-icons action-icon" onclick="App.syncCloud()" title="Sincronizar Nuvem">sync</i>
             <i class="material-icons action-icon" onclick="App.printReport()" title="Imprimir Relatório (14 dias)">print</i>
-            <i class="material-icons action-icon" id="btnBack" style="display:none;" onclick="App.goBack()">arrow_back</i>
             <div style="position: relative;" id="menuWrapper">
                 <i class="material-icons action-icon" onclick="App.toggleMenu(event)">more_vert</i>
                 <div id="mainMenu" class="dropdown-menu">
@@ -289,7 +289,7 @@
         <div class="home-search-container">
             <div class="search-box">
                 <i class="material-icons search-icon">search</i>
-                <input type="text" id="homeSearchInput" placeholder="Busca global em tudo..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" oninput="App.renderHomeSearch()">
+                <input type="text" id="homeSearchInput" name="q_search_home" placeholder="Busca global em tudo..." autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" oninput="App.renderHomeSearch()">
             </div>
         </div>
         <div class="home-grid" id="homeGrid">
@@ -319,7 +319,7 @@
         <div class="search-container">
             <div class="search-box">
                 <i class="material-icons search-icon">search</i>
-                <input type="text" id="searchInput" placeholder="Buscar ou criar novo..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" oninput="App.renderList()">
+                <input type="text" id="searchInput" name="q_search_list" placeholder="Buscar ou criar novo..." autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" oninput="App.renderList()">
             </div>
         </div>
         <ul class="task-list" id="entityList"></ul>
@@ -339,7 +339,7 @@
         <h3 id="customDialogTitle" style="text-align:left;">Aviso</h3>
         <p id="customDialogMessage" style="text-align:left; line-height: 1.4; margin-bottom: 24px;"></p>
         <div id="customDialogInputContainer" style="display: none; margin-bottom: 20px;">
-            <input type="text" id="customDialogInput" class="input-field" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
+            <input type="text" id="customDialogInput" name="q_dialog" class="input-field" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
         </div>
         <div class="modal-actions" style="justify-content: flex-end;">
             <button class="btn btn-text" id="customDialogCancel" style="display: none;">Cancelar</button>
@@ -363,7 +363,7 @@
             <i class="material-icons action-icon danger" onclick="EntityModal.delete()">delete</i>
         </div>
         <div class="input-group">
-            <input type="text" id="entityNameEditInput" class="input-field" placeholder="Nome" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
+            <input type="text" id="entityNameEditInput" name="q_entity_edit" class="input-field" placeholder="Nome" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
         </div>
         <div class="modal-actions">
             <button class="btn btn-text" onclick="EntityModal.closeUI()">Cancelar</button>
@@ -381,13 +381,13 @@
         
         <div class="input-group" id="logLinkContainer">
             <label style="font-size: 13px; font-weight: 500; color: var(--on-surface-variant); margin-bottom: 8px; display: block;">Vincular a:</label>
-            <input type="text" id="logLinkInput" class="input-field" placeholder="Buscar entidade primária..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" onfocus="LogModal.searchLinks()" oninput="LogModal.searchLinks()">
+            <input type="text" id="logLinkInput" name="q_log_link" class="input-field" placeholder="Buscar entidade primária..." autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" onfocus="LogModal.searchLinks()" oninput="LogModal.searchLinks()">
             <div id="logLinkAutocomplete" class="autocomplete-dropdown"></div>
             <div id="logLinkPills" class="pills-container" style="margin-top: 12px;"></div>
         </div>
 
         <div class="input-group">
-            <textarea id="logText" class="input-field" placeholder="Descreva o andamento, evento ou observação..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true"></textarea>
+            <textarea id="logText" name="q_log_text" class="input-field" placeholder="Descreva o andamento, evento ou observação..." autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true"></textarea>
         </div>
         
         <div class="input-group" style="display: flex; gap: 8px;">
@@ -414,7 +414,7 @@
     <div class="modal-content">
         <h2>Nova Tarefa de Serviço</h2>
         <div class="input-group" style="margin-top: 16px;">
-            <input type="text" id="taskNameInput" class="input-field" placeholder="Nome da Tarefa (Ex: Desmontagem)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
+            <input type="text" id="taskNameInput" name="q_task_name" class="input-field" placeholder="Nome da Tarefa (Ex: Desmontagem)" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
         </div>
         <div class="modal-actions">
             <button class="btn btn-text" onclick="TaskModal.closeUI()">Cancelar</button>
