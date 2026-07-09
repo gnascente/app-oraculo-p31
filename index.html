@@ -268,10 +268,11 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.3.0</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.4.0</span>
             </div>
         </h1>
         <div class="header-actions">
+            <i class="material-icons action-icon" onclick="App.syncCloud()" title="Sincronizar Nuvem">sync</i>
             <i class="material-icons action-icon" onclick="App.printReport()" title="Imprimir Relatório (14 dias)">print</i>
             <i class="material-icons action-icon" id="btnBack" style="display:none;" onclick="App.goBack()">arrow_back</i>
             <div style="position: relative;" id="menuWrapper">
@@ -624,7 +625,7 @@ async function processMultipleMedia(files, onProgress, callback) {
             await new Promise((resolve) => { 
                 reader.onload = (e) => { 
                     let base64 = e.target.result.replace('data:application/pdf;base64,', `data:application/pdf;name=${encodedName};base64,`); 
-                    processedArray.push({ data: base64, size: base64.length * 0.75, createdAt: captureTime }); 
+                    processedArray.push({ data: base64, size: base64.length * 0.75, createdAt: captureTime, updatedAt: captureTime }); 
                     resolve(); 
                 }; 
                 reader.readAsDataURL(file); 
@@ -632,14 +633,14 @@ async function processMultipleMedia(files, onProgress, callback) {
         } else if (file.type.startsWith('video/')) {
             const result = await AppUtils.compressVideo(file, onProgress);
             if (result.video) {
-                processedArray.push({ data: result.video, thumbnail: result.thumb, size: result.size, isVideo: true, createdAt: captureTime });
+                processedArray.push({ data: result.video, thumbnail: result.thumb, size: result.size, isVideo: true, createdAt: captureTime, updatedAt: captureTime });
             }
         } else if (file.type.startsWith('image/')) {
             if (file.size <= 250 * 1024) { 
                 const reader = new FileReader();
                 await new Promise((resolve) => {
                     reader.onload = (e) => {
-                        processedArray.push({ data: e.target.result, size: file.size, createdAt: captureTime }); 
+                        processedArray.push({ data: e.target.result, size: file.size, createdAt: captureTime, updatedAt: captureTime }); 
                         resolve();
                     };
                     reader.readAsDataURL(file);
@@ -655,7 +656,7 @@ async function processMultipleMedia(files, onProgress, callback) {
                             if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
                             canvas.width = width; canvas.height = height; canvas.getContext('2d').drawImage(img, 0, 0, width, height);
                             let b64 = canvas.toDataURL('image/jpeg', 0.6); 
-                            processedArray.push({ data: b64, size: b64.length * 0.75, createdAt: captureTime }); resolve();
+                            processedArray.push({ data: b64, size: b64.length * 0.75, createdAt: captureTime, updatedAt: captureTime }); resolve();
                         }; img.src = e.target.result;
                     }; reader.readAsDataURL(file);
                 });
@@ -711,10 +712,93 @@ var App = {
 
     toggleMenu: (e) => { e.stopPropagation(); const menu = document.getElementById('mainMenu'); if (menu.classList.contains('show')) MenuModal.closeUI(); else MenuModal.open(); },
     
+    syncCloud: async function() {
+        if(!navigator.onLine) { await CustomDialog.alert("Verifique a sua conexão de internet.", "Sem conexão"); return; }
+        if(!await CustomDialog.confirm("Iniciar sincronização bidirecional com a nuvem? Dados conflitantes usarão o registro mais recente.", "Sincronizar")) return;
+
+        const token = "vercel_blob_rw_lSwvXX6stWnRHpgK_Txuyw1Wkl2opkBzxnWf1mGFW01IJZc";
+        const filename = "oraculo_sync_master.json";
+        
+        document.getElementById('progressModal').classList.add('active');
+        document.getElementById('progressTitle').innerText = "A Sincronizar...";
+        document.getElementById('progressText').innerText = "A buscar dados da nuvem...";
+        document.getElementById('progressCancelBtn').style.display = 'none'; // Desabilita cancelamento para não corromper o meio da sync
+        
+        try {
+            let remoteData = { entities: [], logs: [] };
+            try {
+                const listRes = await fetch(`https://blob.vercel-storage.com/?prefix=${filename}`, { headers: { authorization: `Bearer ${token}` } });
+                const listData = await listRes.json();
+                if(listData.blobs && listData.blobs.length > 0) {
+                    const blobInfo = listData.blobs.find(b => b.pathname === filename);
+                    if(blobInfo) {
+                        const getRes = await fetch(blobInfo.url);
+                        if(getRes.ok) remoteData = await getRes.json();
+                    }
+                }
+            } catch(e) { console.warn("Sem backup mestre anterior na nuvem. Será criado um novo.", e); }
+
+            document.getElementById('progressText').innerText = "A analisar conflitos e mesclar dados...";
+            
+            const localEntities = await AppDB.entities.toArray();
+            const localLogs = await AppDB.logs.toArray();
+            
+            const mergeArrays = (localArr, remoteArr) => {
+                const map = new Map();
+                localArr.forEach(item => map.set(item.id, item));
+                remoteArr.forEach(rItem => {
+                    const lItem = map.get(rItem.id);
+                    if(lItem) {
+                        const lTime = lItem.updatedAt || lItem.createdAt || 0;
+                        const rTime = rItem.updatedAt || rItem.createdAt || 0;
+                        if(rTime > lTime) map.set(rItem.id, rItem);
+                    } else {
+                        map.set(rItem.id, rItem);
+                    }
+                });
+                return Array.from(map.values());
+            };
+
+            const mergedEntities = mergeArrays(localEntities, remoteData.entities || []);
+            const mergedLogs = mergeArrays(localLogs, remoteData.logs || []);
+            
+            document.getElementById('progressText').innerText = "A guardar unificação na base local...";
+            
+            await AppDB.transaction('rw', AppDB.entities, AppDB.logs, async () => {
+                await AppDB.entities.clear(); await AppDB.logs.clear();
+                await AppDB.entities.bulkPut(mergedEntities); await AppDB.logs.bulkPut(mergedLogs);
+            });
+            
+            document.getElementById('progressText').innerText = "A atualizar o arquivo mestre na nuvem...";
+            
+            const mergedJSON = JSON.stringify({ entities: mergedEntities, logs: mergedLogs });
+            const blobFile = new Blob([mergedJSON], { type: 'application/json' });
+            
+            const putRes = await fetch(`https://blob.vercel-storage.com/${filename}`, {
+                method: 'PUT',
+                headers: { authorization: `Bearer ${token}` },
+                body: blobFile
+            });
+            
+            if(!putRes.ok) throw new Error("Erro ao salvar o resultado do merge na nuvem.");
+
+            document.getElementById('progressModal').classList.remove('active');
+            document.getElementById('progressCancelBtn').style.display = 'block';
+            this.goHome();
+            await CustomDialog.alert("Sincronização concluída com sucesso! Os seus dados estão atualizados e protegidos.", "Sincronizado");
+
+        } catch(e) {
+            document.getElementById('progressModal').classList.remove('active');
+            document.getElementById('progressCancelBtn').style.display = 'block';
+            await CustomDialog.alert("Falha na sincronização: " + e.message, "Erro");
+        }
+    },
+
     printReport: async function() {
         document.getElementById('progressModal').classList.add('active');
         document.getElementById('progressTitle').innerText = "A Gerar Relatório...";
         document.getElementById('progressText').innerText = "A compilar os últimos 14 dias...";
+        document.getElementById('progressCancelBtn').style.display = 'block';
 
         setTimeout(async () => {
             try {
@@ -976,7 +1060,8 @@ var App = {
 
     createEntityOnTheFly: async function(name, parentId = null) {
         if(!name.trim()) return; const newType = parentId ? 'tarefa' : this.moduleType;
-        const newEntity = { id: Date.now().toString(), type: newType, name: name.trim(), createdAt: Date.now(), parentId: parentId };
+        const now = Date.now();
+        const newEntity = { id: now.toString(), type: newType, name: name.trim(), createdAt: now, updatedAt: now, parentId: parentId };
         await AppDB.entities.put(newEntity);
         if(!parentId) { document.getElementById('searchInput').value = ''; }
         await this.renderList(); this.focusEntity(newEntity.id);
@@ -1168,6 +1253,7 @@ var App = {
         document.getElementById('progressModal').classList.add('active');
         document.getElementById('progressTitle').innerText = "A Gerar Ficheiro Local...";
         document.getElementById('progressText').innerText = "0%";
+        document.getElementById('progressCancelBtn').style.display = 'block';
         document.getElementById('progressCancelBtn').onclick = () => { isCancelled = true; document.getElementById('progressModal').classList.remove('active'); };
 
         try {
@@ -1203,6 +1289,7 @@ var App = {
         document.getElementById('progressModal').classList.add('active');
         document.getElementById('progressTitle').innerText = "A Compactar Banco...";
         document.getElementById('progressText').innerText = "0%";
+        document.getElementById('progressCancelBtn').style.display = 'block';
         document.getElementById('progressCancelBtn').onclick = () => { isCancelled = true; if(xhr) xhr.abort(); document.getElementById('progressModal').classList.remove('active'); };
 
         try {
@@ -1221,11 +1308,15 @@ var App = {
             if(isCancelled) return;
 
             const filename = `backup_oraculo_${Date.now()}.zip`; 
-            document.getElementById('progressTitle').innerText = "A enviar para a Nuvem...";
+            const token = "vercel_blob_rw_lSwvXX6stWnRHpgK_Txuyw1Wkl2opkBzxnWf1mGFW01IJZc";
+            
+            document.getElementById('progressTitle').innerText = "A enviar direto para a Nuvem...";
             document.getElementById('progressText').innerText = "A Iniciar upload...";
 
             xhr = new XMLHttpRequest();
-            xhr.open('POST', `/api/backup?filename=${filename}`, true);
+            xhr.open('PUT', `https://blob.vercel-storage.com/${filename}`, true);
+            xhr.setRequestHeader('authorization', `Bearer ${token}`);
+            
             xhr.upload.onprogress = function(e) {
                 if (e.lengthComputable && !isCancelled) {
                     let loaded = (e.loaded / 1024 / 1024).toFixed(2);
@@ -1234,19 +1325,19 @@ var App = {
                     document.getElementById('progressText').innerText = `${loaded} MB / ${total} MB (${percent}%)`;
                 }
             };
+            
             xhr.onload = function() {
                 document.getElementById('progressModal').classList.remove('active');
                 if(isCancelled) return;
                 
                 if (xhr.status === 200) { 
                     CustomDialog.alert(`Salvo na nuvem com sucesso!\nArquivo: ${filename}`, "Sucesso"); 
-                } else if (xhr.status === 413) {
-                    const url = URL.createObjectURL(zipBlob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); 
-                    CustomDialog.alert("Seu banco de dados ficou muito grande para o servidor na nuvem (Erro 413). O backup de segurança foi baixado no seu celular automaticamente. Use a opção 'Local' ou apague vídeos antigos.", "Limite Atingido");
                 } else { 
-                    CustomDialog.alert("Falha no servidor. Status: " + xhr.status, "Erro"); 
+                    const url = URL.createObjectURL(zipBlob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); 
+                    CustomDialog.alert("Falha no servidor. O backup de segurança foi baixado no seu dispositivo. Status: " + xhr.status, "Erro"); 
                 }
             };
+            
             xhr.onerror = function() {
                 document.getElementById('progressModal').classList.remove('active');
                 if(isCancelled) return;
@@ -1292,6 +1383,7 @@ var App = {
             document.getElementById('progressModal').classList.add('active');
             document.getElementById('progressTitle').innerText = "A Baixar Backup...";
             document.getElementById('progressText').innerText = "0 MB / 0 MB";
+            document.getElementById('progressCancelBtn').style.display = 'block';
             document.getElementById('progressCancelBtn').onclick = () => { isCancelled = true; xhr.abort(); document.getElementById('progressModal').classList.remove('active'); };
 
             xhr.open('GET', url, true); xhr.responseType = 'blob';
@@ -1352,6 +1444,7 @@ var App = {
             document.getElementById('progressModal').classList.add('active');
             document.getElementById('progressTitle').innerText = "A Restaurar Backup...";
             document.getElementById('progressText').innerText = "A processar ficheiro...";
+            document.getElementById('progressCancelBtn').style.display = 'none';
             
             try {
                 let parsedData;
@@ -1388,6 +1481,7 @@ var App = {
                 await CustomDialog.alert("Erro ao restaurar: " + error.message, "Erro");
             } finally {
                 e.target.value = '';
+                document.getElementById('progressCancelBtn').style.display = 'block';
             }
         }, 300);
     }
@@ -1413,7 +1507,7 @@ var EntityModal = {
     save: async function() {
         const val = document.getElementById('entityNameEditInput').value.trim(); if(!val) return;
         const entity = await AppDB.entities.get(this.currentTargetId); 
-        if(entity) { entity.name = val; await AppDB.entities.put(entity); App.renderList(); }
+        if(entity) { entity.name = val; entity.updatedAt = Date.now(); await AppDB.entities.put(entity); App.renderList(); }
         this.closeUI();
     },
     delete: async function() {
@@ -1428,6 +1522,7 @@ var EntityModal = {
                 let affectedLogs = await AppDB.logs.filter(l => l.relatedEntities.some(rel => rel.id === id)).toArray();
                 for(let log of affectedLogs) {
                     log.relatedEntities = log.relatedEntities.filter(rel => rel.id !== id);
+                    log.updatedAt = Date.now();
                     await AppDB.logs.put(log);
                 }
             });
@@ -1513,16 +1608,19 @@ var LogModal = {
             const originEntity = await AppDB.entities.get(this.originId);
             const coreRelation = { type: originEntity.type, id: originEntity.id };
             const finalRelations = [coreRelation, ...this.tempRelations.map(rel => ({ type: rel.type, id: rel.id }))];
+            
+            const now = Date.now();
 
             if (this.editLogId) {
                 const log = await AppDB.logs.get(this.editLogId); 
                 log.text = text; 
                 log.images = [...this.tempMedia];
                 log.relatedEntities = finalRelations;
+                log.updatedAt = now;
                 await AppDB.logs.put(log);
             } else {
                 const newLog = { 
-                    id: Date.now().toString(), text: text, images: [...this.tempMedia], createdAt: Date.now(), 
+                    id: now.toString(), text: text, images: [...this.tempMedia], createdAt: now, updatedAt: now, 
                     originEntityId: this.originId, relatedEntities: finalRelations 
                 };
                 await AppDB.logs.put(newLog);
@@ -1616,7 +1714,7 @@ var CarouselModal = {
             this.imagesArray.splice(this.currentIndex, 1);
             if (this.currentLogId === 'temp') { LogModal.updateUI(); } 
             else { 
-                const log = await AppDB.logs.get(this.currentLogId); log.images = this.imagesArray; await AppDB.logs.put(log); App.renderList(); App.calculateStorage(); 
+                const log = await AppDB.logs.get(this.currentLogId); log.images = this.imagesArray; log.updatedAt = Date.now(); await AppDB.logs.put(log); App.renderList(); App.calculateStorage(); 
             }
             if(this.imagesArray.length === 0) { this.closeUI(); } else {
                 this.render(); this.bindZoom();
@@ -1699,7 +1797,7 @@ var Editor = {
                 }
             }
             const dataUrl = this.canvas.toDataURL('image/jpeg', 0.8);
-            if (this.targetMode === 'db') { const log = await AppDB.logs.get(this.logId); if(log && log.images[this.dbIdx]) { log.images[this.dbIdx].data = dataUrl; log.images[this.dbIdx].size = dataUrl.length * 0.75; } await AppDB.logs.put(log); App.renderList(); App.calculateStorage(); } 
+            if (this.targetMode === 'db') { const log = await AppDB.logs.get(this.logId); if(log && log.images[this.dbIdx]) { log.images[this.dbIdx].data = dataUrl; log.images[this.dbIdx].size = dataUrl.length * 0.75; log.updatedAt = Date.now(); } await AppDB.logs.put(log); App.renderList(); App.calculateStorage(); } 
             else if (this.targetMode === 'temp') { if(LogModal.tempMedia[this.dbIdx]) { LogModal.tempMedia[this.dbIdx].data = dataUrl; LogModal.tempMedia[this.dbIdx].size = dataUrl.length * 0.75; } LogModal.updateUI(); }
             if (CarouselModal.el.classList.contains('active') && CarouselModal.imagesArray[this.dbIdx]) { CarouselModal.imagesArray[this.dbIdx].data = dataUrl; CarouselModal.imagesArray[this.dbIdx].size = CarouselModal.imagesArray[this.dbIdx].data.length * 0.75; CarouselModal.render(); CarouselModal.bindZoom(); CarouselModal.updateGlobalActions(); }
             this.closeUI();
