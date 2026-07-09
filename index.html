@@ -108,7 +108,6 @@
         .task-list { list-style: none; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
         .task-item { background: var(--surface-variant); border-radius: 12px; padding: 16px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; transition: background-color 0.5s; border: 1px solid transparent; }
         
-        /* Nova Formatação do Header do Cartão (Float para o texto fluir abaixo dos botões) */
         .task-header { display: block; margin-bottom: 12px; }
         .task-header::after { content: ""; display: table; clear: both; }
         .entity-icon { float: left; width: 36px; height: 36px; border-radius: 8px; background: rgba(168, 199, 250, 0.1); display: grid; place-content: center; color: var(--primary); margin-right: 12px; margin-bottom: 4px; pointer-events:none;}
@@ -408,19 +407,6 @@
         <div class="modal-actions">
             <button class="btn btn-text" onclick="LogModal.closeUI()">Cancelar</button>
             <button class="btn btn-filled" id="logSaveBtn" onclick="LogModal.save()">Guardar Registo</button>
-        </div>
-    </div>
-</div>
-
-<div class="modal-overlay" id="taskCreateModal">
-    <div class="modal-content">
-        <h2>Nova Tarefa de Serviço</h2>
-        <div class="input-group" style="margin-top: 16px;">
-            <input type="text" id="taskNameInput" name="q_task_name" class="input-field" placeholder="Nome da Tarefa (Ex: Desmontagem)" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
-        </div>
-        <div class="modal-actions">
-            <button class="btn btn-text" onclick="TaskModal.closeUI()">Cancelar</button>
-            <button class="btn btn-filled" onclick="TaskModal.save()">Criar Tarefa</button>
         </div>
     </div>
 </div>
@@ -793,11 +779,11 @@ var App = {
             
             let msg = "";
             if (changesReceived === 0 && changesSent === 0) {
-                msg = "O App já estava totalmente atualizado com a nuvem. Nenhuma alteração nova foi detectada.";
+                msg = "O App já estava totalmente atualizado com a nuvem.";
             } else {
                 msg = `Sincronização concluída com sucesso!\n\n📋 Resumo das alterações:\n`;
-                if (changesReceived > 0) msg += `⬇️ ${changesReceived} registros atualizados da nuvem\n`;
-                if (changesSent > 0) msg += `⬆️ ${changesSent} registros novos enviados para a nuvem`;
+                if (changesReceived > 0) msg += `⬇️ ${changesReceived} registros novos recebidos\n`;
+                if (changesSent > 0) msg += `⬆️ ${changesSent} registros novos enviados`;
             }
             await CustomDialog.alert(msg.trim(), "Sincronizado");
 
@@ -923,7 +909,7 @@ var App = {
                                     <div class="print-log-item">
                                         <div class="print-header">${AppUtils.formatDate(log.createdAt)}</div>
                                         <div class="print-text">${log.text || ''}</div>
-                                        ${mediaHtml ? `<div style="margin-top:5px;">${mediaHtml}</div>` : ''}
+                                        ${mediaHtml ? `<div style="margin-top:5px;">${mediaHtml}</div>' : ''}
                                     </div>
                                 `;
                             }
@@ -976,7 +962,7 @@ var App = {
                             <div class="print-log-item">
                                 <div class="print-header">${AppUtils.formatDate(log.createdAt)}</div>
                                 <div class="print-text">${log.text || ''}</div>
-                                ${mediaHtml ? `<div style="margin-top:5px;">${mediaHtml}</div>` : ''}
+                                ${mediaHtml ? `<div style="margin-top:5px;">${mediaHtml}</div>' : ''}
                             </div>
                         `;
                     }
