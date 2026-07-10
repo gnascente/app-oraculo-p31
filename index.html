@@ -271,7 +271,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.4.6</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.4.7</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -714,6 +714,7 @@ var App = {
         if(!await CustomDialog.confirm("Iniciar sincronização bidirecional com a nuvem? Dados conflitantes usarão o registo mais recente.", "Sincronizar")) return;
 
         const filename = "oraculo_sync_master.json";
+        const token = "vercel_blob_rw_lSwvXX6stWnRHpgK_Txuyw1Wkl2opkBzxnWf1mGFW01IJZc";
         
         document.getElementById('progressModal').classList.add('active');
         document.getElementById('progressTitle').innerText = "A Sincronizar...";
@@ -723,10 +724,11 @@ var App = {
         try {
             let remoteData = { entities: [], logs: [] };
             try {
-                const listRes = await fetch(`/api/backup?prefix=${filename}`);
+                const listRes = await fetch(`/api/backup?prefix=oraculo_sync_master`);
                 if (listRes.ok) {
                     const listData = await listRes.json();
                     if(listData.blobs && listData.blobs.length > 0) {
+                        listData.blobs.sort((a,b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
                         const blobInfo = listData.blobs[0]; 
                         const getRes = await fetch(blobInfo.url, { cache: 'no-store' }); 
                         if(getRes.ok) remoteData = await getRes.json();
@@ -789,18 +791,32 @@ var App = {
             document.getElementById('progressText').innerText = "A atualizar o ficheiro mestre na nuvem...";
             
             const mergedJSON = JSON.stringify({ entities: mergedEntities, logs: mergedLogs });
+            const blobFile = new Blob([mergedJSON], { type: 'application/json' });
             
-            const putRes = await fetch(`/api/backup?filename=${filename}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: mergedJSON
+            // Upload DIRETO PARA A NUVEM, evitando o limite de 4.5MB da Vercel Serverless
+            const putRes = await fetch(`https://blob.vercel-storage.com/${filename}`, {
+                method: 'PUT',
+                headers: { authorization: `Bearer ${token}` }, // Sem o cabeçalho x-add-random-suffix para evitar CORS
+                body: blobFile
             });
             
             if(!putRes.ok) {
-                const errObj = await putRes.json().catch(()=>({error: putRes.statusText}));
-                const errDetail = typeof errObj === 'object' ? JSON.stringify(errObj) : errObj;
-                throw new Error(`[HTTP ${putRes.status}] ${errDetail || 'Erro desconhecido ao salvar'}`);
+                const errDetail = await putRes.text();
+                throw new Error(`[Bloqueio no Upload Direto HTTP ${putRes.status}] ${errDetail}`);
             }
+
+            const uploadedBlob = await putRes.json();
+
+            // Comando leve para o backend limpar o lixo deixado pelos sufixos
+            await fetch('/api/backup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'cleanup',
+                    prefix: 'oraculo_sync_master',
+                    keepUrl: uploadedBlob.url
+                })
+            }).catch(e => console.log("Faxina falhou silenciosamente", e));
 
             document.getElementById('progressModal').classList.remove('active');
             document.getElementById('progressCancelBtn').style.display = 'block';
