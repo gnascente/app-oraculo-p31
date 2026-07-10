@@ -271,7 +271,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.4.5</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.4.6</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -340,9 +340,13 @@
     <div class="dialog-content">
         <h3 id="customDialogTitle" style="text-align:left;">Aviso</h3>
         <p id="customDialogMessage" style="text-align:left; line-height: 1.4; margin-bottom: 24px;"></p>
+        
         <div id="customDialogInputContainer" style="display: none; margin-bottom: 20px;">
             <input type="text" id="customDialogInput" class="input-field" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
         </div>
+        
+        <textarea id="customDialogCopyable" class="input-field" readonly style="display: none; margin-bottom: 20px; font-family: monospace; font-size: 12px; height: 100px; background: #222; border: 1px solid #444; color: #ffb4ab;" onclick="this.select()"></textarea>
+
         <div class="modal-actions" style="justify-content: flex-end;">
             <button class="btn btn-text" id="customDialogCancel" style="display: none;">Cancelar</button>
             <button class="btn btn-filled" id="customDialogConfirm">OK</button>
@@ -497,12 +501,21 @@ var CustomDialog = {
     el: document.getElementById('customDialogModal'), titleEl: document.getElementById('customDialogTitle'),
     msgEl: document.getElementById('customDialogMessage'), inputContainer: document.getElementById('customDialogInputContainer'),
     inputEl: document.getElementById('customDialogInput'), btnCancel: document.getElementById('customDialogCancel'),
-    btnConfirm: document.getElementById('customDialogConfirm'), resolvePromise: null,
-    show: function(title, message, type, defaultValue = '') {
+    btnConfirm: document.getElementById('customDialogConfirm'), copyableEl: document.getElementById('customDialogCopyable'),
+    resolvePromise: null,
+    show: function(title, message, type, defaultValue = '', copyText = '') {
         return new Promise((resolve) => {
             this.titleEl.innerText = title || 'Aviso'; this.msgEl.innerHTML = message;
             this.inputContainer.style.display = type === 'prompt' ? 'block' : 'none';
             if (type === 'prompt') this.inputEl.value = defaultValue;
+            
+            if (copyText) {
+                this.copyableEl.style.display = 'block';
+                this.copyableEl.value = copyText;
+            } else {
+                this.copyableEl.style.display = 'none';
+            }
+
             this.btnCancel.style.display = (type === 'confirm' || type === 'prompt') ? 'block' : 'none';
             this.btnConfirm.style.display = 'block'; 
             this.resolvePromise = resolve;
@@ -513,7 +526,7 @@ var CustomDialog = {
         });
     },
     onHardwareBack: function() { if(this.resolvePromise) { this.resolvePromise(this.inputContainer.style.display === 'block' ? null : false); this.resolvePromise = null; } },
-    alert: function(message, title) { return this.show(title, message, 'alert'); },
+    alert: function(message, title, copyText = '') { return this.show(title, message, 'alert', '', copyText); },
     confirm: function(message, title) { return this.show(title, message, 'confirm'); },
     prompt: function(message, defaultValue, title) { return this.show(title, message, 'prompt', defaultValue); }
 };
@@ -783,7 +796,11 @@ var App = {
                 body: mergedJSON
             });
             
-            if(!putRes.ok) throw new Error("Erro ao salvar o resultado da mesclagem na nuvem.");
+            if(!putRes.ok) {
+                const errObj = await putRes.json().catch(()=>({error: putRes.statusText}));
+                const errDetail = typeof errObj === 'object' ? JSON.stringify(errObj) : errObj;
+                throw new Error(`[HTTP ${putRes.status}] ${errDetail || 'Erro desconhecido ao salvar'}`);
+            }
 
             document.getElementById('progressModal').classList.remove('active');
             document.getElementById('progressCancelBtn').style.display = 'block';
@@ -802,11 +819,12 @@ var App = {
         } catch(e) {
             document.getElementById('progressModal').classList.remove('active');
             document.getElementById('progressCancelBtn').style.display = 'block';
-            this.exportToLocal(true, e.message);
+            const rawErrorLog = `Name: ${e.name}\nMessage: ${e.message}\nStack: ${e.stack}`;
+            this.exportToLocal(true, e.message, rawErrorLog);
         }
     },
 
-    exportToLocal: async (isAutoBackup = false, errorMsg = "") => { 
+    exportToLocal: async (isAutoBackup = false, errorMsg = "", rawErrorLog = "") => { 
         if (typeof JSZip === 'undefined') { await CustomDialog.alert("Aguarde a biblioteca carregar.", "Aviso"); return; } 
         
         let isCancelled = false;
@@ -838,7 +856,7 @@ var App = {
             
             if (isAutoBackup) {
                 let failReason = errorMsg === "Failed to fetch" || errorMsg.includes("NetworkError") ? "Sem ligação ou bloqueio de firewall" : errorMsg;
-                await CustomDialog.alert(`Não foi possível sincronizar com a nuvem (${failReason}). Um ficheiro de backup local (${filename}) foi gerado e baixado automaticamente.`, "Sincronização Falhou");
+                await CustomDialog.alert(`Não foi possível sincronizar com a nuvem (${failReason}). Um ficheiro de backup local (${filename}) foi gerado e baixado automaticamente.\n\nCopie o log técnico abaixo caso precise de suporte:`, "Sincronização Falhou", rawErrorLog);
             } else {
                 await CustomDialog.alert(`Backup gerado: ${filename}`, "Sucesso");
             }
