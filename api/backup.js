@@ -26,34 +26,59 @@ export default async function handler(req, res) {
 
         if (req.method === 'POST') {
             const filename = req.query.filename;
+            let buffer;
             
-            // Ler o stream em blocos (chunks) para a memória e formar o ficheiro completo
-            const chunks = [];
-            for await (const chunk of req) {
-                chunks.push(chunk);
+            // Tenta ler o stream do celular e montar na memória
+            try {
+                const chunks = [];
+                for await (const chunk of req) {
+                    chunks.push(chunk);
+                }
+                buffer = Buffer.concat(chunks);
+            } catch (readErr) {
+                return res.status(400).json({ 
+                    error: "Falha na conversão do Stream (Buffer) no Node.js", 
+                    detalhe: readErr.message, 
+                    stack: readErr.stack 
+                });
             }
-            const buffer = Buffer.concat(chunks);
 
-            const response = await fetch(`https://blob.vercel-storage.com/${filename}`, {
-                method: 'PUT',
-                headers: { 
-                    authorization: `Bearer ${token}`,
-                    'x-add-random-suffix': 'false' // Força a sobrescrita do ficheiro exato, evitando lixo
-                },
-                body: buffer
-            });
-            
-            if (!response.ok) {
-                const errText = await response.text();
-                return res.status(response.status).json({ error: errText });
+            // Tenta forçar o envio direto do buffer pro Vercel Blob
+            try {
+                const response = await fetch(`https://blob.vercel-storage.com/${filename}`, {
+                    method: 'PUT',
+                    headers: { 
+                        authorization: `Bearer ${token}`,
+                        'x-add-random-suffix': 'false' 
+                    },
+                    body: buffer
+                });
+                
+                if (!response.ok) {
+                    const errText = await response.text();
+                    return res.status(response.status).json({ 
+                        error: "API da Vercel Blob rejeitou o pacote", 
+                        detalhe: errText 
+                    });
+                }
+                
+                return res.status(200).json(await response.json());
+            } catch (fetchErr) {
+                return res.status(502).json({ 
+                    error: "Falha de rede interna no servidor", 
+                    detalhe: fetchErr.message, 
+                    stack: fetchErr.stack 
+                });
             }
-            
-            return res.status(200).json(await response.json());
         }
 
         return res.status(405).json({ error: 'Método não permitido.' });
 
     } catch (error) {
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json({ 
+            error: "Erro Fatal no Handler Geral", 
+            detalhe: error.message, 
+            stack: error.stack 
+        });
     }
 }
