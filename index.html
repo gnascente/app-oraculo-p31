@@ -271,7 +271,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.4.7</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.5.0</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -711,125 +711,116 @@ var App = {
             this.exportToLocal(true, "Sem ligação à internet");
             return; 
         }
-        if(!await CustomDialog.confirm("Iniciar sincronização bidirecional com a nuvem? Dados conflitantes usarão o registo mais recente.", "Sincronizar")) return;
+        if(!await CustomDialog.confirm("Iniciar sincronização otimizada com a nuvem? Apenas fragmentos necessários serão trafegados.", "Sincronizar")) return;
 
-        const filename = "oraculo_sync_master.json";
-        const token = "vercel_blob_rw_lSwvXX6stWnRHpgK_Txuyw1Wkl2opkBzxnWf1mGFW01IJZc";
+        const prefix = "oraculo_sync_master";
         
         document.getElementById('progressModal').classList.add('active');
         document.getElementById('progressTitle').innerText = "A Sincronizar...";
-        document.getElementById('progressText').innerText = "A obter dados da nuvem...";
+        document.getElementById('progressText').innerText = "A obter índice da nuvem...";
         document.getElementById('progressCancelBtn').style.display = 'none';
         
         try {
-            let remoteData = { entities: [], logs: [] };
-            try {
-                const listRes = await fetch(`/api/backup?prefix=oraculo_sync_master`);
-                if (listRes.ok) {
-                    const listData = await listRes.json();
-                    if(listData.blobs && listData.blobs.length > 0) {
-                        listData.blobs.sort((a,b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-                        const blobInfo = listData.blobs[0]; 
-                        const getRes = await fetch(blobInfo.url, { cache: 'no-store' }); 
-                        if(getRes.ok) remoteData = await getRes.json();
-                    }
-                }
-            } catch(e) { console.warn("Sem backup mestre na nuvem ou erro de leitura.", e); }
-
-            document.getElementById('progressText').innerText = "A analisar conflitos e a mesclar dados...";
+            const indexRes = await fetch(`/api/backup?action=index&prefix=${prefix}`);
+            if(!indexRes.ok) throw new Error("Falha ao obter índice da nuvem.");
+            const remoteIndex = await indexRes.json(); 
+            
+            document.getElementById('progressText').innerText = "A analisar fragmentos...";
             
             const localEntities = await AppDB.entities.toArray();
             const localLogs = await AppDB.logs.toArray();
             
-            let changesReceived = 0;
+            const toUpload = { entities: [], logs: [] };
+            const toDownloadIds = { entities: [], logs: [] };
             let changesSent = 0;
+            let changesReceived = 0;
 
-            const mergeArrays = (localArr, remoteArr) => {
-                const map = new Map();
+            const processDiff = (localArr, remoteIndexArr, uploadTarget, downloadTarget) => {
+                const localMap = new Map();
+                localArr.forEach(l => localMap.set(l.id, l));
+                
                 const remoteMap = new Map();
-                remoteArr.forEach(r => remoteMap.set(r.id, r));
+                if(remoteIndexArr) remoteIndexArr.forEach(r => remoteMap.set(r.id, r));
 
                 localArr.forEach(lItem => {
-                    map.set(lItem.id, lItem);
                     const rItem = remoteMap.get(lItem.id);
+                    const lTime = lItem.updatedAt || lItem.createdAt || 0;
                     if (!rItem) {
+                        uploadTarget.push(lItem);
                         changesSent++;
                     } else {
-                        const lTime = lItem.updatedAt || lItem.createdAt || 0;
-                        const rTime = rItem.updatedAt || rItem.createdAt || 0;
-                        if (lTime > rTime) changesSent++;
+                        const rTime = rItem.updatedAt || 0;
+                        if (lTime > rTime) {
+                            uploadTarget.push(lItem);
+                            changesSent++;
+                        }
                     }
                 });
 
-                remoteArr.forEach(rItem => {
-                    const lItem = map.get(rItem.id);
-                    if(lItem) {
-                        const lTime = lItem.updatedAt || lItem.createdAt || 0;
-                        const rTime = rItem.updatedAt || rItem.createdAt || 0;
-                        if(rTime > lTime) {
-                            map.set(rItem.id, rItem);
-                            changesReceived++;
+                if(remoteIndexArr) {
+                    remoteIndexArr.forEach(rItem => {
+                        const lItem = localMap.get(rItem.id);
+                        const rTime = rItem.updatedAt || 0;
+                        if(lItem) {
+                            const lTime = lItem.updatedAt || lItem.createdAt || 0;
+                            if(rTime > lTime) {
+                                downloadTarget.push(rItem.id);
+                                changesReceived++; 
+                            }
+                        } else {
+                            downloadTarget.push(rItem.id);
+                            changesReceived++; 
                         }
-                    } else {
-                        map.set(rItem.id, rItem);
-                        changesReceived++;
-                    }
-                });
-                return Array.from(map.values());
+                    });
+                }
             };
 
-            const mergedEntities = mergeArrays(localEntities, remoteData.entities || []);
-            const mergedLogs = mergeArrays(localLogs, remoteData.logs || []);
+            processDiff(localEntities, remoteIndex.entities, toUpload.entities, toDownloadIds.entities);
+            processDiff(localLogs, remoteIndex.logs, toUpload.logs, toDownloadIds.logs);
             
-            document.getElementById('progressText').innerText = "A guardar unificação na base local...";
-            
-            await AppDB.transaction('rw', AppDB.entities, AppDB.logs, async () => {
-                await AppDB.entities.clear(); await AppDB.logs.clear();
-                await AppDB.entities.bulkPut(mergedEntities); await AppDB.logs.bulkPut(mergedLogs);
-            });
-            
-            document.getElementById('progressText').innerText = "A atualizar o ficheiro mestre na nuvem...";
-            
-            const mergedJSON = JSON.stringify({ entities: mergedEntities, logs: mergedLogs });
-            const blobFile = new Blob([mergedJSON], { type: 'application/json' });
-            
-            // Upload DIRETO PARA A NUVEM, evitando o limite de 4.5MB da Vercel Serverless
-            const putRes = await fetch(`https://blob.vercel-storage.com/${filename}`, {
-                method: 'PUT',
-                headers: { authorization: `Bearer ${token}` }, // Sem o cabeçalho x-add-random-suffix para evitar CORS
-                body: blobFile
-            });
-            
-            if(!putRes.ok) {
-                const errDetail = await putRes.text();
-                throw new Error(`[Bloqueio no Upload Direto HTTP ${putRes.status}] ${errDetail}`);
+            if (changesSent === 0 && changesReceived === 0) {
+                document.getElementById('progressModal').classList.remove('active');
+                document.getElementById('progressCancelBtn').style.display = 'block';
+                this.goHome();
+                await CustomDialog.alert("A aplicação já se encontrava totalmente atualizada. Nenhum fragmento trafegado.", "Sincronizado");
+                return;
             }
 
-            const uploadedBlob = await putRes.json();
-
-            // Comando leve para o backend limpar o lixo deixado pelos sufixos
-            await fetch('/api/backup', {
+            document.getElementById('progressText').innerText = "A trafegar fragmentos...";
+            
+            const syncRes = await fetch('/api/backup', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    action: 'cleanup',
-                    prefix: 'oraculo_sync_master',
-                    keepUrl: uploadedBlob.url
+                    action: 'syncFragment',
+                    prefix: prefix,
+                    toUpload: toUpload,
+                    toDownloadIds: toDownloadIds
                 })
-            }).catch(e => console.log("Faxina falhou silenciosamente", e));
+            });
+
+            if(!syncRes.ok) throw new Error("Falha ao sincronizar fragmentos com o servidor.");
+            const downloadedData = await syncRes.json();
+
+            document.getElementById('progressText').innerText = "A guardar atualizações locais...";
+            
+            await AppDB.transaction('rw', AppDB.entities, AppDB.logs, async () => {
+                if(downloadedData.entities && downloadedData.entities.length > 0) {
+                    await AppDB.entities.bulkPut(downloadedData.entities);
+                }
+                if(downloadedData.logs && downloadedData.logs.length > 0) {
+                    await AppDB.logs.bulkPut(downloadedData.logs);
+                }
+            });
 
             document.getElementById('progressModal').classList.remove('active');
             document.getElementById('progressCancelBtn').style.display = 'block';
             this.goHome();
             
-            let msg = "";
-            if (changesReceived === 0 && changesSent === 0) {
-                msg = "A aplicação já se encontrava totalmente atualizada com a nuvem. Nenhuma alteração nova foi detetada.";
-            } else {
-                msg = `Sincronização concluída com sucesso!\n\n📋 Resumo das alterações:\n`;
-                if (changesReceived > 0) msg += `⬇️ ${changesReceived} registos atualizados da nuvem\n`;
-                if (changesSent > 0) msg += `⬆️ ${changesSent} registos novos enviados para a nuvem`;
-            }
+            let msg = `Sincronização otimizada concluída com sucesso!\n\n📋 Resumo de tráfego:\n`;
+            if (changesReceived > 0) msg += `⬇️ ${changesReceived} fragmentos baixados\n`;
+            if (changesSent > 0) msg += `⬆️ ${changesSent} fragmentos enviados`;
+            
             await CustomDialog.alert(msg.trim(), "Sincronizado");
 
         } catch(e) {
@@ -1328,7 +1319,8 @@ var App = {
                 <div class="log-header">
                     <span><i class="material-icons" style="font-size:12px; vertical-align:middle;">schedule</i> ${AppUtils.formatDate(log.createdAt)}</span>
                     <div class="log-actions">
-                        <i class="material-icons action-icon" style="font-size:14px;" onclick="LogModal.open('${log.id}', '${contextEntityId}')">edit</i>
+                        <i class="material-icons action-icon" style="font-size:14px; margin-right:8px;" title="Adicionar novo registo a esta entidade" onclick="LogModal.open(null, '${contextEntityId}')">add</i>
+                        <i class="material-icons action-icon" style="font-size:14px;" title="Editar Registo" onclick="LogModal.open('${log.id}', '${contextEntityId}')">edit</i>
                     </div>
                 </div>
                 ${log.text ? `<div class="log-text selectable-text">${displayedText}</div>` : ''}
@@ -1687,7 +1679,7 @@ var CarouselModal = {
             let media = '';
             if (img.isPlaceholder) { media = `<div class="carousel-pdf" style="background:#111;"><i class="material-icons" style="font-size:48px; color:var(--primary); animation: spin 1s linear infinite;">sync</i><span style="color:var(--primary); font-size:14px; margin-top:12px; text-align:center;">A processar...</span></div>`; }
             else if (img.data.startsWith('data:application/pdf')) { media = `<div class="carousel-pdf" onclick="App.openPDF('${img.data}')"><i class="material-icons" style="font-size:48px; color:var(--danger)">picture_as_pdf</i><span style="color:#fff; font-size:14px; margin-top:12px; text-align:center;">${AppUtils.getPdfName(img.data)}</span></div>`; } 
-            else if (img.isVideo || img.data.startsWith('data:video/')) { media = `<div class="carousel-img-wrapper" style="pointer-events: auto;"><video src="${img.data}" class="carousel-img" controls playsinline style="pointer-events: auto; z-index: 20; position: relative; max-width: 100%; max-height: 80vh;"></video></div>`; }
+            else if (img.isVideo || img.data.startsWith('data:video/')) { media = `<div class="carousel-img-wrapper" style="pointer-events: auto;"><video src="${img.data}" class="carousel-img" controls playsinline style="pointer-events: auto; z-index: 20; position: relative; max-width: 100%; max-height: 80vh"></video></div>`; }
             else { media = `<div class="carousel-img-wrapper"><img src="${img.data}" class="carousel-img"><div class="carousel-touch-layer"></div></div>`; }
             return `<div class="carousel-item">${media}</div>`;
         }).join('');
