@@ -122,7 +122,11 @@
         mark.highlight { background-color: rgba(255, 213, 79, 0.8); color: #000; padding: 0 4px; border-radius: 4px; box-shadow: 0 0 4px rgba(255, 213, 79, 0.5); font-weight: bold; }
 
         .log-list { margin-top: 8px; padding-left: 12px; border-left: 2px solid var(--border); display: flex; flex-direction: column; gap: 8px; clear:both; }
-        .log-item { font-size: 13px; color: var(--on-surface-variant); display: flex; flex-direction: column; gap: 6px; background: rgba(0,0,0,0.15); padding: 10px; border-radius: 8px; transition: background-color 0.5s; }
+        
+        .log-item-group { background: rgba(0,0,0,0.15); border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; transition: background-color 0.5s; }
+        .log-entry { padding: 12px; display: flex; flex-direction: column; gap: 6px; transition: background-color 0.5s; }
+        .log-entry + .log-entry { border-top: 1px solid rgba(255,255,255,0.05); }
+        
         .log-header { display: flex; justify-content: space-between; align-items: center; font-size: 11px; opacity: 0.8; margin-bottom: 2px; }
         .log-text { font-size: 14px; line-height: 1.4; word-break: break-word; white-space: pre-wrap; color: #e2e2e6; }
         
@@ -271,7 +275,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.5.0</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.5.1</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -1170,6 +1174,92 @@ var App = {
         }
     },
 
+    buildLogsHTML: async function(logsArray, contextEntityId, searchTerm) {
+        if (!logsArray || logsArray.length === 0) return '';
+        
+        let logGroups = {};
+        let standaloneLogs = [];
+        
+        logsArray.forEach(l => {
+            if (l.parentLogId) {
+                if (!logGroups[l.parentLogId]) logGroups[l.parentLogId] = [];
+                logGroups[l.parentLogId].push(l);
+            } else {
+                standaloneLogs.push(l);
+            }
+        });
+
+        let standaloneIds = standaloneLogs.map(l => l.id);
+        Object.keys(logGroups).forEach(pId => {
+            if (!standaloneIds.includes(pId)) {
+                standaloneLogs.push(...logGroups[pId]);
+                delete logGroups[pId];
+            }
+        });
+
+        standaloneLogs.sort((a, b) => b.createdAt - a.createdAt);
+        
+        let htmlParts = [];
+        for (let mainLog of standaloneLogs) {
+            let group = [mainLog];
+            if (logGroups[mainLog.id]) {
+                group = group.concat(logGroups[mainLog.id]);
+            }
+            group.sort((a, b) => b.createdAt - a.createdAt);
+            htmlParts.push(await App.renderLogGroupHTML(group, contextEntityId, searchTerm, mainLog.id));
+        }
+        return htmlParts.join('');
+    },
+
+    renderLogGroupHTML: async function(group, contextEntityId, searchTerm = '', mainId = null) {
+        let groupHtml = `<div class="log-item-group">`;
+        
+        for (let i = 0; i < group.length; i++) {
+            let log = group[i];
+            let mediaHtml = log.images && log.images.length > 0 ? renderStackedDeckHTML(log.images, log.id) : '';
+            let isOrigin = log.originEntityId === contextEntityId;
+            let otherLinks = log.relatedEntities.filter(rel => rel.id !== log.originEntityId);
+            
+            let linksBarHtml = '';
+            if(isOrigin) {
+                if (otherLinks.length > 0) {
+                    let pills = [];
+                    for(let rel of otherLinks) {
+                        let linkedE = await AppDB.entities.get(rel.id); if(!linkedE) continue;
+                        pills.push(`<div class="pill-dark" onclick="App.focusEntity('${linkedE.id}', '', '${log.id}')">${linkedE.name} <i class="material-icons" style="font-size:12px; margin-left:4px;" title="Ir para Destino">arrow_forward</i></div>`);
+                    }
+                    linksBarHtml = `<div class="log-links-bar"><div class="link-label">Vinculado a:</div><div class="pills-container">${pills.join('')}</div></div>`;
+                }
+            } else {
+                let originE = await AppDB.entities.get(log.originEntityId);
+                if (originE) {
+                    let originPill = `<div class="pill-dark origin" onclick="App.focusEntity('${originE.id}', '', '${log.id}')">${originE.name} <i class="material-icons" style="font-size:12px; margin-left:4px;" title="Ir para Origem">arrow_forward</i></div>`;
+                    linksBarHtml = `<div class="log-links-bar"><div class="link-label">Vinculado de:</div><div class="pills-container">${originPill}</div></div>`;
+                }
+            }
+
+            let displayedText = log.text; if(searchTerm) displayedText = AppUtils.highlight(displayedText, searchTerm);
+            
+            groupHtml += `
+                <div class="log-entry" id="log-${log.id}">
+                    <div class="log-header">
+                        <span><i class="material-icons" style="font-size:12px; vertical-align:middle;">schedule</i> ${AppUtils.formatDate(log.createdAt)}</span>
+                        <div class="log-actions">
+                            <i class="material-icons action-icon" style="font-size:14px; margin-right:8px;" title="Adicionar novo registo a este cartão" onclick="LogModal.open(null, '${contextEntityId}', '${mainId}')">add</i>
+                            <i class="material-icons action-icon" style="font-size:14px;" title="Editar Registo" onclick="LogModal.open('${log.id}', '${contextEntityId}')">edit</i>
+                        </div>
+                    </div>
+                    ${log.text ? `<div class="log-text selectable-text">${displayedText}</div>` : ''}
+                    ${mediaHtml}
+                    ${linksBarHtml}
+                </div>
+            `;
+        }
+        
+        groupHtml += `</div>`;
+        return groupHtml;
+    },
+
     renderList: async function() {
         this.currentSearchId++;
         const searchId = this.currentSearchId;
@@ -1223,7 +1313,7 @@ var App = {
             <li class="task-item" id="entity-${e.id}">
                 <div class="task-header">
                     <div class="task-actions">
-                        <i class="material-icons action-icon" title="Adicionar Evento" onclick="LogModal.open(null, '${e.id}')">post_add</i>
+                        <i class="material-icons action-icon" title="Criar Novo Cartão de Evento" onclick="LogModal.open(null, '${e.id}')">post_add</i>
                         ${e.type === 'servico' ? `<i class="material-icons action-icon" title="Adicionar Tarefa" onclick="EntityModal.openTaskPrompt('${e.id}')">add_task</i>` : ''}
                         <i class="material-icons action-icon" title="Editar Nome/Excluir" onclick="EntityModal.open('${e.id}')">edit</i>
                     </div>
@@ -1235,11 +1325,8 @@ var App = {
             let entityLogs = await AppDB.logs.filter(log => log.relatedEntities.some(rel => rel.id === e.id)).toArray();
             if (entityLogs.length > 0) {
                 cardHtml += `<div class="log-list">`;
-                let logsHTML = [];
-                for(let log of entityLogs.sort((a, b) => b.createdAt - a.createdAt)) {
-                    logsHTML.push(await App.renderLogItemHTML(log, e.id, searchTerm));
-                }
-                cardHtml += logsHTML.join('') + `</div>`;
+                cardHtml += await App.buildLogsHTML(entityLogs, e.id, searchTerm);
+                cardHtml += `</div>`;
             }
 
             if (e.type === 'servico') {
@@ -1263,7 +1350,7 @@ var App = {
                                     <span class="subtask-text selectable-text">${AppUtils.highlight(t.name, searchTerm)}</span>
                                 </div>
                                 <div class="task-actions" style="gap:8px; float:none; margin:0; padding:0;">
-                                    <i class="material-icons action-icon" style="font-size:16px;" title="Adicionar Evento na Tarefa" onclick="LogModal.open(null, '${t.id}')">post_add</i>
+                                    <i class="material-icons action-icon" style="font-size:16px;" title="Criar Novo Cartão de Evento na Tarefa" onclick="LogModal.open(null, '${t.id}')">post_add</i>
                                     <i class="material-icons action-icon" style="font-size:16px;" onclick="EntityModal.open('${t.id}')">edit</i>
                                 </div>
                             </div>
@@ -1271,11 +1358,8 @@ var App = {
                         let taskLogs = await AppDB.logs.filter(log => log.relatedEntities.some(rel => rel.id === t.id)).toArray();
                         if (taskLogs.length > 0) {
                             cardHtml += `<div class="log-list" id="task-logs-${t.id}" style="margin-left: 26px; display:${taskLogsDisplay};">`;
-                            let taskLogsHTML = [];
-                            for(let log of taskLogs.sort((a, b) => b.createdAt - a.createdAt)) {
-                                taskLogsHTML.push(await App.renderLogItemHTML(log, t.id, searchTerm));
-                            }
-                            cardHtml += taskLogsHTML.join('') + `</div>`;
+                            cardHtml += await App.buildLogsHTML(taskLogs, t.id, searchTerm);
+                            cardHtml += `</div>`;
                         } else {
                             cardHtml += `<div class="log-list" id="task-logs-${t.id}" style="display:none;"></div>`;
                         }
@@ -1287,47 +1371,6 @@ var App = {
             cardHtml += `</li>`;
             listEl.innerHTML += cardHtml;
         }
-    },
-
-    renderLogItemHTML: async function(log, contextEntityId, searchTerm = '') {
-        let mediaHtml = log.images && log.images.length > 0 ? renderStackedDeckHTML(log.images, log.id) : '';
-        let isOrigin = log.originEntityId === contextEntityId;
-        let otherLinks = log.relatedEntities.filter(rel => rel.id !== log.originEntityId);
-        
-        let linksBarHtml = '';
-        if(isOrigin) {
-            if (otherLinks.length > 0) {
-                let pills = [];
-                for(let rel of otherLinks) {
-                    let linkedE = await AppDB.entities.get(rel.id); if(!linkedE) continue;
-                    pills.push(`<div class="pill-dark" onclick="App.focusEntity('${linkedE.id}', '', '${log.id}')">${linkedE.name} <i class="material-icons" style="font-size:12px; margin-left:4px;" title="Ir para Destino">arrow_forward</i></div>`);
-                }
-                linksBarHtml = `<div class="log-links-bar"><div class="link-label">Vinculado a:</div><div class="pills-container">${pills.join('')}</div></div>`;
-            }
-        } else {
-            let originE = await AppDB.entities.get(log.originEntityId);
-            if (originE) {
-                let originPill = `<div class="pill-dark origin" onclick="App.focusEntity('${originE.id}', '', '${log.id}')">${originE.name} <i class="material-icons" style="font-size:12px; margin-left:4px;" title="Ir para Origem">arrow_forward</i></div>`;
-                linksBarHtml = `<div class="log-links-bar"><div class="link-label">Vinculado de:</div><div class="pills-container">${originPill}</div></div>`;
-            }
-        }
-
-        let displayedText = log.text; if(searchTerm) displayedText = AppUtils.highlight(displayedText, searchTerm);
-        
-        return `
-            <div class="log-item" id="log-${log.id}">
-                <div class="log-header">
-                    <span><i class="material-icons" style="font-size:12px; vertical-align:middle;">schedule</i> ${AppUtils.formatDate(log.createdAt)}</span>
-                    <div class="log-actions">
-                        <i class="material-icons action-icon" style="font-size:14px; margin-right:8px;" title="Adicionar novo registo a esta entidade" onclick="LogModal.open(null, '${contextEntityId}')">add</i>
-                        <i class="material-icons action-icon" style="font-size:14px;" title="Editar Registo" onclick="LogModal.open('${log.id}', '${contextEntityId}')">edit</i>
-                    </div>
-                </div>
-                ${log.text ? `<div class="log-text selectable-text">${displayedText}</div>` : ''}
-                ${mediaHtml}
-                ${linksBarHtml}
-            </div>
-        `;
     },
 
     openPDF: function(base64) {
@@ -1499,14 +1542,17 @@ var EntityModal = {
 };
 
 var LogModal = {
-    el: document.getElementById('logModal'), editLogId: null, tempMedia: [], tempRelations: [], originId: null,
-    open: async function(logId = null, targetEntityId = null) {
-        this.editLogId = logId; this.tempMedia = []; 
+    el: document.getElementById('logModal'), editLogId: null, tempMedia: [], tempRelations: [], originId: null, parentLogId: null,
+    open: async function(logId = null, targetEntityId = null, parentLogId = null) {
+        this.editLogId = logId; 
+        this.tempMedia = []; 
+        this.parentLogId = parentLogId;
         const textInput = document.getElementById('logText');
 
         if (logId) {
             const log = await AppDB.logs.get(logId); 
             this.originId = log.originEntityId;
+            this.parentLogId = log.parentLogId || null;
             textInput.value = log.text; 
             this.tempMedia = [...(log.images || [])]; 
             this.tempRelations = log.relatedEntities.filter(rel => rel.id !== this.originId).map(rel => ({ id: rel.id, type: rel.type }));
@@ -1560,8 +1606,11 @@ var LogModal = {
         container.innerHTML = html.join('');
     },
     delete: async function() {
-        if(this.editLogId && await CustomDialog.confirm("Excluir permanentemente este registo?", "Excluir Log")) {
-            await AppDB.logs.delete(this.editLogId);
+        if(this.editLogId && await CustomDialog.confirm("Excluir permanentemente este registo e todos os seus sub-registos?", "Excluir Log")) {
+            const children = await AppDB.logs.filter(l => l.parentLogId === this.editLogId).toArray();
+            const childIds = children.map(c => c.id);
+            await AppDB.logs.bulkDelete([this.editLogId, ...childIds]);
+            
             App.renderList(); this.closeUI(); App.calculateStorage();
         }
     },
@@ -1588,7 +1637,8 @@ var LogModal = {
             } else {
                 const newLog = { 
                     id: now.toString(), text: text, images: [...this.tempMedia], createdAt: now, updatedAt: now, 
-                    originEntityId: this.originId, relatedEntities: finalRelations 
+                    originEntityId: this.originId, relatedEntities: finalRelations,
+                    parentLogId: this.parentLogId || null
                 };
                 await AppDB.logs.put(newLog);
             }
