@@ -127,6 +127,19 @@
         .log-entry { padding: 12px; display: flex; flex-direction: column; gap: 6px; transition: background-color 0.5s; }
         .log-entry + .log-entry { border-top: 1px solid rgba(255,255,255,0.05); }
         
+        /* Regras para o modo colapsado */
+        .log-item-group.collapsed .log-entry:not(:first-child) { display: none !important; }
+        .log-item-group.collapsed .log-entry:first-child .log-text {
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            display: block !important;
+        }
+        .log-item-group.collapsed .log-entry:first-child .stacked-deck,
+        .log-item-group.collapsed .log-entry:first-child .log-links-bar {
+            display: none !important;
+        }
+
         .log-header { display: flex; justify-content: space-between; align-items: center; font-size: 11px; opacity: 0.8; margin-bottom: 2px; }
         .log-text { font-size: 14px; line-height: 1.4; word-break: break-word; white-space: pre-wrap; color: #e2e2e6; }
         
@@ -275,7 +288,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.5.1</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.5.2</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -709,6 +722,18 @@ var App = {
 
     toggleMenu: (e) => { e.stopPropagation(); const menu = document.getElementById('mainMenu'); if (menu.classList.contains('show')) MenuModal.closeUI(); else MenuModal.open(); },
     
+    toggleLogGroup: function(groupId, event) {
+        if(event) event.stopPropagation();
+        const el = document.getElementById(groupId);
+        if(el) {
+            el.classList.toggle('collapsed');
+            const icon = el.querySelector('.group-toggle-icon');
+            if(icon) {
+                icon.innerText = el.classList.contains('collapsed') ? 'expand_more' : 'expand_less';
+            }
+        }
+    },
+
     syncCloud: async function() {
         if(!navigator.onLine) { 
             await CustomDialog.alert("Verifique a sua ligação à internet. Será gerado um backup local offline.", "Sem ligação"); 
@@ -1127,6 +1152,13 @@ var App = {
             const elId = focusLogId ? 'log-' + focusLogId : 'entity-' + id;
             const el = document.getElementById(elId);
             if (el) {
+                let groupEl = el.closest('.log-item-group');
+                if (groupEl && groupEl.classList.contains('collapsed')) {
+                    groupEl.classList.remove('collapsed');
+                    let icon = groupEl.querySelector('.group-toggle-icon');
+                    if (icon) icon.innerText = 'expand_less';
+                }
+
                 let parentList = el.closest('.log-list');
                 if(parentList && parentList.style.display === 'none') {
                     parentList.style.display = 'flex';
@@ -1212,7 +1244,9 @@ var App = {
     },
 
     renderLogGroupHTML: async function(group, contextEntityId, searchTerm = '', mainId = null) {
-        let groupHtml = `<div class="log-item-group">`;
+        const groupId = 'log-group-' + (mainId || group[0].id);
+        const isCollapsedClass = searchTerm ? '' : 'collapsed';
+        let groupHtml = `<div class="log-item-group ${isCollapsedClass}" id="${groupId}">`;
         
         for (let i = 0; i < group.length; i++) {
             let log = group[i];
@@ -1240,12 +1274,23 @@ var App = {
 
             let displayedText = log.text; if(searchTerm) displayedText = AppUtils.highlight(displayedText, searchTerm);
             
+            let toggleHtml = '';
+            if (i === 0) {
+                let iconStr = searchTerm ? 'expand_less' : 'expand_more';
+                toggleHtml = `<i class="material-icons action-icon group-toggle-icon" style="font-size:18px; vertical-align:middle; margin-right:4px;" onclick="App.toggleLogGroup('${groupId}', event)">${iconStr}</i>`;
+            } else {
+                toggleHtml = `<i class="material-icons" style="font-size:18px; vertical-align:middle; margin-right:4px; opacity:0; pointer-events:none;">expand_more</i>`;
+            }
+
             groupHtml += `
                 <div class="log-entry" id="log-${log.id}">
                     <div class="log-header">
-                        <span><i class="material-icons" style="font-size:12px; vertical-align:middle;">schedule</i> ${AppUtils.formatDate(log.createdAt)}</span>
+                        <span style="display:flex; align-items:center;">
+                            ${toggleHtml}
+                            <i class="material-icons" style="font-size:12px; margin-right:4px;">schedule</i> ${AppUtils.formatDate(log.createdAt)}
+                        </span>
                         <div class="log-actions">
-                            <i class="material-icons action-icon" style="font-size:14px; margin-right:8px;" title="Adicionar novo registo a este cartão" onclick="LogModal.open(null, '${contextEntityId}', '${mainId}')">add</i>
+                            <i class="material-icons action-icon" style="font-size:14px; margin-right:8px;" title="Adicionar novo registo a este cartão" onclick="LogModal.open(null, '${contextEntityId}', '${mainId || group[0].id}')">add</i>
                             <i class="material-icons action-icon" style="font-size:14px;" title="Editar Registo" onclick="LogModal.open('${log.id}', '${contextEntityId}')">edit</i>
                         </div>
                     </div>
@@ -1606,12 +1651,16 @@ var LogModal = {
         container.innerHTML = html.join('');
     },
     delete: async function() {
-        if(this.editLogId && await CustomDialog.confirm("Excluir permanentemente este registo e todos os seus sub-registos?", "Excluir Log")) {
+        if(this.editLogId) {
             const children = await AppDB.logs.filter(l => l.parentLogId === this.editLogId).toArray();
-            const childIds = children.map(c => c.id);
-            await AppDB.logs.bulkDelete([this.editLogId, ...childIds]);
-            
-            App.renderList(); this.closeUI(); App.calculateStorage();
+            if (children.length > 0) {
+                await CustomDialog.alert("Este cartão possui sub-registos vinculados a ele. Para evitar dados órfãos, você precisa apagar os sub-registos (mais recentes) um a um antes de apagar este registo principal.", "Ação Bloqueada");
+                return;
+            }
+            if(await CustomDialog.confirm("Excluir permanentemente este registo?", "Excluir Log")) {
+                await AppDB.logs.delete(this.editLogId);
+                App.renderList(); this.closeUI(); App.calculateStorage();
+            }
         }
     },
     save: async function() {
