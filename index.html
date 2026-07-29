@@ -288,7 +288,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.5.3</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.5.4</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -702,9 +702,19 @@ function renderStackedDeckHTML(images, logId) {
 // --- MAIN APPLICATION LOGIC ---
 var App = {
     currentView: 'home', moduleType: null, moduleName: null, moduleIcon: null, currentEntityId: null, searchFocusTerm: '',
-    searchTimeout: null, currentSearchId: 0, expandedTasks: new Set(),
+    searchTimeout: null, currentSearchId: 0, 
+    expandedTasks: new Set(JSON.parse(localStorage.getItem('OraculoExpandedTasks') || '[]')),
+    expandedGroups: new Set(JSON.parse(localStorage.getItem('OraculoExpandedGroups') || '[]')),
 
     init: async function() { this.goHome(); this.calculateStorage(); },
+    
+    saveExpandedState: function() {
+        localStorage.setItem('OraculoExpandedGroups', JSON.stringify(Array.from(this.expandedGroups)));
+    },
+    
+    saveExpandedTasksState: function() {
+        localStorage.setItem('OraculoExpandedTasks', JSON.stringify(Array.from(this.expandedTasks)));
+    },
     
     calculateStorage: async function() {
         try {
@@ -727,9 +737,18 @@ var App = {
         const el = document.getElementById(groupId);
         if(el) {
             el.classList.toggle('collapsed');
+            const isCollapsed = el.classList.contains('collapsed');
+            
+            if (isCollapsed) {
+                App.expandedGroups.delete(groupId);
+            } else {
+                App.expandedGroups.add(groupId);
+            }
+            App.saveExpandedState();
+            
             const icon = el.querySelector('.group-toggle-icon');
             if(icon) {
-                icon.innerText = el.classList.contains('collapsed') ? 'expand_more' : 'expand_less';
+                icon.innerText = isCollapsed ? 'expand_more' : 'expand_less';
             }
         }
     },
@@ -750,14 +769,17 @@ var App = {
         groups.forEach(g => {
             if (allAreCollapsed) {
                 g.classList.remove('collapsed');
+                App.expandedGroups.add(g.id);
             } else {
                 g.classList.add('collapsed');
+                App.expandedGroups.delete(g.id);
             }
             let icon = g.querySelector('.group-toggle-icon');
             if (icon) {
                 icon.innerText = allAreCollapsed ? 'expand_less' : 'expand_more';
             }
         });
+        App.saveExpandedState();
     },
 
     syncCloud: async function() {
@@ -1181,6 +1203,8 @@ var App = {
                 let groupEl = el.closest('.log-item-group');
                 if (groupEl && groupEl.classList.contains('collapsed')) {
                     groupEl.classList.remove('collapsed');
+                    App.expandedGroups.add(groupEl.id);
+                    App.saveExpandedState();
                     let icon = groupEl.querySelector('.group-toggle-icon');
                     if (icon) icon.innerText = 'expand_less';
                 }
@@ -1192,6 +1216,7 @@ var App = {
                     let iconEl = document.getElementById('task-icon-' + taskId);
                     if(iconEl) iconEl.innerText = 'expand_less';
                     App.expandedTasks.add(taskId);
+                    App.saveExpandedTasksState();
                 }
 
                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1211,7 +1236,10 @@ var App = {
         const newEntity = { id: now.toString(), type: newType, name: name.trim(), createdAt: now, updatedAt: now, parentId: parentId };
         await AppDB.entities.put(newEntity);
         if(!parentId) { document.getElementById('searchInput').value = ''; }
-        if(parentId) { App.expandedTasks.add(parentId); }
+        if(parentId) { 
+            App.expandedTasks.add(parentId); 
+            App.saveExpandedTasksState();
+        }
         await this.renderList(); this.focusEntity(newEntity.id);
         this.calculateStorage();
     },
@@ -1229,6 +1257,7 @@ var App = {
                 if(iconEl) iconEl.innerText = 'expand_more';
                 App.expandedTasks.delete(taskId);
             }
+            App.saveExpandedTasksState();
         }
     },
 
@@ -1259,7 +1288,9 @@ var App = {
 
     renderLogGroupHTML: async function(group, contextEntityId, searchTerm = '', groupId) {
         const domGroupId = 'log-group-' + groupId;
-        const isCollapsedClass = searchTerm ? '' : 'collapsed';
+        let isExpanded = searchTerm ? true : App.expandedGroups.has(domGroupId);
+        const isCollapsedClass = isExpanded ? '' : 'collapsed';
+        
         let groupHtml = `<div class="log-item-group ${isCollapsedClass}" id="${domGroupId}">`;
         
         for (let i = 0; i < group.length; i++) {
@@ -1289,11 +1320,15 @@ var App = {
             let displayedText = log.text; if(searchTerm) displayedText = AppUtils.highlight(displayedText, searchTerm);
             
             let toggleHtml = '';
+            let addIconHtml = '';
+            
             if (i === 0) {
-                let iconStr = searchTerm ? 'expand_less' : 'expand_more';
+                let iconStr = isExpanded ? 'expand_less' : 'expand_more';
                 toggleHtml = `<i class="material-icons action-icon group-toggle-icon" style="font-size:18px; vertical-align:middle; margin-right:4px;" onclick="App.toggleLogGroup('${domGroupId}', event)">${iconStr}</i>`;
+                addIconHtml = `<i class="material-icons action-icon" style="font-size:14px; margin-right:8px;" title="Adicionar novo registo a este cartão" onclick="LogModal.open(null, '${contextEntityId}', '${groupId}')">add</i>`;
             } else {
                 toggleHtml = `<i class="material-icons" style="font-size:18px; vertical-align:middle; margin-right:4px; opacity:0; pointer-events:none;">expand_more</i>`;
+                addIconHtml = ``; 
             }
 
             groupHtml += `
@@ -1304,7 +1339,7 @@ var App = {
                             <i class="material-icons" style="font-size:12px; margin-right:4px;">schedule</i> ${AppUtils.formatDate(log.createdAt)}
                         </span>
                         <div class="log-actions">
-                            <i class="material-icons action-icon" style="font-size:14px; margin-right:8px;" title="Adicionar novo registo a este cartão" onclick="LogModal.open(null, '${contextEntityId}', '${groupId}')">add</i>
+                            ${addIconHtml}
                             <i class="material-icons action-icon" style="font-size:14px;" title="Editar Registo" onclick="LogModal.open('${log.id}', '${contextEntityId}')">edit</i>
                         </div>
                     </div>
@@ -1324,6 +1359,9 @@ var App = {
         const searchId = this.currentSearchId;
         const rawSearchTerm = document.getElementById('searchInput').value; 
         const searchTerm = rawSearchTerm.toLowerCase().trim();
+        
+        const viewListEl = document.getElementById('viewList');
+        let currentScroll = viewListEl.scrollTop;
         
         let allEntities = await AppDB.entities.where('type').equals(this.moduleType).toArray();
         let filtered = allEntities.filter(e => e.parentId === null); let hasExactMatch = false;
@@ -1361,7 +1399,11 @@ var App = {
             listEl.innerHTML += `<div class="create-btn-dynamic" onclick="App.createEntityOnTheFly('${rawSearchTerm.replace(/'/g, "\\'")}')"><i class="material-icons">add_circle_outline</i><span>Criar: <strong>${rawSearchTerm}</strong></span></div>`; 
         }
 
-        if (filtered.length === 0 && !searchTerm) { listEl.innerHTML = `<div class="empty-state"><i class="material-icons">${this.moduleIcon}</i><p>Nenhum registo.<br>Busque para criar.</p></div>`; return; }
+        if (filtered.length === 0 && !searchTerm) { 
+            listEl.innerHTML = `<div class="empty-state"><i class="material-icons">${this.moduleIcon}</i><p>Nenhum registo.<br>Busque para criar.</p></div>`; 
+            viewListEl.scrollTop = 0;
+            return; 
+        }
 
         let iterator = searchTerm ? filtered.sort((a, b) => b.entity.createdAt - a.entity.createdAt) : filtered.sort((a, b) => b.createdAt - a.createdAt).map(e => ({entity: e, tasksMatched: []}));
 
@@ -1432,6 +1474,10 @@ var App = {
             cardHtml += `</li>`;
             listEl.innerHTML += cardHtml;
         }
+
+        requestAnimationFrame(() => {
+            viewListEl.scrollTop = currentScroll;
+        });
     },
 
     openPDF: function(base64) {
@@ -1576,7 +1622,10 @@ var EntityModal = {
         const entity = await AppDB.entities.get(this.currentTargetId); 
         if(entity) { 
             entity.name = val; entity.updatedAt = Date.now(); 
-            if(entity.parentId) App.expandedTasks.add(entity.parentId);
+            if(entity.parentId) {
+                App.expandedTasks.add(entity.parentId);
+                App.saveExpandedTasksState();
+            }
             await AppDB.entities.put(entity); App.renderList(); 
         }
         this.closeUI();
@@ -1707,10 +1756,18 @@ var LogModal = {
             
             if(originEntity && originEntity.type === 'tarefa' && originEntity.parentId) {
                 App.expandedTasks.add(originEntity.id);
+                App.saveExpandedTasksState();
             } else if (originEntity && originEntity.type === 'tarefa' && !originEntity.parentId) {
                 App.expandedTasks.add(originEntity.id);
+                App.saveExpandedTasksState();
             } else {
                 App.expandedTasks.add(this.originId);
+                App.saveExpandedTasksState();
+            }
+
+            if (this.groupId || !this.editLogId) {
+                App.expandedGroups.add('log-group-' + (this.groupId || now.toString()));
+                App.saveExpandedState();
             }
 
             App.renderList(); this.closeUI(); App.calculateStorage();
