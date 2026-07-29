@@ -288,7 +288,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.5.2</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.5.3</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -732,6 +732,32 @@ var App = {
                 icon.innerText = el.classList.contains('collapsed') ? 'expand_more' : 'expand_less';
             }
         }
+    },
+
+    toggleAllLogGroups: function(entityId) {
+        const entityEl = document.getElementById('entity-' + entityId);
+        if (!entityEl) return;
+        const groups = entityEl.querySelectorAll('.log-item-group');
+        if (groups.length === 0) return;
+        
+        let allAreCollapsed = true;
+        groups.forEach(g => {
+            if (!g.classList.contains('collapsed')) {
+                allAreCollapsed = false;
+            }
+        });
+        
+        groups.forEach(g => {
+            if (allAreCollapsed) {
+                g.classList.remove('collapsed');
+            } else {
+                g.classList.add('collapsed');
+            }
+            let icon = g.querySelector('.group-toggle-icon');
+            if (icon) {
+                icon.innerText = allAreCollapsed ? 'expand_less' : 'expand_more';
+            }
+        });
     },
 
     syncCloud: async function() {
@@ -1210,43 +1236,31 @@ var App = {
         if (!logsArray || logsArray.length === 0) return '';
         
         let logGroups = {};
-        let standaloneLogs = [];
-        
         logsArray.forEach(l => {
-            if (l.parentLogId) {
-                if (!logGroups[l.parentLogId]) logGroups[l.parentLogId] = [];
-                logGroups[l.parentLogId].push(l);
-            } else {
-                standaloneLogs.push(l);
-            }
+            let gId = l.groupId || l.id;
+            if (!logGroups[gId]) logGroups[gId] = [];
+            logGroups[gId].push(l);
         });
 
-        let standaloneIds = standaloneLogs.map(l => l.id);
-        Object.keys(logGroups).forEach(pId => {
-            if (!standaloneIds.includes(pId)) {
-                standaloneLogs.push(...logGroups[pId]);
-                delete logGroups[pId];
-            }
+        let sortedGroups = Object.values(logGroups).sort((a, b) => {
+            let maxA = Math.max(...a.map(l => l.createdAt));
+            let maxB = Math.max(...b.map(l => l.createdAt));
+            return maxB - maxA;
         });
-
-        standaloneLogs.sort((a, b) => b.createdAt - a.createdAt);
         
         let htmlParts = [];
-        for (let mainLog of standaloneLogs) {
-            let group = [mainLog];
-            if (logGroups[mainLog.id]) {
-                group = group.concat(logGroups[mainLog.id]);
-            }
+        for (let group of sortedGroups) {
             group.sort((a, b) => b.createdAt - a.createdAt);
-            htmlParts.push(await App.renderLogGroupHTML(group, contextEntityId, searchTerm, mainLog.id));
+            let gId = group[0].groupId || group[0].id;
+            htmlParts.push(await App.renderLogGroupHTML(group, contextEntityId, searchTerm, gId));
         }
         return htmlParts.join('');
     },
 
-    renderLogGroupHTML: async function(group, contextEntityId, searchTerm = '', mainId = null) {
-        const groupId = 'log-group-' + (mainId || group[0].id);
+    renderLogGroupHTML: async function(group, contextEntityId, searchTerm = '', groupId) {
+        const domGroupId = 'log-group-' + groupId;
         const isCollapsedClass = searchTerm ? '' : 'collapsed';
-        let groupHtml = `<div class="log-item-group ${isCollapsedClass}" id="${groupId}">`;
+        let groupHtml = `<div class="log-item-group ${isCollapsedClass}" id="${domGroupId}">`;
         
         for (let i = 0; i < group.length; i++) {
             let log = group[i];
@@ -1277,7 +1291,7 @@ var App = {
             let toggleHtml = '';
             if (i === 0) {
                 let iconStr = searchTerm ? 'expand_less' : 'expand_more';
-                toggleHtml = `<i class="material-icons action-icon group-toggle-icon" style="font-size:18px; vertical-align:middle; margin-right:4px;" onclick="App.toggleLogGroup('${groupId}', event)">${iconStr}</i>`;
+                toggleHtml = `<i class="material-icons action-icon group-toggle-icon" style="font-size:18px; vertical-align:middle; margin-right:4px;" onclick="App.toggleLogGroup('${domGroupId}', event)">${iconStr}</i>`;
             } else {
                 toggleHtml = `<i class="material-icons" style="font-size:18px; vertical-align:middle; margin-right:4px; opacity:0; pointer-events:none;">expand_more</i>`;
             }
@@ -1290,7 +1304,7 @@ var App = {
                             <i class="material-icons" style="font-size:12px; margin-right:4px;">schedule</i> ${AppUtils.formatDate(log.createdAt)}
                         </span>
                         <div class="log-actions">
-                            <i class="material-icons action-icon" style="font-size:14px; margin-right:8px;" title="Adicionar novo registo a este cartão" onclick="LogModal.open(null, '${contextEntityId}', '${mainId || group[0].id}')">add</i>
+                            <i class="material-icons action-icon" style="font-size:14px; margin-right:8px;" title="Adicionar novo registo a este cartão" onclick="LogModal.open(null, '${contextEntityId}', '${groupId}')">add</i>
                             <i class="material-icons action-icon" style="font-size:14px;" title="Editar Registo" onclick="LogModal.open('${log.id}', '${contextEntityId}')">edit</i>
                         </div>
                     </div>
@@ -1358,6 +1372,7 @@ var App = {
             <li class="task-item" id="entity-${e.id}">
                 <div class="task-header">
                     <div class="task-actions">
+                        <i class="material-icons action-icon" title="Expandir/Colapsar Todos" onclick="App.toggleAllLogGroups('${e.id}')">unfold_more</i>
                         <i class="material-icons action-icon" title="Criar Novo Cartão de Evento" onclick="LogModal.open(null, '${e.id}')">post_add</i>
                         ${e.type === 'servico' ? `<i class="material-icons action-icon" title="Adicionar Tarefa" onclick="EntityModal.openTaskPrompt('${e.id}')">add_task</i>` : ''}
                         <i class="material-icons action-icon" title="Editar Nome/Excluir" onclick="EntityModal.open('${e.id}')">edit</i>
@@ -1395,6 +1410,7 @@ var App = {
                                     <span class="subtask-text selectable-text">${AppUtils.highlight(t.name, searchTerm)}</span>
                                 </div>
                                 <div class="task-actions" style="gap:8px; float:none; margin:0; padding:0;">
+                                    <i class="material-icons action-icon" style="font-size:16px;" title="Expandir/Colapsar Todos na Tarefa" onclick="App.toggleAllLogGroups('${t.id}')">unfold_more</i>
                                     <i class="material-icons action-icon" style="font-size:16px;" title="Criar Novo Cartão de Evento na Tarefa" onclick="LogModal.open(null, '${t.id}')">post_add</i>
                                     <i class="material-icons action-icon" style="font-size:16px;" onclick="EntityModal.open('${t.id}')">edit</i>
                                 </div>
@@ -1587,17 +1603,17 @@ var EntityModal = {
 };
 
 var LogModal = {
-    el: document.getElementById('logModal'), editLogId: null, tempMedia: [], tempRelations: [], originId: null, parentLogId: null,
-    open: async function(logId = null, targetEntityId = null, parentLogId = null) {
+    el: document.getElementById('logModal'), editLogId: null, tempMedia: [], tempRelations: [], originId: null, groupId: null,
+    open: async function(logId = null, targetEntityId = null, groupId = null) {
         this.editLogId = logId; 
         this.tempMedia = []; 
-        this.parentLogId = parentLogId;
+        this.groupId = groupId || null;
         const textInput = document.getElementById('logText');
 
         if (logId) {
             const log = await AppDB.logs.get(logId); 
             this.originId = log.originEntityId;
-            this.parentLogId = log.parentLogId || null;
+            this.groupId = log.groupId || log.id;
             textInput.value = log.text; 
             this.tempMedia = [...(log.images || [])]; 
             this.tempRelations = log.relatedEntities.filter(rel => rel.id !== this.originId).map(rel => ({ id: rel.id, type: rel.type }));
@@ -1652,12 +1668,7 @@ var LogModal = {
     },
     delete: async function() {
         if(this.editLogId) {
-            const children = await AppDB.logs.filter(l => l.parentLogId === this.editLogId).toArray();
-            if (children.length > 0) {
-                await CustomDialog.alert("Este cartão possui sub-registos vinculados a ele. Para evitar dados órfãos, você precisa apagar os sub-registos (mais recentes) um a um antes de apagar este registo principal.", "Ação Bloqueada");
-                return;
-            }
-            if(await CustomDialog.confirm("Excluir permanentemente este registo?", "Excluir Log")) {
+            if(await CustomDialog.confirm("Excluir permanentemente este registo? Os demais registos deste grupo não serão afetados.", "Excluir Log")) {
                 await AppDB.logs.delete(this.editLogId);
                 App.renderList(); this.closeUI(); App.calculateStorage();
             }
@@ -1682,12 +1693,14 @@ var LogModal = {
                 log.images = [...this.tempMedia];
                 log.relatedEntities = finalRelations;
                 log.updatedAt = now;
+                log.groupId = this.groupId || log.id;
                 await AppDB.logs.put(log);
             } else {
+                const newId = now.toString();
                 const newLog = { 
-                    id: now.toString(), text: text, images: [...this.tempMedia], createdAt: now, updatedAt: now, 
+                    id: newId, text: text, images: [...this.tempMedia], createdAt: now, updatedAt: now, 
                     originEntityId: this.originId, relatedEntities: finalRelations,
-                    parentLogId: this.parentLogId || null
+                    groupId: this.groupId || newId
                 };
                 await AppDB.logs.put(newLog);
             }
