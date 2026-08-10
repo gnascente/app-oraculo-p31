@@ -265,7 +265,7 @@
             .container, .fab, .modal-overlay, .dialog-overlay, .progress-modal, .carousel-overlay, .editor-overlay { display: none !important; }
             #printArea { display: block !important; padding: 20px; }
             
-            .print-log-item { border-bottom: 1px solid #ccc; padding-bottom: 15px; margin-bottom: 15px; page-break-inside: avoid; }
+            .print-log-item { padding-bottom: 12px; margin-bottom: 12px; page-break-inside: avoid; }
             .print-header { font-size: 12px; color: #555; margin-bottom: 6px; font-weight: bold; }
             .print-entity { font-size: 16px; font-weight: bold; margin-bottom: 6px; color: #000; }
             .print-text { font-size: 14px; margin-bottom: 12px; white-space: pre-wrap; word-break: break-word; }
@@ -288,7 +288,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.5.4</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.5.5</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -379,7 +379,6 @@
     </div>
 </div>
 
-<!-- NOVO MODAL PARA O RELATÓRIO -->
 <div class="dialog-overlay" id="printReportModal">
     <div class="dialog-content">
         <h3 style="text-align:left; margin-bottom: 16px;">Imprimir Relatório</h3>
@@ -1045,35 +1044,57 @@ var App = {
                         
                         if (logsOfEntity.length > 0) {
                             hasLogsInCat = true;
-                            logsOfEntity.sort((a,b) => b.createdAt - a.createdAt);
+
+                            let logGroups = {};
+                            logsOfEntity.forEach(l => {
+                                let gId = l.groupId || l.id;
+                                if (!logGroups[gId]) logGroups[gId] = [];
+                                logGroups[gId].push(l);
+                            });
+
+                            let sortedGroups = Object.values(logGroups).sort((a, b) => {
+                                let maxA = Math.max(...a.map(l => l.createdAt));
+                                let maxB = Math.max(...b.map(l => l.createdAt));
+                                return maxB - maxA;
+                            });
 
                             let logsHtml = '';
-                            for (let log of logsOfEntity) {
-                                let mediaHtml = '';
-                                if (log.images && log.images.length > 0) {
-                                    mediaHtml = log.images.map(img => {
-                                        if(img.data.startsWith('data:application/pdf')) {
-                                            return `<div class="print-media-box"><div style="font-weight:bold; font-size:14px; color:#d32f2f;">PDF</div><div style="font-size:10px;word-break:break-all; text-align:center; margin-top:4px;">${AppUtils.getPdfName(img.data)}</div></div>`;
-                                        }
-                                        if(img.isVideo || img.data.startsWith('data:video/')) {
-                                            let thumbSrc = img.thumbnail || 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
-                                            return `
-                                            <div class="print-media-box" style="position:relative; display:inline-block;">
-                                                <img src="${thumbSrc}" class="print-media-img" style="display:block;">
-                                                <div class="play-overlay"><span style="color:#fff; font-size:18px;">&#9654;</span></div>
-                                            </div>`;
-                                        }
-                                        return `<div class="print-media-box"><img src="${img.data}" class="print-media-img"></div>`;
-                                    }).join('');
-                                }
+                            for (let group of sortedGroups) {
+                                group.sort((a, b) => b.createdAt - a.createdAt);
+                                
+                                logsHtml += `<div class="print-log-group" style="border: 1px solid #dcdcdc; background: #ffffff; border-radius: 6px; margin-bottom: 16px; page-break-inside: avoid; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden;">`;
+                                
+                                for (let i = 0; i < group.length; i++) {
+                                    let log = group[i];
+                                    let mediaHtml = '';
+                                    if (log.images && log.images.length > 0) {
+                                        mediaHtml = log.images.map(img => {
+                                            if(img.data.startsWith('data:application/pdf')) {
+                                                return `<div class="print-media-box"><div style="font-weight:bold; font-size:14px; color:#d32f2f;">PDF</div><div style="font-size:10px;word-break:break-all; text-align:center; margin-top:4px;">${AppUtils.getPdfName(img.data)}</div></div>`;
+                                            }
+                                            if(img.isVideo || img.data.startsWith('data:video/')) {
+                                                let thumbSrc = img.thumbnail || 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+                                                return `
+                                                <div class="print-media-box" style="position:relative; display:inline-block;">
+                                                    <img src="${thumbSrc}" class="print-media-img" style="display:block;">
+                                                    <div class="play-overlay"><span style="color:#fff; font-size:18px;">&#9654;</span></div>
+                                                </div>`;
+                                            }
+                                            return `<div class="print-media-box"><img src="${img.data}" class="print-media-img"></div>`;
+                                        }).join('');
+                                    }
 
-                                logsHtml += `
-                                    <div class="print-log-item" style="border: 1px solid #dcdcdc; background: #ffffff; border-radius: 6px; padding: 12px; margin-bottom: 16px; page-break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                                        <div class="print-header" style="font-size: 12px; color: #555; margin-bottom: 8px; font-weight: bold; border-bottom: 1px solid #eee; padding-bottom: 4px;">${AppUtils.formatDate(log.createdAt)}</div>
-                                        <div class="print-text" style="font-size: 14px; margin-bottom: 12px; white-space: pre-wrap; word-break: break-word; color: #222;">${log.text || ''}</div>
-                                        ${mediaHtml ? `<div style="margin-top:8px;">${mediaHtml}</div>` : ''}
-                                    </div>
-                                `;
+                                    let borderBottom = i < group.length - 1 ? 'border-bottom: 1px solid #eee;' : '';
+
+                                    logsHtml += `
+                                        <div class="print-log-item" style="padding: 12px; ${borderBottom} page-break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+                                            <div class="print-header" style="font-size: 12px; color: #555; margin-bottom: 8px; font-weight: bold;">${AppUtils.formatDate(log.createdAt)}</div>
+                                            <div class="print-text" style="font-size: 14px; margin-bottom: 12px; white-space: pre-wrap; word-break: break-word; color: #222;">${log.text || ''}</div>
+                                            ${mediaHtml ? `<div style="margin-top:8px;">${mediaHtml}</div>` : ''}
+                                        </div>
+                                    `;
+                                }
+                                logsHtml += `</div>`;
                             }
 
                             catHtml += `
@@ -1101,34 +1122,57 @@ var App = {
                 
                 let orphanLogs = allLogs.filter(l => !l.relatedEntities.some(rel => allEntities.some(e => e.id === rel.id)));
                 if (orphanLogs.length > 0) {
-                    orphanLogs.sort((a,b) => b.createdAt - a.createdAt);
+                    
+                    let orphanLogGroups = {};
+                    orphanLogs.forEach(l => {
+                        let gId = l.groupId || l.id;
+                        if (!orphanLogGroups[gId]) orphanLogGroups[gId] = [];
+                        orphanLogGroups[gId].push(l);
+                    });
+
+                    let sortedOrphanGroups = Object.values(orphanLogGroups).sort((a, b) => {
+                        let maxA = Math.max(...a.map(l => l.createdAt));
+                        let maxB = Math.max(...b.map(l => l.createdAt));
+                        return maxB - maxA;
+                    });
+
                     let orphanHtml = '';
-                    for (let log of orphanLogs) {
-                        let mediaHtml = '';
-                        if (log.images && log.images.length > 0) {
-                            mediaHtml = log.images.map(img => {
-                                if(img.data.startsWith('data:application/pdf')) {
-                                    return `<div class="print-media-box"><div style="font-weight:bold; font-size:14px; color:#d32f2f;">PDF</div><div style="font-size:10px;word-break:break-all; text-align:center; margin-top:4px;">${AppUtils.getPdfName(img.data)}</div></div>`;
-                                }
-                                if(img.isVideo || img.data.startsWith('data:video/')) {
-                                    let thumbSrc = img.thumbnail || 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
-                                    return `
-                                    <div class="print-media-box" style="position:relative; display:inline-block;">
-                                        <img src="${thumbSrc}" class="print-media-img" style="display:block;">
-                                        <div class="play-overlay"><span style="color:#fff; font-size:18px;">&#9654;</span></div>
-                                    </div>`;
-                                }
-                                return `<div class="print-media-box"><img src="${img.data}" class="print-media-img"></div>`;
-                            }).join('');
-                        }
+                    for (let group of sortedOrphanGroups) {
+                        group.sort((a, b) => b.createdAt - a.createdAt);
                         
-                        orphanHtml += `
-                            <div class="print-log-item" style="border: 1px solid #dcdcdc; background: #ffffff; border-radius: 6px; padding: 12px; margin-bottom: 16px; page-break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                                <div class="print-header" style="font-size: 12px; color: #555; margin-bottom: 8px; font-weight: bold; border-bottom: 1px solid #eee; padding-bottom: 4px;">${AppUtils.formatDate(log.createdAt)}</div>
-                                <div class="print-text" style="font-size: 14px; margin-bottom: 12px; white-space: pre-wrap; word-break: break-word; color: #222;">${log.text || ''}</div>
-                                ${mediaHtml ? `<div style="margin-top:8px;">${mediaHtml}</div>` : ''}
-                            </div>
-                        `;
+                        orphanHtml += `<div class="print-log-group" style="border: 1px solid #dcdcdc; background: #ffffff; border-radius: 6px; margin-bottom: 16px; page-break-inside: avoid; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden;">`;
+                        
+                        for (let i = 0; i < group.length; i++) {
+                            let log = group[i];
+                            let mediaHtml = '';
+                            if (log.images && log.images.length > 0) {
+                                mediaHtml = log.images.map(img => {
+                                    if(img.data.startsWith('data:application/pdf')) {
+                                        return `<div class="print-media-box"><div style="font-weight:bold; font-size:14px; color:#d32f2f;">PDF</div><div style="font-size:10px;word-break:break-all; text-align:center; margin-top:4px;">${AppUtils.getPdfName(img.data)}</div></div>`;
+                                    }
+                                    if(img.isVideo || img.data.startsWith('data:video/')) {
+                                        let thumbSrc = img.thumbnail || 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+                                        return `
+                                        <div class="print-media-box" style="position:relative; display:inline-block;">
+                                            <img src="${thumbSrc}" class="print-media-img" style="display:block;">
+                                            <div class="play-overlay"><span style="color:#fff; font-size:18px;">&#9654;</span></div>
+                                        </div>`;
+                                    }
+                                    return `<div class="print-media-box"><img src="${img.data}" class="print-media-img"></div>`;
+                                }).join('');
+                            }
+                            
+                            let borderBottom = i < group.length - 1 ? 'border-bottom: 1px solid #eee;' : '';
+
+                            orphanHtml += `
+                                <div class="print-log-item" style="padding: 12px; ${borderBottom} page-break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+                                    <div class="print-header" style="font-size: 12px; color: #555; margin-bottom: 8px; font-weight: bold;">${AppUtils.formatDate(log.createdAt)}</div>
+                                    <div class="print-text" style="font-size: 14px; margin-bottom: 12px; white-space: pre-wrap; word-break: break-word; color: #222;">${log.text || ''}</div>
+                                    ${mediaHtml ? `<div style="margin-top:8px;">${mediaHtml}</div>` : ''}
+                                </div>
+                            `;
+                        }
+                        orphanHtml += `</div>`;
                     }
                     
                     printArea.innerHTML += `
