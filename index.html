@@ -293,7 +293,7 @@
         </h1>
         <div class="header-actions">
             <i class="material-icons action-icon" onclick="App.syncCloud()" title="Sincronizar Nuvem">sync</i>
-            <i class="material-icons action-icon" onclick="App.printReport()" title="Imprimir Relatório (14 dias)">print</i>
+            <i class="material-icons action-icon" onclick="App.openPrintModal()" title="Imprimir Relatório">print</i>
             <div style="position: relative;" id="menuWrapper">
                 <i class="material-icons action-icon" onclick="App.toggleMenu(event)">more_vert</i>
                 <div id="mainMenu" class="dropdown-menu">
@@ -376,6 +376,25 @@
         <h3 id="progressTitle" style="margin-bottom: 16px; color: var(--on-surface); text-align:center;">Aguarde...</h3>
         <p id="progressText" style="margin-bottom: 24px; font-weight: bold; color: var(--primary); font-size: 16px; text-align:center;">0%</p>
         <button class="btn btn-filled" id="progressCancelBtn" style="width: 100%; background-color: var(--surface-variant); color: var(--danger);">Cancelar</button>
+    </div>
+</div>
+
+<!-- NOVO MODAL PARA O RELATÓRIO -->
+<div class="dialog-overlay" id="printReportModal">
+    <div class="dialog-content">
+        <h3 style="text-align:left; margin-bottom: 16px;">Imprimir Relatório</h3>
+        <div class="input-group">
+            <label style="font-size: 13px; font-weight: 500; color: var(--on-surface-variant); margin-bottom: 8px; display: block; text-align: left;">Data Início:</label>
+            <input type="date" id="printStartDate" class="input-field">
+        </div>
+        <div class="input-group">
+            <label style="font-size: 13px; font-weight: 500; color: var(--on-surface-variant); margin-bottom: 8px; display: block; text-align: left;">Data Fim:</label>
+            <input type="date" id="printEndDate" class="input-field">
+        </div>
+        <div class="modal-actions" style="justify-content: flex-end;">
+            <button class="btn btn-text" onclick="document.getElementById('printReportModal').classList.remove('active')">Cancelar</button>
+            <button class="btn btn-filled" onclick="App.executePrint()">Gerar</button>
+        </div>
     </div>
 </div>
 
@@ -950,30 +969,59 @@ var App = {
         }
     },
 
-    printReport: async function() {
+    openPrintModal: function() {
+        const modal = document.getElementById('printReportModal');
+        const startInput = document.getElementById('printStartDate');
+        const endInput = document.getElementById('printEndDate');
+
+        const today = new Date().toISOString().split('T')[0];
+        endInput.value = today;
+
+        const savedStartDate = localStorage.getItem('OraculoPrintStartDate');
+        if (savedStartDate) {
+            startInput.value = savedStartDate;
+        } else {
+            const fourteenDaysAgo = new Date(Date.now() - (14 * 24 * 60 * 60 * 1000));
+            startInput.value = fourteenDaysAgo.toISOString().split('T')[0];
+        }
+
+        modal.classList.add('active');
+    },
+
+    executePrint: async function() {
+        const startInput = document.getElementById('printStartDate').value;
+        const endInput = document.getElementById('printEndDate').value;
+
+        if (!startInput || !endInput) {
+            CustomDialog.alert("Preencha ambas as datas.", "Aviso");
+            return;
+        }
+
+        localStorage.setItem('OraculoPrintStartDate', startInput);
+        document.getElementById('printReportModal').classList.remove('active');
+
         document.getElementById('progressModal').classList.add('active');
         document.getElementById('progressTitle').innerText = "A Gerar Relatório...";
-        document.getElementById('progressText').innerText = "A compilar os últimos 14 dias...";
+        document.getElementById('progressText').innerText = "A compilar os dados...";
         document.getElementById('progressCancelBtn').style.display = 'block';
 
         setTimeout(async () => {
             try {
-                const fourteenDaysAgo = Date.now() - (14 * 24 * 60 * 60 * 1000);
+                const startTime = new Date(startInput + "T00:00:00").getTime();
+                const endTime = new Date(endInput + "T23:59:59").getTime();
+                
                 const allEntities = await AppDB.entities.toArray();
                 const allLogsData = await AppDB.logs.toArray();
-                const allLogs = allLogsData.filter(l => l.createdAt >= fourteenDaysAgo);
+                const allLogs = allLogsData.filter(l => l.createdAt >= startTime && l.createdAt <= endTime);
                 
                 if (allLogs.length === 0) {
                     document.getElementById('progressModal').classList.remove('active');
-                    CustomDialog.alert("Nenhum registo nos últimos 14 dias.", "Aviso");
+                    CustomDialog.alert("Nenhum registo no período selecionado.", "Aviso");
                     return;
                 }
-
-                let minTime = Math.min(...allLogs.map(l => l.createdAt));
-                let maxTime = Math.max(...allLogs.map(l => l.createdAt));
                 
-                const dataInicioStr = new Date(minTime).toLocaleDateString('pt-BR');
-                const dataFimStr = new Date(maxTime).toLocaleDateString('pt-BR');
+                const dataInicioStr = new Date(startTime).toLocaleDateString('pt-BR');
+                const dataFimStr = new Date(endTime).toLocaleDateString('pt-BR');
                 
                 let printArea = document.getElementById('printArea');
                 printArea.innerHTML = `
@@ -1020,18 +1068,20 @@ var App = {
                                 }
 
                                 logsHtml += `
-                                    <div class="print-log-item">
-                                        <div class="print-header">${AppUtils.formatDate(log.createdAt)}</div>
-                                        <div class="print-text">${log.text || ''}</div>
-                                        ${mediaHtml ? `<div style="margin-top:5px;">${mediaHtml}</div>` : ''}
+                                    <div class="print-log-item" style="border: 1px solid #dcdcdc; background: #ffffff; border-radius: 6px; padding: 12px; margin-bottom: 16px; page-break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                        <div class="print-header" style="font-size: 12px; color: #555; margin-bottom: 8px; font-weight: bold; border-bottom: 1px solid #eee; padding-bottom: 4px;">${AppUtils.formatDate(log.createdAt)}</div>
+                                        <div class="print-text" style="font-size: 14px; margin-bottom: 12px; white-space: pre-wrap; word-break: break-word; color: #222;">${log.text || ''}</div>
+                                        ${mediaHtml ? `<div style="margin-top:8px;">${mediaHtml}</div>` : ''}
                                     </div>
                                 `;
                             }
 
                             catHtml += `
-                                <div style="margin-bottom: 15px; page-break-inside: avoid;">
-                                    <div class="print-entity" style="background-color: #f0f0f0; padding: 6px; border-left: 4px solid #062e6f; margin-bottom: 10px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">${entity.name}</div>
-                                    <div style="padding-left: 10px;">
+                                <div class="print-card" style="border: 2px solid #062e6f; border-radius: 8px; margin-bottom: 24px; page-break-inside: avoid; overflow: hidden; font-family: sans-serif;">
+                                    <div class="print-entity" style="background-color: #062e6f; color: #ffffff; padding: 12px 16px; margin: 0; font-size: 16px; font-weight: bold; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+                                        ${entity.name}
+                                    </div>
+                                    <div style="padding: 16px; background-color: #f8f9fa; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
                                         ${logsHtml}
                                     </div>
                                 </div>
@@ -1073,10 +1123,10 @@ var App = {
                         }
                         
                         orphanHtml += `
-                            <div class="print-log-item">
-                                <div class="print-header">${AppUtils.formatDate(log.createdAt)}</div>
-                                <div class="print-text">${log.text || ''}</div>
-                                ${mediaHtml ? `<div style="margin-top:5px;">${mediaHtml}</div>` : ''}
+                            <div class="print-log-item" style="border: 1px solid #dcdcdc; background: #ffffff; border-radius: 6px; padding: 12px; margin-bottom: 16px; page-break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                <div class="print-header" style="font-size: 12px; color: #555; margin-bottom: 8px; font-weight: bold; border-bottom: 1px solid #eee; padding-bottom: 4px;">${AppUtils.formatDate(log.createdAt)}</div>
+                                <div class="print-text" style="font-size: 14px; margin-bottom: 12px; white-space: pre-wrap; word-break: break-word; color: #222;">${log.text || ''}</div>
+                                ${mediaHtml ? `<div style="margin-top:8px;">${mediaHtml}</div>` : ''}
                             </div>
                         `;
                     }
@@ -1084,9 +1134,11 @@ var App = {
                     printArea.innerHTML += `
                         <div style="margin-top: 30px;">
                             <h2 style="font-size:18px; color:#333; border-bottom:1px solid #ccc; padding-bottom:5px; margin-bottom:15px; text-transform:uppercase;">Entidades Excluídas</h2>
-                            <div style="margin-bottom: 15px; page-break-inside: avoid;">
-                                <div class="print-entity" style="background-color: #f0f0f0; padding: 6px; border-left: 4px solid #062e6f; margin-bottom: 10px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">Geral</div>
-                                <div style="padding-left: 10px;">
+                            <div class="print-card" style="border: 2px solid #062e6f; border-radius: 8px; margin-bottom: 24px; page-break-inside: avoid; overflow: hidden; font-family: sans-serif;">
+                                <div class="print-entity" style="background-color: #062e6f; color: #ffffff; padding: 12px 16px; margin: 0; font-size: 16px; font-weight: bold; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+                                    Geral
+                                </div>
+                                <div style="padding: 16px; background-color: #f8f9fa; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
                                     ${orphanHtml}
                                 </div>
                             </div>
