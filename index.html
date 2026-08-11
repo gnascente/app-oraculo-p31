@@ -288,7 +288,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.5.8</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.5.9</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -299,6 +299,7 @@
                 <div id="mainMenu" class="dropdown-menu">
                     <input type="file" id="restoreLocalFile" accept=".zip,.json" style="display:none" onchange="App.restoreFromLocal(event)">
                     <div class="menu-item" onclick="document.getElementById('restoreLocalFile').click()"><i class="material-icons">folder_zip</i> Restaurar (Local)</div>
+                    <div class="menu-item" onclick="App.exportToLocal()"><i class="material-icons">download</i> Exportar (Local)</div>
                 </div>
             </div>
         </div>
