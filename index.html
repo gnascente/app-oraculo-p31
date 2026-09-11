@@ -288,7 +288,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.5.9</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.6.0</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -345,7 +345,7 @@
         <ul class="task-list" id="entityList"></ul>
     </div>
 
-    <div class="storage-footer">
+    <div class="storage-footer" onclick="App.showStorageDetails()" style="cursor: pointer;">
         <i class="material-icons" style="font-size: 14px;">storage</i> <span id="storageFooterText">A calcular memória...</span>
     </div>
 </div>
@@ -724,6 +724,7 @@ var App = {
     searchTimeout: null, currentSearchId: 0, 
     expandedTasks: new Set(JSON.parse(localStorage.getItem('OraculoExpandedTasks') || '[]')),
     expandedGroups: new Set(JSON.parse(localStorage.getItem('OraculoExpandedGroups') || '[]')),
+    storageDetails: { videos: 0, images: 0, pdfs: 0, messages: 0 },
 
     init: async function() { this.goHome(); this.calculateStorage(); },
     
@@ -738,15 +739,43 @@ var App = {
     calculateStorage: async function() {
         try {
             let totalBytes = 0;
-            await AppDB.entities.each(e => { totalBytes += JSON.stringify(e).length; });
+            this.storageDetails = { videos: 0, images: 0, pdfs: 0, messages: 0 };
+
+            await AppDB.entities.each(e => {
+                let eSize = JSON.stringify(e).length;
+                totalBytes += eSize;
+                this.storageDetails.messages += eSize;
+            });
             await AppDB.logs.each(l => {
-                totalBytes += JSON.stringify(l).length; 
-                if (l.images) { l.images.forEach(img => { if (img.size) totalBytes += img.size; else if (img.data) totalBytes += Math.round(img.data.length * 0.75); }); }
+                let lSize = JSON.stringify(l).length;
+                totalBytes += lSize;
+                this.storageDetails.messages += lSize;
+
+                if (l.images) {
+                    l.images.forEach(img => {
+                        let itemSize = img.size ? img.size : (img.data ? Math.round(img.data.length * 0.75) : 0);
+                        totalBytes += itemSize;
+
+                        if (img.isVideo || (img.data && img.data.startsWith('data:video/'))) {
+                            this.storageDetails.videos += itemSize;
+                        } else if (img.data && img.data.startsWith('data:application/pdf')) {
+                            this.storageDetails.pdfs += itemSize;
+                        } else {
+                            this.storageDetails.images += itemSize;
+                        }
+                    });
+                }
             });
             let mb = (totalBytes / 1024 / 1024).toFixed(2);
             const footer = document.getElementById('storageFooterText');
             if(footer) footer.innerText = `${mb} MB utilizados`;
         } catch(e) {}
+    },
+
+    showStorageDetails: function() {
+        const mb = (bytes) => (bytes / 1024 / 1024).toFixed(2);
+        const msg = `Vídeos: ${mb(this.storageDetails.videos)} MB<br>Imagens: ${mb(this.storageDetails.images)} MB<br>PDFs: ${mb(this.storageDetails.pdfs)} MB<br>Mensagens: ${mb(this.storageDetails.messages)} MB`;
+        CustomDialog.alert(msg, "Detalhes de Armazenamento");
     },
 
     toggleMenu: (e) => { e.stopPropagation(); const menu = document.getElementById('mainMenu'); if (menu.classList.contains('show')) MenuModal.closeUI(); else MenuModal.open(); },
