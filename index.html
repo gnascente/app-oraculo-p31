@@ -738,35 +738,35 @@ var App = {
     
     calculateStorage: async function() {
         try {
-            let totalBytes = 0;
-            this.storageDetails = { videos: 0, images: 0, pdfs: 0, messages: 0 };
+            let details = { videos: 0, images: 0, pdfs: 0, messages: 0 };
 
             await AppDB.entities.each(e => {
-                let eSize = JSON.stringify(e).length;
-                totalBytes += eSize;
-                this.storageDetails.messages += eSize;
+                details.messages += JSON.stringify(e).length;
             });
             await AppDB.logs.each(l => {
-                let lSize = JSON.stringify(l).length;
-                totalBytes += lSize;
-                this.storageDetails.messages += lSize;
+                let logClone = { ...l };
+                delete logClone.images;
+                details.messages += JSON.stringify(logClone).length;
 
                 if (l.images) {
                     l.images.forEach(img => {
                         let itemSize = img.size ? img.size : (img.data ? Math.round(img.data.length * 0.75) : 0);
-                        totalBytes += itemSize;
 
                         if (img.isVideo || (img.data && img.data.startsWith('data:video/'))) {
-                            this.storageDetails.videos += itemSize;
+                            details.videos += itemSize;
                         } else if (img.data && img.data.startsWith('data:application/pdf')) {
-                            this.storageDetails.pdfs += itemSize;
+                            details.pdfs += itemSize;
                         } else {
-                            this.storageDetails.images += itemSize;
+                            details.images += itemSize;
                         }
                     });
                 }
             });
+
+            this.storageDetails = details;
+            let totalBytes = details.videos + details.images + details.pdfs + details.messages;
             let mb = (totalBytes / 1024 / 1024).toFixed(2);
+
             const footer = document.getElementById('storageFooterText');
             if(footer) footer.innerText = `${mb} MB utilizados`;
         } catch(e) {}
