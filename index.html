@@ -288,7 +288,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.6.1</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.6.2</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -309,7 +309,7 @@
         <div class="home-search-container">
             <div class="search-box">
                 <i class="material-icons search-icon">search</i>
-                <input type="text" id="homeSearchInput" name="q_search_home" placeholder="Busca global em tudo..." autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" oninput="clearTimeout(App.searchTimeout); App.searchTimeout = setTimeout(() => App.renderHomeSearch(), 200);">
+                <input type="text" id="homeSearchInput" name="q_search_home" placeholder="Busca global em tudo..." aria-label="Buscar" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" oninput="clearTimeout(App.searchTimeout); App.searchTimeout = setTimeout(() => App.renderHomeSearch(), 200);">
             </div>
         </div>
         <div class="home-grid" id="homeGrid">
@@ -339,7 +339,7 @@
         <div class="search-container">
             <div class="search-box">
                 <i class="material-icons search-icon">search</i>
-                <input type="text" id="searchInput" name="q_search_list" placeholder="Buscar ou criar novo..." autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" oninput="clearTimeout(App.searchTimeout); App.searchTimeout = setTimeout(() => App.renderList(), 200);">
+                <input type="text" id="searchInput" name="q_search_list" placeholder="Buscar ou criar novo..." aria-label="Buscar" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" oninput="clearTimeout(App.searchTimeout); App.searchTimeout = setTimeout(() => App.renderList(), 200);">
             </div>
         </div>
         <ul class="task-list" id="entityList"></ul>
@@ -350,7 +350,7 @@
     </div>
 </div>
 
-<button class="fab" id="mainFab" style="display:none;" onclick="LogModal.open(null, App.currentEntityId)">
+<button class="fab" id="mainFab" style="display:none;" onclick="LogModal.open(null, App.currentEntityId)" aria-label="Adicionar">
     <i class="material-icons">add</i>
 </button>
 
@@ -498,10 +498,10 @@
     </div>
 
     <div class="editor-toolbar" onclick="event.stopPropagation()">
-        <button class="tool-btn" onclick="Editor.closeUI()"><i class="material-icons">close</i></button>
+        <button class="tool-btn" onclick="Editor.closeUI()" aria-label="Fechar"><i class="material-icons">close</i></button>
         <div class="editor-sep"></div>
-        <button class="tool-btn active" id="btnPen" onclick="Editor.setTool('pen')"><i class="material-icons">edit</i></button>
-        <button class="tool-btn" id="btnText" onclick="Editor.setTool('text')"><i class="material-icons">text_fields</i></button>
+        <button class="tool-btn active" id="btnPen" onclick="Editor.setTool('pen')" aria-label="Ferramenta caneta"><i class="material-icons">edit</i></button>
+        <button class="tool-btn" id="btnText" onclick="Editor.setTool('text')" aria-label="Ferramenta texto"><i class="material-icons">text_fields</i></button>
         <div class="editor-sep"></div>
         
         <div class="color-palette-container">
@@ -509,10 +509,10 @@
         </div>
         
         <div class="editor-sep"></div>
-        <input type="range" id="editorSize" class="size-slider" min="2" max="9" step="0.5" value="3">
+        <input type="range" id="editorSize" class="size-slider" min="2" max="9" step="0.5" value="3" aria-label="Tamanho">
         <div class="editor-sep"></div>
-        <button class="tool-btn" onclick="Editor.undo()"><i class="material-icons">undo</i></button>
-        <button class="tool-btn" onclick="Editor.save()" style="background: var(--primary); color: var(--on-primary); margin-left: auto;"><i class="material-icons">check</i></button>
+        <button class="tool-btn" onclick="Editor.undo()" aria-label="Desfazer"><i class="material-icons">undo</i></button>
+        <button class="tool-btn" onclick="Editor.save()" style="background: var(--primary); color: var(--on-primary); margin-left: auto;" aria-label="Salvar"><i class="material-icons">check</i></button>
     </div>
 </div>
 
