@@ -288,7 +288,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.6.1</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.6.2</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -1250,6 +1250,10 @@ var App = {
         
         if(!term) { grid.style.display = 'grid'; list.style.display = 'none'; return; }
         
+        grid.style.display = 'none';
+        list.style.display = 'flex';
+        list.innerHTML = '<div class="empty-state"><i class="material-icons" style="animation: spin 1s linear infinite;">sync</i><p>Aguarde...</p></div>';
+
         let resultList = [];
         let allEntities = await AppDB.entities.toArray();
         for(let e of allEntities) {
@@ -1489,6 +1493,11 @@ var App = {
         const viewListEl = document.getElementById('viewList');
         let currentScroll = viewListEl.scrollTop;
         
+        const listEl = document.getElementById('entityList');
+        if (searchTerm) {
+            listEl.innerHTML = '<div class="empty-state"><i class="material-icons" style="animation: spin 1s linear infinite;">sync</i><p>Aguarde...</p></div>';
+        }
+
         let allEntities = await AppDB.entities.where('type').equals(this.moduleType).toArray();
         let filtered = allEntities.filter(e => e.parentId === null); let hasExactMatch = false;
 
@@ -1518,7 +1527,6 @@ var App = {
 
         if (this.currentSearchId !== searchId) return;
 
-        const listEl = document.getElementById('entityList');
         listEl.innerHTML = '';
         
         if (searchTerm && !hasExactMatch) { 
@@ -1812,6 +1820,9 @@ var LogModal = {
         const term = document.getElementById('logLinkInput').value.toLowerCase().trim();
         const dropdown = document.getElementById('logLinkAutocomplete');
         
+        dropdown.innerHTML = '<div class="autocomplete-item" style="justify-content: center; color: var(--primary);"><i class="material-icons" style="font-size:16px; animation: spin 1s linear infinite;">sync</i> Aguarde...</div>';
+        dropdown.style.display = 'flex';
+
         let allEntities = await AppDB.entities.toArray();
         let available = allEntities.filter(e => e.type !== 'tarefa' && e.id !== this.originId && !this.tempRelations.some(rel => rel.id === e.id));
         if (term) available = available.filter(e => e.name.toLowerCase().includes(term));
