@@ -23,7 +23,7 @@
     <meta name="google" content="notranslate">
     <title>Oráculo P-31</title>
     
-    <meta name="theme-color" content="#111318">
+    <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Oráculo P-31">
@@ -37,8 +37,8 @@
         :root {
             --primary: #a8c7fa;
             --on-primary: #062e6f;
-            --background: #111318;
-            --surface: #1a1c1e;
+            --background: #000000;
+            --surface: #000000;
             --surface-variant: #43474e;
             --on-surface: #e2e2e6;
             --on-surface-variant: #c3c7cf;
@@ -55,7 +55,7 @@
         body { 
             background-color: var(--background); 
             color: var(--on-surface); 
-            display: flex; justify-content: center; padding: 16px; height: 100vh; overflow: hidden; box-sizing: border-box; outline: none; margin: 0; 
+            display: flex; justify-content: center; padding: 0; height: 100vh; overflow: hidden; box-sizing: border-box; outline: none; margin: 0;
             -webkit-touch-callout: none !important; -webkit-user-select: none !important; user-select: none !important;           
         }
 
@@ -65,7 +65,7 @@
         .material-icons { pointer-events: none; -webkit-user-select: none !important; user-select: none !important; -webkit-touch-callout: none !important; }
         .action-icon, .tool-btn, .carousel-btn, .carousel-nav-btn { pointer-events: auto; -webkit-user-select: none !important; user-select: none !important; -webkit-touch-callout: none !important; } 
 
-        .container { width: 100%; max-width: 480px; background: var(--surface); border-radius: 16px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; overflow: hidden; position: relative; height: 100%; }
+        .container { width: 100%; max-width: 480px; background: var(--surface); border-radius: 0; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; overflow: hidden; position: relative; height: 100%; }
         
         header { padding: 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--surface-variant); background: var(--surface); z-index: 20; flex-shrink: 0; }
         header h1 { font-size: 20px; font-weight: 500; display: flex; align-items: center; gap: 8px; flex-grow: 1; overflow: hidden; }
@@ -288,7 +288,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.6.2</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.6.3</span>
             </div>
         </h1>
         <div class="header-actions">
