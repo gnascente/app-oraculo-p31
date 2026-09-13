@@ -288,7 +288,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.6.3</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.6.4</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -725,8 +725,31 @@ var App = {
     expandedTasks: new Set(JSON.parse(localStorage.getItem('OraculoExpandedTasks') || '[]')),
     expandedGroups: new Set(JSON.parse(localStorage.getItem('OraculoExpandedGroups') || '[]')),
     storageDetails: { videos: 0, images: 0, pdfs: 0, messages: 0 },
+    currentAuthor: null, macAddress: null,
 
-    init: async function() { this.goHome(); this.calculateStorage(); },
+    init: async function() {
+        let mac = localStorage.getItem('oraculo_device_mac');
+        if (!mac) {
+            mac = 'mac_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('oraculo_device_mac', mac);
+        }
+        this.macAddress = mac;
+        let authorEntity = await AppDB.entities.get(mac);
+        if (!authorEntity) {
+            setTimeout(async () => {
+                let authorName = await CustomDialog.prompt("Qual o seu nome?", "", "Identificação de Autor");
+                if (authorName && authorName.trim()) {
+                    this.currentAuthor = authorName.trim();
+                    await AppDB.entities.put({ id: mac, type: 'device', name: this.currentAuthor, createdAt: Date.now(), updatedAt: Date.now(), parentId: null });
+                } else {
+                    this.currentAuthor = null;
+                }
+            }, 500);
+        } else {
+            this.currentAuthor = authorEntity.name;
+        }
+        this.goHome(); this.calculateStorage();
+    },
     
     saveExpandedState: function() {
         localStorage.setItem('OraculoExpandedGroups', JSON.stringify(Array.from(this.expandedGroups)));
@@ -1116,9 +1139,13 @@ var App = {
 
                                     let borderBottom = i < group.length - 1 ? 'border-bottom: 1px solid #eee;' : '';
 
+                                    let authorDispPrint = log.authorName || 'N/A';
+                                    if (authorDispPrint.length > 15) authorDispPrint = authorDispPrint.substring(0, 15) + '...';
+                                    authorDispPrint = authorDispPrint.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+
                                     logsHtml += `
                                         <div class="print-log-item" style="padding: 12px; ${borderBottom} page-break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
-                                            <div class="print-header" style="font-size: 12px; color: #555; margin-bottom: 8px; font-weight: bold;">${AppUtils.formatDate(log.createdAt)}</div>
+                                            <div class="print-header" style="font-size: 12px; color: #555; margin-bottom: 8px; font-weight: bold;">${AppUtils.formatDate(log.createdAt)} por ${authorDispPrint}</div>
                                             <div class="print-text" style="font-size: 14px; margin-bottom: 12px; white-space: pre-wrap; word-break: break-word; color: #222;">${log.text || ''}</div>
                                             ${mediaHtml ? `<div style="margin-top:8px;">${mediaHtml}</div>` : ''}
                                         </div>
@@ -1194,9 +1221,13 @@ var App = {
                             
                             let borderBottom = i < group.length - 1 ? 'border-bottom: 1px solid #eee;' : '';
 
+                            let authorDispOrphanPrint = log.authorName || 'N/A';
+                            if (authorDispOrphanPrint.length > 15) authorDispOrphanPrint = authorDispOrphanPrint.substring(0, 15) + '...';
+                            authorDispOrphanPrint = authorDispOrphanPrint.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+
                             orphanHtml += `
                                 <div class="print-log-item" style="padding: 12px; ${borderBottom} page-break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
-                                    <div class="print-header" style="font-size: 12px; color: #555; margin-bottom: 8px; font-weight: bold;">${AppUtils.formatDate(log.createdAt)}</div>
+                                    <div class="print-header" style="font-size: 12px; color: #555; margin-bottom: 8px; font-weight: bold;">${AppUtils.formatDate(log.createdAt)} por ${authorDispOrphanPrint}</div>
                                     <div class="print-text" style="font-size: 14px; margin-bottom: 12px; white-space: pre-wrap; word-break: break-word; color: #222;">${log.text || ''}</div>
                                     ${mediaHtml ? `<div style="margin-top:8px;">${mediaHtml}</div>` : ''}
                                 </div>
@@ -1461,12 +1492,16 @@ var App = {
                 addIconHtml = ``; 
             }
 
+            let authorDisp = log.authorName || 'N/A';
+            if (authorDisp.length > 15) authorDisp = authorDisp.substring(0, 15) + '...';
+            authorDisp = authorDisp.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+
             groupHtml += `
                 <div class="log-entry" id="log-${log.id}">
                     <div class="log-header">
                         <span style="display:flex; align-items:center;">
                             ${toggleHtml}
-                            <i class="material-icons" style="font-size:12px; margin-right:4px;">schedule</i> ${AppUtils.formatDate(log.createdAt)}
+                            <i class="material-icons" style="font-size:12px; margin-right:4px;">schedule</i> ${AppUtils.formatDate(log.createdAt)} por ${authorDisp}
                         </span>
                         <div class="log-actions">
                             ${addIconHtml}
@@ -1880,13 +1915,15 @@ var LogModal = {
                 log.relatedEntities = finalRelations;
                 log.updatedAt = now;
                 log.groupId = this.groupId || log.id;
+                log.authorName = App.currentAuthor || 'N/A';
                 await AppDB.logs.put(log);
             } else {
                 const newId = now.toString();
                 const newLog = { 
                     id: newId, text: text, images: [...this.tempMedia], createdAt: now, updatedAt: now, 
                     originEntityId: this.originId, relatedEntities: finalRelations,
-                    groupId: this.groupId || newId
+                    groupId: this.groupId || newId,
+                    authorName: App.currentAuthor || 'N/A'
                 };
                 await AppDB.logs.put(newLog);
             }
