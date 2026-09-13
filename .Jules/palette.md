@@ -1,0 +1,3 @@
+## 2024-05-18 - Input fields with role="presentation"
+**Learning:** Found an accessibility anti-pattern where input fields (`<input>` and `<textarea>`) used `role="presentation"`. This role strips the element of its semantic meaning, making it completely invisible and inaccessible to screen readers, which is highly problematic for interactive form elements. It was used alongside missing `<label>` tags.
+**Action:** Removed `role="presentation"` from all inputs and textareas to restore their semantic meaning. Added proper, visible `<label>` elements linked via the `for` attribute to ensure screen readers can announce the purpose of the input fields correctly. Always avoid using `role="presentation"` on interactive elements.
