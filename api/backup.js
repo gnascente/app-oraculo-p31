@@ -190,24 +190,30 @@ export default async function handler(req, res) {
                 let toUpload = { entities: [], logs: [] };
                 let parseError = false;
 
-                for (const part of parts) {
+                // Download all parts in parallel to avoid Vercel Serverless Function timeout
+                const partResults = await Promise.all(parts.map(async part => {
                     const getRes = await fetch(part.url, { cache: 'no-store' });
                     if (getRes.ok) {
-                        const text = await getRes.text();
-                        if (text) {
-                            try {
-                                const chunkData = JSON.parse(text);
-                                if (chunkData.entities) {
-                                    toUpload.entities.push(...chunkData.entities);
-                                }
-                                if (chunkData.logs) {
-                                    toUpload.logs.push(...chunkData.logs);
-                                }
-                            } catch(e) {
-                                console.error(`Failed to parse part ${part.pathname}`, e);
-                                parseError = true;
-                                break;
+                        return await getRes.text();
+                    }
+                    return null;
+                }));
+
+                for (let i = 0; i < partResults.length; i++) {
+                    const text = partResults[i];
+                    if (text) {
+                        try {
+                            const chunkData = JSON.parse(text);
+                            if (chunkData.entities) {
+                                toUpload.entities.push(...chunkData.entities);
                             }
+                            if (chunkData.logs) {
+                                toUpload.logs.push(...chunkData.logs);
+                            }
+                        } catch (e) {
+                            console.error(`Failed to parse part ${parts[i].pathname}`, e);
+                            parseError = true;
+                            break;
                         }
                     }
                 }
@@ -262,12 +268,14 @@ export default async function handler(req, res) {
                 if (!putRes.ok) {
                     return res.status(putRes.status).json({ error: await putRes.text() });
                 }
+                const putData = await putRes.json();
+                const newMasterBlobUrl = putData.url;
 
                 // Cleanup: Delete all parts, lock, and previous master (if it had a random suffix and was different)
                 const urlsToDelete = parts.map(p => p.url);
                 const lockFile = listData.blobs.find(b => b.pathname.includes(`${prefix}_lock_${macAddress}`));
                 if(lockFile) urlsToDelete.push(lockFile.url);
-                if (masterBlobUrlToDelete && masterBlobUrlToDelete !== masterBlobUrl) {
+                if (masterBlobUrlToDelete && masterBlobUrlToDelete !== newMasterBlobUrl) {
                     urlsToDelete.push(masterBlobUrlToDelete);
                 }
                 // Also delete other locks just in case

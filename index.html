@@ -290,7 +290,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.7.1</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.7.2</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -906,7 +906,7 @@ var App = {
             const remoteLogsMap = new Map();
             if(remoteIndex.logs) remoteIndex.logs.forEach(r => remoteLogsMap.set(r.id, r));
 
-            const CHUNK_SIZE = 1024 * 1024; // 1 MB chunks
+            const CHUNK_SIZE = 3 * 1024 * 1024; // 3 MB chunks to allow larger single files while staying under 4.5MB Vercel limit
             let currentChunk = { entities: [], logs: [] };
             let currentChunkSize = 20; // estimate JSON bracket size overhead
             let chunkIndex = 0;
@@ -934,43 +934,47 @@ var App = {
                 await new Promise(r => setTimeout(r, 50));
             };
 
-            // Collect items to upload without executing async functions in .each()
-            const entitiesToUpload = [];
-            await AppDB.entities.each(lItem => {
+            // Stream items to upload to prevent OOM
+            const entityKeys = await AppDB.entities.toCollection().primaryKeys();
+            for (const key of entityKeys) {
+                const lItem = await AppDB.entities.get(key);
+                if (!lItem) continue;
                 const rItem = remoteEntitiesMap.get(lItem.id);
                 const lTime = lItem.updatedAt || lItem.createdAt || 0;
                 if (!rItem || lTime > (rItem.updatedAt || 0)) {
-                    entitiesToUpload.push(lItem);
+                    const strSize = JSON.stringify(lItem).length;
+                    // If a single item is larger than CHUNK_SIZE, send the current chunk first, then put this item in its own chunk
+                    if (currentChunkSize + strSize > CHUNK_SIZE && currentChunkSize > 20) {
+                        await uploadCurrentChunk();
+                    }
+                    currentChunk.entities.push(lItem);
+                    currentChunkSize += strSize + 1;
+                    changesSent++;
+                    // If the item itself exceeds chunk size, force an upload immediately after adding it
+                    if (currentChunkSize > CHUNK_SIZE) {
+                        await uploadCurrentChunk();
+                    }
                 }
-            });
-
-            for (const lItem of entitiesToUpload) {
-                const strSize = JSON.stringify(lItem).length;
-                if (currentChunkSize + strSize > CHUNK_SIZE) {
-                    await uploadCurrentChunk();
-                }
-                currentChunk.entities.push(lItem);
-                currentChunkSize += strSize + 1;
-                changesSent++;
             }
 
-            const logsToUpload = [];
-            await AppDB.logs.each(lItem => {
+            const logKeys = await AppDB.logs.toCollection().primaryKeys();
+            for (const key of logKeys) {
+                const lItem = await AppDB.logs.get(key);
+                if (!lItem) continue;
                 const rItem = remoteLogsMap.get(lItem.id);
                 const lTime = lItem.updatedAt || lItem.createdAt || 0;
                 if (!rItem || lTime > (rItem.updatedAt || 0)) {
-                    logsToUpload.push(lItem);
+                    const strSize = JSON.stringify(lItem).length;
+                    if (currentChunkSize + strSize > CHUNK_SIZE && currentChunkSize > 20) {
+                        await uploadCurrentChunk();
+                    }
+                    currentChunk.logs.push(lItem);
+                    currentChunkSize += strSize + 1;
+                    changesSent++;
+                    if (currentChunkSize > CHUNK_SIZE) {
+                        await uploadCurrentChunk();
+                    }
                 }
-            });
-
-            for (const lItem of logsToUpload) {
-                const strSize = JSON.stringify(lItem).length;
-                if (currentChunkSize + strSize > CHUNK_SIZE) {
-                    await uploadCurrentChunk();
-                }
-                currentChunk.logs.push(lItem);
-                currentChunkSize += strSize + 1;
-                changesSent++;
             }
 
             // Upload the last pending chunk
