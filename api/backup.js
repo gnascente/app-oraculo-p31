@@ -140,7 +140,7 @@ export default async function handler(req, res) {
 
             // New startSync action
             if (action === 'startSync') {
-                const { prefix, macAddress } = bodyData;
+                const { prefix, macAddress, authorName } = bodyData;
 
                 const listRes = await fetch(`https://blob.vercel-storage.com/?prefix=${prefix}`, {
                     headers: { authorization: `Bearer ${token}` }
@@ -152,6 +152,7 @@ export default async function handler(req, res) {
                 const now = Date.now();
                 let canStart = true;
                 let urlsToDelete = [];
+                let conflictAuthor = null;
 
                 for (const lock of activeLocks) {
                     const uploadTime = new Date(lock.uploadedAt).getTime();
@@ -161,6 +162,15 @@ export default async function handler(req, res) {
                     } else if (!lock.pathname.includes(`_lock_${macAddress}`)) {
                         // Someone else holds a fresh lock
                         canStart = false;
+                        try {
+                            const lockDataRes = await fetch(lock.url);
+                            const lockData = await lockDataRes.json();
+                            if (lockData.authorName) {
+                                conflictAuthor = lockData.authorName;
+                            }
+                        } catch (err) {
+                            console.error("Failed to fetch lock details", err);
+                        }
                     } else {
                         // It's our own fresh lock, we can proceed, but let's delete the old one to refresh it
                         urlsToDelete.push(lock.url);
@@ -170,7 +180,7 @@ export default async function handler(req, res) {
                 if (urlsToDelete.length > 0) await deleteBlobs(urlsToDelete);
 
                 if (!canStart) {
-                    return res.status(409).json({ error: "Sincronização em andamento por outro dispositivo. Tente novamente mais tarde." });
+                    return res.status(409).json({ error: "Aguarde! Sincronização já iniciada por " + (conflictAuthor || "outro dispositivo") + "." });
                 }
 
                 // Also clean up any old orphan parts for this prefix to be safe
@@ -185,7 +195,7 @@ export default async function handler(req, res) {
                         authorization: `Bearer ${token}`,
                         'x-add-random-suffix': 'false'
                     },
-                    body: JSON.stringify({ macAddress, timestamp: now })
+                    body: JSON.stringify({ macAddress, timestamp: now, authorName })
                 });
 
                 if (!putRes.ok) return res.status(putRes.status).json({ error: "Failed to create lock" });
