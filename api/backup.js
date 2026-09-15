@@ -187,28 +187,38 @@ export default async function handler(req, res) {
                     return idxA - idxB;
                 });
 
-                let combinedUploadString = "";
+                let toUpload = { entities: [], logs: [] };
+                let parseError = false;
+
                 for (const part of parts) {
                     const getRes = await fetch(part.url, { cache: 'no-store' });
                     if (getRes.ok) {
                         const text = await getRes.text();
-                        combinedUploadString += text;
+                        if (text) {
+                            try {
+                                const chunkData = JSON.parse(text);
+                                if (chunkData.entities) {
+                                    toUpload.entities.push(...chunkData.entities);
+                                }
+                                if (chunkData.logs) {
+                                    toUpload.logs.push(...chunkData.logs);
+                                }
+                            } catch(e) {
+                                console.error(`Failed to parse part ${part.pathname}`, e);
+                                parseError = true;
+                                break;
+                            }
+                        }
                     }
                 }
 
-                let toUpload = { entities: [], logs: [] };
-                if (combinedUploadString) {
-                    try {
-                        toUpload = JSON.parse(combinedUploadString);
-                    } catch(e) {
-                        console.error("Failed to parse combined parts", e);
-                        // Delete parts and lock on failure to unblock
-                        const toDelete = parts.map(p => p.url);
-                        const lockFile = listData.blobs.find(b => b.pathname.includes(`${prefix}_lock_${macAddress}`));
-                        if(lockFile) toDelete.push(lockFile.url);
-                        await deleteBlobs(toDelete);
-                        return res.status(500).json({ error: "Falha ao processar os dados combinados." });
-                    }
+                if (parseError) {
+                    // Delete parts and lock on failure to unblock
+                    const toDelete = parts.map(p => p.url);
+                    const lockFile = listData.blobs.find(b => b.pathname.includes(`${prefix}_lock_${macAddress}`));
+                    if(lockFile) toDelete.push(lockFile.url);
+                    await deleteBlobs(toDelete);
+                    return res.status(500).json({ error: "Falha ao processar os dados combinados." });
                 }
 
                 // Fetch Master
@@ -257,6 +267,9 @@ export default async function handler(req, res) {
                 const urlsToDelete = parts.map(p => p.url);
                 const lockFile = listData.blobs.find(b => b.pathname.includes(`${prefix}_lock_${macAddress}`));
                 if(lockFile) urlsToDelete.push(lockFile.url);
+                if (masterBlobUrlToDelete && masterBlobUrlToDelete !== masterBlobUrl) {
+                    urlsToDelete.push(masterBlobUrlToDelete);
+                }
                 // Also delete other locks just in case
                 const otherLocks = listData.blobs.filter(b => b.pathname.includes(`${prefix}_lock_`));
                 otherLocks.forEach(l => { if(!urlsToDelete.includes(l.url)) urlsToDelete.push(l.url) });

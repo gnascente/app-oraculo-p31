@@ -28,6 +28,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Oráculo P-31">
     
+    <!-- Version updated to reflect sync fixes -->
+
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -288,7 +290,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.7.0</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.7.1</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -932,33 +934,44 @@ var App = {
                 await new Promise(r => setTimeout(r, 50));
             };
 
-            await AppDB.entities.each(async lItem => {
+            // Collect items to upload without executing async functions in .each()
+            const entitiesToUpload = [];
+            await AppDB.entities.each(lItem => {
                 const rItem = remoteEntitiesMap.get(lItem.id);
                 const lTime = lItem.updatedAt || lItem.createdAt || 0;
                 if (!rItem || lTime > (rItem.updatedAt || 0)) {
-                    const strSize = JSON.stringify(lItem).length;
-                    if (currentChunkSize + strSize > CHUNK_SIZE) {
-                        await uploadCurrentChunk();
-                    }
-                    currentChunk.entities.push(lItem);
-                    currentChunkSize += strSize + 1; // +1 for comma
-                    changesSent++;
+                    entitiesToUpload.push(lItem);
                 }
             });
 
-            await AppDB.logs.each(async lItem => {
+            for (const lItem of entitiesToUpload) {
+                const strSize = JSON.stringify(lItem).length;
+                if (currentChunkSize + strSize > CHUNK_SIZE) {
+                    await uploadCurrentChunk();
+                }
+                currentChunk.entities.push(lItem);
+                currentChunkSize += strSize + 1;
+                changesSent++;
+            }
+
+            const logsToUpload = [];
+            await AppDB.logs.each(lItem => {
                 const rItem = remoteLogsMap.get(lItem.id);
                 const lTime = lItem.updatedAt || lItem.createdAt || 0;
                 if (!rItem || lTime > (rItem.updatedAt || 0)) {
-                    const strSize = JSON.stringify(lItem).length;
-                    if (currentChunkSize + strSize > CHUNK_SIZE) {
-                        await uploadCurrentChunk();
-                    }
-                    currentChunk.logs.push(lItem);
-                    currentChunkSize += strSize + 1;
-                    changesSent++;
+                    logsToUpload.push(lItem);
                 }
             });
+
+            for (const lItem of logsToUpload) {
+                const strSize = JSON.stringify(lItem).length;
+                if (currentChunkSize + strSize > CHUNK_SIZE) {
+                    await uploadCurrentChunk();
+                }
+                currentChunk.logs.push(lItem);
+                currentChunkSize += strSize + 1;
+                changesSent++;
+            }
 
             // Upload the last pending chunk
             await uploadCurrentChunk(true);
@@ -991,6 +1004,12 @@ var App = {
             }
             
             if (changesSent === 0 && changesReceived === 0) {
+                syncIndicator.innerText = "Limpando travas...";
+                await fetch('/api/backup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'finalizeSync', prefix: prefix, macAddress: macAddress, toDownloadIds: {entities: [], logs: []} })
+                });
                 syncIndicator.style.display = 'none';
                 await CustomDialog.alert("A aplicação já se encontrava totalmente atualizada. Nenhum fragmento trafegado.", "Sincronizado");
                 return;
