@@ -290,7 +290,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.7.2</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.7.3</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -864,23 +864,24 @@ var App = {
 
         const prefix = "oraculo_sync_master";
         const macAddress = localStorage.getItem('oraculo_device_mac');
+        const authorSuffix = this.currentAuthor ? " (sistema sendo sincronizado por " + this.currentAuthor + ")" : "";
         
         let syncIndicator = document.getElementById('syncIndicator');
         if (!syncIndicator) {
             syncIndicator = document.createElement('div');
             syncIndicator.id = 'syncIndicator';
-            syncIndicator.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; background: var(--primary); color: var(--on-primary); text-align: center; font-size: 12px; font-weight: bold; padding: 4px; z-index: 9999; box-shadow: 0 2px 4px rgba(0,0,0,0.5);';
-            document.body.appendChild(syncIndicator);
+            syncIndicator.style.cssText = 'position: relative; width: 100%; background: var(--primary); color: var(--on-primary); text-align: center; font-size: 12px; font-weight: bold; padding: 4px; z-index: 9999; box-shadow: 0 2px 4px rgba(0,0,0,0.5); flex-shrink: 0;';
+            document.querySelector('.container').prepend(syncIndicator);
         }
         syncIndicator.style.display = 'block';
-        syncIndicator.innerText = "A iniciar sincronização...";
+        syncIndicator.innerText = "A iniciar sincronização..." + authorSuffix;
         
         try {
             // 1. Lock the sync
             const startRes = await fetch(`/api/backup`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'startSync', prefix: prefix, macAddress: macAddress })
+                body: JSON.stringify({ action: 'startSync', prefix: prefix, macAddress: macAddress, authorName: this.currentAuthor })
             });
             if (!startRes.ok) {
                 let errText = await startRes.text();
@@ -889,12 +890,12 @@ var App = {
             }
 
             // 2. Fetch Index
-            syncIndicator.innerText = "A obter índice da nuvem...";
+            syncIndicator.innerText = "A obter índice da nuvem..." + authorSuffix;
             const indexRes = await fetch(`/api/backup?action=index&prefix=${prefix}`);
             if(!indexRes.ok) throw new Error("Falha ao obter índice da nuvem.");
             const remoteIndex = await indexRes.json(); 
             
-            syncIndicator.innerText = "A analisar fragmentos...";
+            syncIndicator.innerText = "A analisar fragmentos..." + authorSuffix;
             
             const toDownloadIds = { entities: [], logs: [] };
             let changesSent = 0;
@@ -914,7 +915,7 @@ var App = {
             const uploadCurrentChunk = async (isLast = false) => {
                 if (currentChunk.entities.length === 0 && currentChunk.logs.length === 0) return;
 
-                syncIndicator.innerText = `A enviar pacotes... (Parte ${chunkIndex + 1})`;
+                syncIndicator.innerText = `A enviar pacotes... (Parte ${chunkIndex + 1})` + authorSuffix;
                 const chunkFileName = `${prefix}_part_${macAddress}_${chunkIndex}.json`;
                 const chunkStr = JSON.stringify(currentChunk);
 
@@ -1008,7 +1009,7 @@ var App = {
             }
             
             if (changesSent === 0 && changesReceived === 0) {
-                syncIndicator.innerText = "Limpando travas...";
+                syncIndicator.innerText = "Limpando travas..." + authorSuffix;
                 await fetch('/api/backup', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1020,7 +1021,7 @@ var App = {
             }
             
             // 4. Finalize and Download
-            syncIndicator.innerText = "A finalizar e baixar atualizações...";
+            syncIndicator.innerText = "A finalizar e baixar atualizações..." + authorSuffix;
             const syncRes = await fetch('/api/backup', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1039,7 +1040,7 @@ var App = {
             }
             const downloadedData = await syncRes.json();
 
-            syncIndicator.innerText = "A guardar atualizações locais...";
+            syncIndicator.innerText = "A guardar atualizações locais..." + authorSuffix;
             
             await AppDB.transaction('rw', AppDB.entities, AppDB.logs, async () => {
                 if(downloadedData.entities && downloadedData.entities.length > 0) {
