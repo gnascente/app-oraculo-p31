@@ -96,14 +96,19 @@ export default async function handler(req, res) {
         if (req.method === 'PUT') {
             const filename = req.query.filename;
             if (filename) {
-                // Proxy the stream directly to Vercel Blob
+                // Buffer the request properly for Node fetch
+                const chunks = [];
+                for await (const chunk of req) chunks.push(chunk);
+                const buffer = Buffer.concat(chunks);
+
+                // Proxy the buffer to Vercel Blob
                 const response = await fetch(`https://blob.vercel-storage.com/${filename}`, {
                     method: 'PUT',
                     headers: {
                         authorization: `Bearer ${token}`,
                         'x-add-random-suffix': 'false'
                     },
-                    body: req
+                    body: buffer
                 });
 
                 if (!response.ok) {
