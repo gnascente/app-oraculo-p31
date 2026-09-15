@@ -28,6 +28,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Oráculo P-31">
     
+    <!-- Version updated to reflect sync fixes -->
+
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -288,7 +290,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.6.4</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.7.2</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -852,105 +854,192 @@ var App = {
         });
         App.saveExpandedState();
     },
-
     syncCloud: async function() {
         if(!navigator.onLine) { 
             await CustomDialog.alert("Verifique a sua ligação à internet. Será gerado um backup local offline.", "Sem ligação"); 
             this.exportToLocal(true, "Sem ligação à internet");
             return; 
         }
-        if(!await CustomDialog.confirm("Iniciar sincronização otimizada com a nuvem? Apenas fragmentos necessários serão trafegados.", "Sincronizar")) return;
+        if(!await CustomDialog.confirm("Iniciar sincronização otimizada com a nuvem? Isso ocorrerá em segundo plano.", "Sincronizar")) return;
 
         const prefix = "oraculo_sync_master";
+        const macAddress = localStorage.getItem('oraculo_device_mac');
         
-        document.getElementById('progressModal').classList.add('active');
-        document.getElementById('progressTitle').innerText = "A Sincronizar...";
-        document.getElementById('progressText').innerText = "A obter índice da nuvem...";
-        document.getElementById('progressCancelBtn').style.display = 'none';
+        let syncIndicator = document.getElementById('syncIndicator');
+        if (!syncIndicator) {
+            syncIndicator = document.createElement('div');
+            syncIndicator.id = 'syncIndicator';
+            syncIndicator.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; background: var(--primary); color: var(--on-primary); text-align: center; font-size: 12px; font-weight: bold; padding: 4px; z-index: 9999; box-shadow: 0 2px 4px rgba(0,0,0,0.5);';
+            document.body.appendChild(syncIndicator);
+        }
+        syncIndicator.style.display = 'block';
+        syncIndicator.innerText = "A iniciar sincronização...";
         
         try {
+            // 1. Lock the sync
+            const startRes = await fetch(`/api/backup`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'startSync', prefix: prefix, macAddress: macAddress })
+            });
+            if (!startRes.ok) {
+                let errText = await startRes.text();
+                try { errText = JSON.parse(errText).error; } catch(e){}
+                throw new Error(errText || "Não foi possível iniciar a sincronização.");
+            }
+
+            // 2. Fetch Index
+            syncIndicator.innerText = "A obter índice da nuvem...";
             const indexRes = await fetch(`/api/backup?action=index&prefix=${prefix}`);
             if(!indexRes.ok) throw new Error("Falha ao obter índice da nuvem.");
             const remoteIndex = await indexRes.json(); 
             
-            document.getElementById('progressText').innerText = "A analisar fragmentos...";
+            syncIndicator.innerText = "A analisar fragmentos...";
             
-            const localEntities = await AppDB.entities.toArray();
-            const localLogs = await AppDB.logs.toArray();
-            
-            const toUpload = { entities: [], logs: [] };
             const toDownloadIds = { entities: [], logs: [] };
             let changesSent = 0;
             let changesReceived = 0;
 
-            const processDiff = (localArr, remoteIndexArr, uploadTarget, downloadTarget) => {
-                const localMap = new Map();
-                localArr.forEach(l => localMap.set(l.id, l));
-                
-                const remoteMap = new Map();
-                if(remoteIndexArr) remoteIndexArr.forEach(r => remoteMap.set(r.id, r));
+            const remoteEntitiesMap = new Map();
+            if(remoteIndex.entities) remoteIndex.entities.forEach(r => remoteEntitiesMap.set(r.id, r));
 
-                localArr.forEach(lItem => {
-                    const rItem = remoteMap.get(lItem.id);
-                    const lTime = lItem.updatedAt || lItem.createdAt || 0;
-                    if (!rItem) {
-                        uploadTarget.push(lItem);
-                        changesSent++;
-                    } else {
-                        const rTime = rItem.updatedAt || 0;
-                        if (lTime > rTime) {
-                            uploadTarget.push(lItem);
-                            changesSent++;
-                        }
-                    }
+            const remoteLogsMap = new Map();
+            if(remoteIndex.logs) remoteIndex.logs.forEach(r => remoteLogsMap.set(r.id, r));
+
+            const CHUNK_SIZE = 3 * 1024 * 1024; // 3 MB chunks to allow larger single files while staying under 4.5MB Vercel limit
+            let currentChunk = { entities: [], logs: [] };
+            let currentChunkSize = 20; // estimate JSON bracket size overhead
+            let chunkIndex = 0;
+
+            const uploadCurrentChunk = async (isLast = false) => {
+                if (currentChunk.entities.length === 0 && currentChunk.logs.length === 0) return;
+
+                syncIndicator.innerText = `A enviar pacotes... (Parte ${chunkIndex + 1})`;
+                const chunkFileName = `${prefix}_part_${macAddress}_${chunkIndex}.json`;
+                const chunkStr = JSON.stringify(currentChunk);
+
+                const uploadRes = await fetch(`/api/backup?filename=${chunkFileName}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/octet-stream' }, // Use octet-stream to bypass JSON body parsers that might crash on strings
+                    body: chunkStr
                 });
 
-                if(remoteIndexArr) {
-                    remoteIndexArr.forEach(rItem => {
-                        const lItem = localMap.get(rItem.id);
-                        const rTime = rItem.updatedAt || 0;
-                        if(lItem) {
-                            const lTime = lItem.updatedAt || lItem.createdAt || 0;
-                            if(rTime > lTime) {
-                                downloadTarget.push(rItem.id);
-                                changesReceived++; 
-                            }
-                        } else {
-                            downloadTarget.push(rItem.id);
-                            changesReceived++; 
-                        }
-                    });
+                if(!uploadRes.ok) {
+                    throw new Error(`Falha ao enviar pacote ${chunkIndex+1}`);
                 }
+
+                chunkIndex++;
+                currentChunk = { entities: [], logs: [] };
+                currentChunkSize = 20;
+                await new Promise(r => setTimeout(r, 50));
             };
 
-            processDiff(localEntities, remoteIndex.entities, toUpload.entities, toDownloadIds.entities);
-            processDiff(localLogs, remoteIndex.logs, toUpload.logs, toDownloadIds.logs);
+            // Stream items to upload to prevent OOM
+            const entityKeys = await AppDB.entities.toCollection().primaryKeys();
+            for (const key of entityKeys) {
+                const lItem = await AppDB.entities.get(key);
+                if (!lItem) continue;
+                const rItem = remoteEntitiesMap.get(lItem.id);
+                const lTime = lItem.updatedAt || lItem.createdAt || 0;
+                if (!rItem || lTime > (rItem.updatedAt || 0)) {
+                    const strSize = JSON.stringify(lItem).length;
+                    // If a single item is larger than CHUNK_SIZE, send the current chunk first, then put this item in its own chunk
+                    if (currentChunkSize + strSize > CHUNK_SIZE && currentChunkSize > 20) {
+                        await uploadCurrentChunk();
+                    }
+                    currentChunk.entities.push(lItem);
+                    currentChunkSize += strSize + 1;
+                    changesSent++;
+                    // If the item itself exceeds chunk size, force an upload immediately after adding it
+                    if (currentChunkSize > CHUNK_SIZE) {
+                        await uploadCurrentChunk();
+                    }
+                }
+            }
+
+            const logKeys = await AppDB.logs.toCollection().primaryKeys();
+            for (const key of logKeys) {
+                const lItem = await AppDB.logs.get(key);
+                if (!lItem) continue;
+                const rItem = remoteLogsMap.get(lItem.id);
+                const lTime = lItem.updatedAt || lItem.createdAt || 0;
+                if (!rItem || lTime > (rItem.updatedAt || 0)) {
+                    const strSize = JSON.stringify(lItem).length;
+                    if (currentChunkSize + strSize > CHUNK_SIZE && currentChunkSize > 20) {
+                        await uploadCurrentChunk();
+                    }
+                    currentChunk.logs.push(lItem);
+                    currentChunkSize += strSize + 1;
+                    changesSent++;
+                    if (currentChunkSize > CHUNK_SIZE) {
+                        await uploadCurrentChunk();
+                    }
+                }
+            }
+
+            // Upload the last pending chunk
+            await uploadCurrentChunk(true);
+
+            // Find missing local items
+            const localEntitiesMap = new Map();
+            await AppDB.entities.each(e => localEntitiesMap.set(e.id, e.updatedAt || e.createdAt || 0));
+            if(remoteIndex.entities) {
+                remoteIndex.entities.forEach(rItem => {
+                    const lTime = localEntitiesMap.get(rItem.id);
+                    const rTime = rItem.updatedAt || 0;
+                    if(lTime === undefined || rTime > lTime) {
+                        toDownloadIds.entities.push(rItem.id);
+                        changesReceived++;
+                    }
+                });
+            }
+
+            const localLogsMap = new Map();
+            await AppDB.logs.each(l => localLogsMap.set(l.id, l.updatedAt || l.createdAt || 0));
+            if(remoteIndex.logs) {
+                remoteIndex.logs.forEach(rItem => {
+                    const lTime = localLogsMap.get(rItem.id);
+                    const rTime = rItem.updatedAt || 0;
+                    if(lTime === undefined || rTime > lTime) {
+                        toDownloadIds.logs.push(rItem.id);
+                        changesReceived++;
+                    }
+                });
+            }
             
             if (changesSent === 0 && changesReceived === 0) {
-                document.getElementById('progressModal').classList.remove('active');
-                document.getElementById('progressCancelBtn').style.display = 'block';
-                this.goHome();
+                syncIndicator.innerText = "Limpando travas...";
+                await fetch('/api/backup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'finalizeSync', prefix: prefix, macAddress: macAddress, toDownloadIds: {entities: [], logs: []} })
+                });
+                syncIndicator.style.display = 'none';
                 await CustomDialog.alert("A aplicação já se encontrava totalmente atualizada. Nenhum fragmento trafegado.", "Sincronizado");
                 return;
             }
-
-            document.getElementById('progressText').innerText = "A trafegar fragmentos...";
             
+            // 4. Finalize and Download
+            syncIndicator.innerText = "A finalizar e baixar atualizações...";
             const syncRes = await fetch('/api/backup', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    action: 'syncFragment',
+                    action: 'finalizeSync',
                     prefix: prefix,
-                    toUpload: toUpload,
+                    macAddress: macAddress,
                     toDownloadIds: toDownloadIds
                 })
             });
 
-            if(!syncRes.ok) throw new Error("Falha ao sincronizar fragmentos com o servidor.");
+            if(!syncRes.ok) {
+                let errText = await syncRes.text();
+                try { errText = JSON.parse(errText).error; } catch(e){}
+                throw new Error(errText || "Falha ao finalizar sincronização com o servidor.");
+            }
             const downloadedData = await syncRes.json();
 
-            document.getElementById('progressText').innerText = "A guardar atualizações locais...";
+            syncIndicator.innerText = "A guardar atualizações locais...";
             
             await AppDB.transaction('rw', AppDB.entities, AppDB.logs, async () => {
                 if(downloadedData.entities && downloadedData.entities.length > 0) {
@@ -961,23 +1050,29 @@ var App = {
                 }
             });
 
-            document.getElementById('progressModal').classList.remove('active');
-            document.getElementById('progressCancelBtn').style.display = 'block';
+            syncIndicator.style.display = 'none';
             this.goHome();
             
-            let msg = `Sincronização otimizada concluída com sucesso!\n\n📋 Resumo de tráfego:\n`;
-            if (changesReceived > 0) msg += `⬇️ ${changesReceived} fragmentos baixados\n`;
+            let msg = `Sincronização otimizada concluída com sucesso!
+
+📋 Resumo de tráfego:
+`;
+            if (changesReceived > 0) msg += `⬇️ ${changesReceived} fragmentos baixados
+`;
             if (changesSent > 0) msg += `⬆️ ${changesSent} fragmentos enviados`;
             
             await CustomDialog.alert(msg.trim(), "Sincronizado");
 
         } catch(e) {
-            document.getElementById('progressModal').classList.remove('active');
-            document.getElementById('progressCancelBtn').style.display = 'block';
-            const rawErrorLog = `Name: ${e.name}\nMessage: ${e.message}\nStack: ${e.stack}`;
+            if(syncIndicator) syncIndicator.style.display = 'none';
+            const rawErrorLog = `Name: ${e.name}
+Message: ${e.message}
+Stack: ${e.stack}`;
             this.exportToLocal(true, e.message, rawErrorLog);
         }
     },
+
+
 
     exportToLocal: async (isAutoBackup = false, errorMsg = "", rawErrorLog = "") => { 
         if (typeof JSZip === 'undefined') { await CustomDialog.alert("Aguarde a biblioteca carregar.", "Aviso"); return; } 
