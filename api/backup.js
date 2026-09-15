@@ -93,6 +93,29 @@ export default async function handler(req, res) {
             return res.status(200).json({});
         }
 
+        if (req.method === 'PUT') {
+            const filename = req.query.filename;
+            if (filename) {
+                // Proxy the stream directly to Vercel Blob
+                const response = await fetch(`https://blob.vercel-storage.com/${filename}`, {
+                    method: 'PUT',
+                    headers: {
+                        authorization: `Bearer ${token}`,
+                        'x-add-random-suffix': 'false'
+                    },
+                    body: req
+                });
+
+                if (!response.ok) {
+                    const errText = await response.text();
+                    return res.status(response.status).json({ error: errText });
+                }
+
+                return res.status(200).json(await response.json());
+            }
+            return res.status(400).json({ error: 'Filename não especificado para PUT.' });
+        }
+
         if (req.method === 'POST') {
             const chunks = [];
             for await (const chunk of req) {
@@ -289,26 +312,6 @@ export default async function handler(req, res) {
             
             if (action === 'cleanup') {
                 return res.status(200).json({ success: true });
-            }
-
-            const filename = req.query.filename;
-            if (filename) {
-                // This will be used for uploadChunk
-                const response = await fetch(`https://blob.vercel-storage.com/${filename}`, {
-                    method: 'PUT',
-                    headers: { 
-                        authorization: `Bearer ${token}`,
-                        'x-add-random-suffix': 'false'
-                    },
-                    body: buffer
-                });
-                
-                if (!response.ok) {
-                    const errText = await response.text();
-                    return res.status(response.status).json({ error: errText });
-                }
-                
-                return res.status(200).json(await response.json());
             }
 
             return res.status(400).json({ error: 'Ação não especificada.' });

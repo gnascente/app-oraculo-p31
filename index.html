@@ -919,7 +919,7 @@ var App = {
                 const chunkStr = JSON.stringify(currentChunk);
 
                 const uploadRes = await fetch(`/api/backup?filename=${chunkFileName}`, {
-                    method: 'POST',
+                    method: 'PUT',
                     headers: { 'Content-Type': 'application/octet-stream' }, // Use octet-stream to bypass JSON body parsers that might crash on strings
                     body: chunkStr
                 });
