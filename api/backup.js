@@ -69,7 +69,7 @@ export default async function handler(req, res) {
                 const masterUrl = getMasterBlobUrl(listData, prefix);
                 
                 if(masterUrl) {
-                    const getRes = await fetch(masterUrl, { cache: 'no-store' });
+                    const getRes = await fetch(masterUrl + '?ts=' + Date.now(), { cache: 'no-store' });
                     if(getRes.ok) masterData = await getRes.json();
                 }
 
@@ -209,7 +209,7 @@ export default async function handler(req, res) {
             }
 
             if (action === 'finalizeSync') {
-                const { prefix, macAddress, toDownloadIds } = bodyData;
+                const { prefix, macAddress, toDownloadIds, uploadedPartUrls } = bodyData;
                 
                 // Get all parts
                 const listRes = await fetch(`https://blob.vercel-storage.com/?prefix=${prefix}`, {
@@ -217,20 +217,14 @@ export default async function handler(req, res) {
                 });
                 const listData = await listRes.json();
 
-                const parts = listData.blobs ? listData.blobs.filter(b => b.pathname.includes(`${prefix}_part_${macAddress}_`)) : [];
-                // Sort by part index
-                parts.sort((a, b) => {
-                    const idxA = parseInt(a.pathname.split('_').pop().split('.')[0]);
-                    const idxB = parseInt(b.pathname.split('_').pop().split('.')[0]);
-                    return idxA - idxB;
-                });
+                const partUrls = uploadedPartUrls || [];
 
                 let toUpload = { entities: [], logs: [] };
                 let parseError = false;
 
                 // Download all parts in parallel to avoid Vercel Serverless Function timeout
-                const partResults = await Promise.all(parts.map(async part => {
-                    const getRes = await fetch(part.url, { cache: 'no-store' });
+                const partResults = await Promise.all(partUrls.map(async url => {
+                    const getRes = await fetch(url + '?ts=' + Date.now(), { cache: 'no-store' });
                     if (getRes.ok) {
                         return await getRes.text();
                     }
@@ -249,7 +243,7 @@ export default async function handler(req, res) {
                                 toUpload.logs.push(...chunkData.logs);
                             }
                         } catch (e) {
-                            console.error(`Failed to parse part ${parts[i].pathname}`, e);
+                            console.error(`Failed to parse part url ${partUrls[i]}`, e);
                             parseError = true;
                             break;
                         }
@@ -258,7 +252,7 @@ export default async function handler(req, res) {
 
                 if (parseError) {
                     // Delete parts and lock on failure to unblock
-                    const toDelete = parts.map(p => p.url);
+                    const toDelete = [...partUrls];
                     const lockFile = listData.blobs.find(b => b.pathname.includes(`${prefix}_lock_${macAddress}`));
                     if(lockFile) toDelete.push(lockFile.url);
                     await deleteBlobs(toDelete);
@@ -272,7 +266,7 @@ export default async function handler(req, res) {
                 
                 if(masterUrl) {
                     masterBlobUrlToDelete = masterUrl;
-                    const getRes = await fetch(masterUrl, { cache: 'no-store' });
+                    const getRes = await fetch(masterUrl + '?ts=' + Date.now(), { cache: 'no-store' });
                     if(getRes.ok) masterData = await getRes.json();
                 }
 
@@ -310,7 +304,7 @@ export default async function handler(req, res) {
                 const newMasterBlobUrl = putData.url;
 
                 // Cleanup: Delete all parts, lock, and previous master (if it had a random suffix and was different)
-                const urlsToDelete = parts.map(p => p.url);
+                const urlsToDelete = [...partUrls];
                 const lockFile = listData.blobs.find(b => b.pathname.includes(`${prefix}_lock_${macAddress}`));
                 if(lockFile) urlsToDelete.push(lockFile.url);
                 if (masterBlobUrlToDelete && masterBlobUrlToDelete !== newMasterBlobUrl) {
