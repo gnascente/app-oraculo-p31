@@ -127,19 +127,24 @@ export default async function handler(req, res) {
                 chunks.push(chunk);
             }
             const buffer = Buffer.concat(chunks);
-            const bodyStr = buffer.toString('utf8');
-            let bodyData;
+            let bodyStr = '';
+            let bodyData = null;
             
-            try {
-                bodyData = JSON.parse(bodyStr);
-            } catch(e) {
-                bodyData = null;
+            // For uploadChunk, the body is raw octet-stream buffer, not JSON
+            const action = req.query.action;
+            if (action !== 'uploadChunk') {
+                try {
+                    bodyStr = buffer.toString('utf8');
+                    bodyData = JSON.parse(bodyStr);
+                } catch(e) {
+                    bodyData = null;
+                }
             }
 
-            const action = req.query.action || (bodyData && bodyData.action);
+            const effectiveAction = action || (bodyData && bodyData.action);
 
             // New startSync action
-            if (action === 'startSync') {
+            if (effectiveAction === 'startSync') {
                 const { prefix, macAddress, authorName } = bodyData;
 
                 const listRes = await fetch(`https://blob.vercel-storage.com/?prefix=${prefix}`, {
@@ -203,12 +208,34 @@ export default async function handler(req, res) {
             }
 
             // Fallback backward compatible syncFragment (just in case)
-            if (action === 'syncFragment') {
+            if (effectiveAction === 'syncFragment') {
                  // DEPRECATED - but keep logic if needed for older clients
                 return res.status(400).json({ error: "Use chunked sync process (startSync -> uploadChunk -> finalizeSync)" });
             }
 
-            if (action === 'finalizeSync') {
+            if (effectiveAction === 'uploadChunk') {
+                const filename = req.query.filename;
+                if (!filename) {
+                    return res.status(400).json({ error: 'Filename não especificado.' });
+                }
+                const response = await fetch(`https://blob.vercel-storage.com/${filename}`, {
+                    method: 'PUT',
+                    headers: {
+                        authorization: `Bearer ${token}`,
+                        'x-add-random-suffix': 'false'
+                    },
+                    body: buffer
+                });
+
+                if (!response.ok) {
+                    const errText = await response.text();
+                    return res.status(response.status).json({ error: errText });
+                }
+
+                return res.status(200).json(await response.json());
+            }
+
+            if (effectiveAction === 'finalizeSync') {
                 const { prefix, macAddress, toDownloadIds, uploadedPartUrls } = bodyData;
                 
                 // Get all parts
@@ -347,7 +374,19 @@ export default async function handler(req, res) {
                 return res.status(200).json(toDownload);
             }
             
-            if (action === 'cleanup') {
+            if (effectiveAction === 'cleanup') {
+                const { prefix, macAddress } = bodyData;
+
+                // Get all parts to find lock
+                const listRes = await fetch(`https://blob.vercel-storage.com/?prefix=${prefix}`, {
+                    headers: { authorization: `Bearer ${token}` }
+                });
+                const listData = await listRes.json();
+
+                const lockFile = listData.blobs ? listData.blobs.find(b => b.pathname.includes(`${prefix}_lock_${macAddress}`)) : null;
+                if (lockFile) {
+                    await deleteBlobs([lockFile.url]);
+                }
                 return res.status(200).json({ success: true });
             }
 
