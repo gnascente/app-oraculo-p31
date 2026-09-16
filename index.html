@@ -113,9 +113,8 @@
         /* Formatação fluída do Cartão */
         .task-header { display: block; margin-bottom: 12px; }
         .task-header::after { content: ""; display: table; clear: both; }
-        .entity-icon { float: left; width: 36px; height: 36px; border-radius: 8px; background: rgba(168, 199, 250, 0.1); display: grid; place-content: center; color: var(--primary); margin-right: 12px; margin-bottom: 4px; pointer-events:none;}
         .task-actions { float: right; display: flex; gap: 12px; align-items: center; margin-left: 12px; margin-bottom: 4px; padding-top: 6px; }
-        .task-title { display: block; clear: both; padding-top: 8px; font-size: 18px; font-weight: 500; word-break: break-word; line-height: 1.3; color: #fff; text-align: justify; }
+        .task-title { display: block; padding-top: 6px; font-size: 18px; font-weight: 500; word-break: break-word; line-height: 1.3; color: #fff; text-align: justify; }
 
         .create-btn-dynamic { background: rgba(168, 199, 250, 0.1); border: 1px dashed var(--primary); border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; color: var(--primary); font-weight: 500; margin-bottom: 16px; }
 
@@ -290,7 +289,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.7.5</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.7.6</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -1421,7 +1420,6 @@ Stack: ${e.stack}`;
             list.innerHTML += `
                 <li class="task-item" style="cursor:pointer;" onclick="App.focusEntity('${e.id}', '${term}')">
                     <div class="task-header" style="margin-bottom:4px;">
-                        <div class="entity-icon" style="width:28px;height:28px;"><i class="material-icons" style="font-size:16px;">${modInfo[1]}</i></div>
                         <span class="task-title" style="font-size:15px;">${AppUtils.highlight(e.name, term)}</span>
                     </div>
                     <span class="module-link-badge" style="align-self:flex-start; margin-left:0; display:block; clear:both; margin-top:4px;">${modInfo[0]}</span>
@@ -1691,7 +1689,6 @@ Stack: ${e.stack}`;
                         ${e.type === 'servico' ? `<i class="material-icons action-icon" title="Adicionar Tarefa" onclick="EntityModal.openTaskPrompt('${e.id}')">add_task</i>` : ''}
                         <i class="material-icons action-icon" title="Editar Nome/Excluir" onclick="EntityModal.open('${e.id}')">edit</i>
                     </div>
-                    <div class="entity-icon"><i class="material-icons">${this.moduleIcon}</i></div>
                     <span class="task-title">${AppUtils.highlight(e.name, searchTerm)}</span>
                 </div>
             `;
