@@ -75,22 +75,49 @@ export default async function handler(req, res) {
                 }
 
                 let masterData = { entities: [], logs: [] };
-                let masterUrl = getPredictableMasterUrl(prefix);
-                let getRes = null;
-
-                if (masterUrl) {
-                    getRes = await fetch(masterUrl + '?ts=' + Date.now(), { cache: 'no-store' });
-                }
+                let predictableUrl = getPredictableMasterUrl(prefix);
+                let fallbackUrl = getMasterBlobUrl(listData, prefix);
+                let attempts = 0;
+                let success = false;
                 
-                if (!getRes || !getRes.ok) {
-                    masterUrl = getMasterBlobUrl(listData, prefix);
-                    if (masterUrl) {
-                        getRes = await fetch(masterUrl + '?ts=' + Date.now(), { cache: 'no-store' });
+                if (!predictableUrl && !fallbackUrl) {
+                    success = true;
+                }
+
+                while (attempts < 5 && !success) {
+                    let getRes = null;
+                    if (predictableUrl) {
+                        getRes = await fetch(predictableUrl + '?ts=' + Date.now(), { cache: 'no-store' });
+                    }
+                    if (!getRes || !getRes.ok) {
+                        if (fallbackUrl) {
+                            getRes = await fetch(fallbackUrl + '?ts=' + Date.now(), { cache: 'no-store' });
+                        }
+                    }
+
+                    if (getRes && getRes.ok) {
+                        try {
+                            const text = await getRes.text();
+                            masterData = JSON.parse(text);
+                            success = true;
+                        } catch (e) {
+                            // Retry
+                        }
+                    } else if (getRes && getRes.status === 404) {
+                        // Vercel blob could be eventually consistent, but if it's not in the list, it might really be a 404.
+                        if (!fallbackUrl) {
+                            success = true;
+                        }
+                    }
+
+                    if (!success) {
+                        attempts++;
+                        await new Promise(r => setTimeout(r, 1000));
                     }
                 }
 
-                if (getRes && getRes.ok) {
-                    masterData = await getRes.json();
+                if (!success) {
+                    return res.status(500).json({ error: "Falha ao ler master JSON (timeout)." });
                 }
 
                 const indexMap = {
@@ -330,27 +357,56 @@ export default async function handler(req, res) {
 
                 // Fetch Master
                 let masterData = { entities: [], logs: [] };
-                let masterUrl = getPredictableMasterUrl(prefix);
+                let predictableUrl = getPredictableMasterUrl(prefix);
+                let fallbackUrl = getMasterBlobUrl(listData, prefix);
                 let masterBlobUrlToDelete = null;
-                let getRes = null;
 
-                if (masterUrl) {
-                    getRes = await fetch(masterUrl + '?ts=' + Date.now(), { cache: 'no-store' });
-                    if (getRes.ok) {
-                        masterBlobUrlToDelete = masterUrl;
+                let attempts = 0;
+                let success = false;
+
+                if (!predictableUrl && !fallbackUrl) {
+                    success = true;
+                }
+
+                while (attempts < 5 && !success) {
+                    let getRes = null;
+                    if (predictableUrl) {
+                        getRes = await fetch(predictableUrl + '?ts=' + Date.now(), { cache: 'no-store' });
+                        if (getRes.ok) masterBlobUrlToDelete = predictableUrl;
+                    }
+                    if (!getRes || !getRes.ok) {
+                        if (fallbackUrl) {
+                            getRes = await fetch(fallbackUrl + '?ts=' + Date.now(), { cache: 'no-store' });
+                            if (getRes.ok) masterBlobUrlToDelete = fallbackUrl;
+                        }
+                    }
+
+                    if (getRes && getRes.ok) {
+                        try {
+                            const text = await getRes.text();
+                            masterData = JSON.parse(text);
+                            success = true;
+                        } catch (e) {
+                            // Retry
+                        }
+                    } else if (getRes && getRes.status === 404) {
+                        if (!fallbackUrl) {
+                            success = true;
+                        }
+                    }
+
+                    if (!success) {
+                        attempts++;
+                        await new Promise(r => setTimeout(r, 1000));
                     }
                 }
 
-                if (!getRes || !getRes.ok) {
-                    masterUrl = getMasterBlobUrl(listData, prefix);
-                    if (masterUrl) {
-                        masterBlobUrlToDelete = masterUrl;
-                        getRes = await fetch(masterUrl + '?ts=' + Date.now(), { cache: 'no-store' });
-                    }
-                }
-                
-                if (getRes && getRes.ok) {
-                    masterData = await getRes.json();
+                if (!success) {
+                    const toDelete = [...partUrls];
+                    const lockFile = listData.blobs.find(b => b.pathname.includes(`${prefix}_lock_${macAddress}`));
+                    if(lockFile) toDelete.push(lockFile.url);
+                    await deleteBlobs(toDelete);
+                    return res.status(500).json({ error: "Falha ao ler master JSON (timeout)." });
                 }
 
                 // Compute diffs to download before merging
@@ -362,7 +418,18 @@ export default async function handler(req, res) {
                 const mergeIntoMaster = (masterArr, uploadArr) => {
                     const map = new Map();
                     masterArr.forEach(item => map.set(item.id, item));
-                    uploadArr.forEach(item => map.set(item.id, item));
+                    uploadArr.forEach(item => {
+                        const existing = map.get(item.id);
+                        if (!existing) {
+                            map.set(item.id, item);
+                        } else {
+                            const lTime = item.updatedAt || item.createdAt || 0;
+                            const rTime = existing.updatedAt || existing.createdAt || 0;
+                            if (lTime > rTime) {
+                                map.set(item.id, item);
+                            }
+                        }
+                    });
                     return Array.from(map.values());
                 };
 

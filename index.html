@@ -1057,7 +1057,7 @@ var App = {
                 await fetch('/api/backup', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'finalizeSync', prefix: prefix, macAddress: macAddress, toDownloadIds: {entities: [], logs: []}, uploadedPartUrls: uploadedPartUrls })
+                    body: JSON.stringify({ action: 'cleanup', prefix: prefix, macAddress: macAddress })
                 });
                 syncIndicator.style.display = 'none';
                 await CustomDialog.alert("A aplicação já se encontrava totalmente atualizada. Nenhum fragmento trafegado.", "Sincronizado");
