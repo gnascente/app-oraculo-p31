@@ -224,11 +224,20 @@ export default async function handler(req, res) {
 
                 // Download all parts in parallel to avoid Vercel Serverless Function timeout
                 const partResults = await Promise.all(partUrls.map(async url => {
-                    const getRes = await fetch(url + '?ts=' + Date.now(), { cache: 'no-store' });
-                    if (getRes.ok) {
-                        return await getRes.text();
+                    let attempts = 0;
+                    while (attempts < 3) {
+                        try {
+                            const getRes = await fetch(url + '?ts=' + Date.now(), { cache: 'no-store' });
+                            if (getRes.ok) {
+                                return await getRes.text();
+                            }
+                        } catch (e) {
+                            console.error(`Fetch attempt ${attempts + 1} failed for ${url}`, e);
+                        }
+                        attempts++;
+                        await new Promise(r => setTimeout(r, 500));
                     }
-                    return null;
+                    return null; // Failed after retries
                 }));
 
                 for (let i = 0; i < partResults.length; i++) {
@@ -247,6 +256,10 @@ export default async function handler(req, res) {
                             parseError = true;
                             break;
                         }
+                    } else {
+                        console.error(`Failed to download part url ${partUrls[i]} after retries.`);
+                        parseError = true;
+                        break;
                     }
                 }
 
