@@ -37,7 +37,7 @@ export default async function handler(req, res) {
     const getPredictableMasterUrl = (prefix) => {
         const parts = token.split('_');
         if (parts.length >= 4) {
-            const storeId = parts[3];
+            const storeId = parts[3].toLowerCase();
             return `https://${storeId}.public.blob.vercel-storage.com/${prefix}_master.json`;
         }
         return null;
