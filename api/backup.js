@@ -217,7 +217,20 @@ export default async function handler(req, res) {
                 });
                 const listData = await listRes.json();
 
-                const partUrls = uploadedPartUrls || [];
+                let partUrls = [];
+                if (uploadedPartUrls && uploadedPartUrls.length > 0) {
+                    // SSRF Validation
+                    partUrls = uploadedPartUrls.filter(url => typeof url === 'string' && url.startsWith('https://') && url.includes('.public.blob.vercel-storage.com'));
+                } else {
+                    // Fallback for older clients that don't send uploadedPartUrls
+                    const parts = listData.blobs ? listData.blobs.filter(b => b.pathname.includes(`${prefix}_part_${macAddress}_`)) : [];
+                    parts.sort((a, b) => {
+                        const idxA = parseInt(a.pathname.split('_').pop().split('.')[0]);
+                        const idxB = parseInt(b.pathname.split('_').pop().split('.')[0]);
+                        return idxA - idxB;
+                    });
+                    partUrls = parts.map(p => p.url);
+                }
 
                 let toUpload = { entities: [], logs: [] };
                 let parseError = false;
@@ -225,17 +238,19 @@ export default async function handler(req, res) {
                 // Download all parts in parallel to avoid Vercel Serverless Function timeout
                 const partResults = await Promise.all(partUrls.map(async url => {
                     let attempts = 0;
-                    while (attempts < 3) {
+                    while (attempts < 5) {
                         try {
                             const getRes = await fetch(url + '?ts=' + Date.now(), { cache: 'no-store' });
                             if (getRes.ok) {
                                 return await getRes.text();
+                            } else {
+                                console.error(`Fetch attempt ${attempts + 1} returned status ${getRes.status} for ${url}`);
                             }
                         } catch (e) {
                             console.error(`Fetch attempt ${attempts + 1} failed for ${url}`, e);
                         }
                         attempts++;
-                        await new Promise(r => setTimeout(r, 500));
+                        await new Promise(r => setTimeout(r, 1000));
                     }
                     return null; // Failed after retries
                 }));
