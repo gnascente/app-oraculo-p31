@@ -289,7 +289,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.7.9</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.8.0</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -995,6 +995,35 @@ var App = {
 
             // Upload the last pending chunk
             await uploadCurrentChunk(true);
+
+            // Verify chunks are fully propagated on CDN before finalizing
+            if (uploadedPartUrls.length > 0) {
+                syncIndicator.innerText = "A aguardar propagação na rede global..." + authorSuffix;
+                for (let url of uploadedPartUrls) {
+                    let attempts = 0;
+                    let verified = false;
+                    while (attempts < 15 && !verified) {
+                        try {
+                            const vRes = await fetch(url + '?ts=' + Date.now(), { cache: 'no-store' });
+                            if (vRes.ok) {
+                                const text = await vRes.text();
+                                try {
+                                    JSON.parse(text);
+                                    verified = true;
+                                } catch(e) { }
+                            }
+                        } catch(e) { }
+
+                        if (!verified) {
+                            attempts++;
+                            await new Promise(r => setTimeout(r, 2000));
+                        }
+                    }
+                    if (!verified) {
+                        throw new Error("Falha na propagação do fragmento na rede. Tente novamente em alguns instantes.");
+                    }
+                }
+            }
 
             // Find missing local items
             const localEntitiesMap = new Map();
