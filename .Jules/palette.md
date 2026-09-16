@@ -1,0 +1,3 @@
+## 2024-03-20 - Global Keydown Handler for Non-Semantic Buttons
+**Learning:** Using global event delegation for `keydown` on elements with `role="button"` allows non-semantic Material Icons (`<i>`) to work with Enter/Space universally, ensuring keyboard accessibility without littering the HTML with inline `onkeydown` handlers.
+**Action:** Apply global keydown handlers targeting role="button" when dealing with custom elements or icon fonts acting as primary interactions.

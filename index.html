@@ -82,7 +82,7 @@
             gap: 12px; box-shadow: var(--shadow-sm); cursor: pointer; transition: transform 0.2s, background 0.2s; border: 1px solid transparent;
         }
         .module-card:active { transform: scale(0.96); }
-        .module-card:hover { border-color: var(--primary); }
+        .module-card:hover, .module-card:focus-visible { border-color: var(--primary); outline: 2px solid var(--primary); outline-offset: 2px; }
         .module-card i { font-size: 40px; color: var(--primary); pointer-events: none;}
         .module-card span { font-size: 14px; font-weight: 500; color: var(--on-surface); text-align: center; }
 
@@ -160,8 +160,8 @@
         .pill-dark.origin { border-color: var(--primary); color: var(--primary); background: rgba(168, 199, 250, 0.1); }
 
         .action-icon { cursor: pointer; color: var(--on-surface-variant); transition: color 0.2s; font-size: 20px; display:inline-block;}
-        .action-icon:hover { color: var(--primary); }
-        .action-icon.danger:hover { color: var(--danger); }
+        .action-icon:hover, .action-icon:focus-visible { color: var(--primary); outline: 2px solid var(--primary); outline-offset: 2px; }
+        .action-icon.danger:hover, .action-icon.danger:focus-visible { color: var(--danger); outline: 2px solid var(--danger); outline-offset: 2px; }
 
         .stacked-deck { width: 100%; height: 160px; position: relative; margin-top: 8px; margin-bottom: 4px; cursor: pointer; display: block; transition: transform 0.2s; background: transparent; }
         .stacked-deck:active { transform: scale(0.98); }
@@ -176,6 +176,7 @@
 
         .fab { position: fixed; bottom: 54px; left: 50%; transform: translateX(-50%); background-color: var(--primary); color: var(--on-primary); border: none; width: 56px; height: 56px; border-radius: 16px; box-shadow: var(--shadow); cursor: pointer; display: grid; place-content: center; z-index: 99; transition: transform 0.2s; }
         .fab:active { transform: translateX(-50%) scale(0.9); }
+        .fab:focus-visible { outline: 2px solid var(--on-primary); outline-offset: 2px; }
         @media (min-width: 500px) { .fab { left: calc(50% + 180px); } }
 
         /* Modals */
@@ -284,19 +285,19 @@
 
 <div class="container">
     <header id="mainHeader">
-        <i class="material-icons action-icon" id="btnBack" style="display:none; margin-right: 12px;" onclick="App.goBack()">arrow_back</i>
+        <i class="material-icons action-icon" id="btnBack" role="button" tabindex="0" aria-label="Voltar" title="Voltar" style="display:none; margin-right: 12px;" onclick="App.goBack()">arrow_back</i>
         <h1 id="headerTitle">
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.8.0</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.8.1</span>
             </div>
         </h1>
         <div class="header-actions">
-            <i class="material-icons action-icon" onclick="App.syncCloud()" title="Sincronizar Nuvem">sync</i>
-            <i class="material-icons action-icon" onclick="App.openPrintModal()" title="Imprimir Relatório">print</i>
+            <i class="material-icons action-icon" role="button" tabindex="0" aria-label="Sincronizar Nuvem" onclick="App.syncCloud()" title="Sincronizar Nuvem">sync</i>
+            <i class="material-icons action-icon" role="button" tabindex="0" aria-label="Imprimir Relatório" onclick="App.openPrintModal()" title="Imprimir Relatório">print</i>
             <div style="position: relative;" id="menuWrapper">
-                <i class="material-icons action-icon" onclick="App.toggleMenu(event)">more_vert</i>
+                <i class="material-icons action-icon" role="button" tabindex="0" aria-label="Opções" title="Opções" onclick="App.toggleMenu(event)">more_vert</i>
                 <div id="mainMenu" class="dropdown-menu">
                     <input type="file" id="restoreLocalFile" accept=".zip,.json" style="display:none" onchange="App.restoreFromLocal(event)">
                     <div class="menu-item" onclick="document.getElementById('restoreLocalFile').click()"><i class="material-icons">folder_zip</i> Restaurar (Local)</div>
@@ -314,22 +315,22 @@
             </div>
         </div>
         <div class="home-grid" id="homeGrid">
-            <div class="module-card" onclick="App.openModule('servico', 'Serviços', 'handyman')">
+            <div class="module-card" role="button" tabindex="0" onclick="App.openModule('servico', 'Serviços', 'handyman')">
                 <i class="material-icons">handyman</i><span>Serviços</span>
             </div>
-            <div class="module-card" onclick="App.openModule('equipamento', 'Equipamentos', 'precision_manufacturing')">
+            <div class="module-card" role="button" tabindex="0" onclick="App.openModule('equipamento', 'Equipamentos', 'precision_manufacturing')">
                 <i class="material-icons">precision_manufacturing</i><span>Equipamentos</span>
             </div>
-            <div class="module-card" onclick="App.openModule('pessoa', 'Pessoas', 'people')">
+            <div class="module-card" role="button" tabindex="0" onclick="App.openModule('pessoa', 'Pessoas', 'people')">
                 <i class="material-icons">people</i><span>Pessoas</span>
             </div>
-            <div class="module-card" onclick="App.openModule('documento', 'Documentos', 'description')">
+            <div class="module-card" role="button" tabindex="0" onclick="App.openModule('documento', 'Documentos', 'description')">
                 <i class="material-icons">description</i><span>Documentos</span>
             </div>
-            <div class="module-card" onclick="App.openModule('auditoria', 'Auditorias', 'verified_user')">
+            <div class="module-card" role="button" tabindex="0" onclick="App.openModule('auditoria', 'Auditorias', 'verified_user')">
                 <i class="material-icons">verified_user</i><span>Auditorias</span>
             </div>
-            <div class="module-card" onclick="App.openModule('material', 'Materiais', 'inventory_2')">
+            <div class="module-card" role="button" tabindex="0" onclick="App.openModule('material', 'Materiais', 'inventory_2')">
                 <i class="material-icons">inventory_2</i><span>Materiais</span>
             </div>
         </div>
@@ -351,7 +352,7 @@
     </div>
 </div>
 
-<button class="fab" id="mainFab" style="display:none;" onclick="LogModal.open(null, App.currentEntityId)">
+<button class="fab" id="mainFab" aria-label="Adicionar Registo" style="display:none;" onclick="LogModal.open(null, App.currentEntityId)">
     <i class="material-icons">add</i>
 </button>
 
@@ -2317,6 +2318,13 @@ Editor.overlay.addEventListener('touchend', stopTextDrag); Editor.overlay.addEve
 Editor.sizeInput.addEventListener('input', (e) => { if(Editor.activeTool === 'text' && Editor.activeText) { Editor.activeText.style.fontSize = Math.max(14, e.target.value * 6) + 'px'; } });
 Editor.canvas.addEventListener('mousedown', (e) => Editor.startDraw(e)); Editor.canvas.addEventListener('mousemove', (e) => Editor.draw(e)); Editor.canvas.addEventListener('mouseup', (e) => Editor.stopDraw(e)); Editor.canvas.addEventListener('mouseleave', (e) => Editor.stopDraw(e));
 Editor.canvas.addEventListener('touchstart', (e) => Editor.startDraw(e), {passive: false}); Editor.canvas.addEventListener('touchmove', (e) => Editor.draw(e), {passive: false}); Editor.canvas.addEventListener('touchend', (e) => Editor.stopDraw(e), {passive: false});
+
+document.addEventListener('keydown', (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.getAttribute('role') === 'button') {
+        e.preventDefault();
+        e.target.click();
+    }
+});
 
 App.init();
 </script>
