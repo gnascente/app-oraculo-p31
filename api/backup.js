@@ -34,6 +34,15 @@ export default async function handler(req, res) {
         return null;
     };
 
+    const getPredictableMasterUrl = (prefix) => {
+        const parts = token.split('_');
+        if (parts.length >= 4) {
+            const storeId = parts[3];
+            return `https://${storeId}.public.blob.vercel-storage.com/${prefix}_master.json`;
+        }
+        return null;
+    };
+
     try {
         if (req.method === 'GET') {
             const prefix = req.query.prefix || ''; 
@@ -66,11 +75,22 @@ export default async function handler(req, res) {
                 }
 
                 let masterData = { entities: [], logs: [] };
-                const masterUrl = getMasterBlobUrl(listData, prefix);
+                let masterUrl = getPredictableMasterUrl(prefix);
+                let getRes = null;
+
+                if (masterUrl) {
+                    getRes = await fetch(masterUrl + '?ts=' + Date.now(), { cache: 'no-store' });
+                }
                 
-                if(masterUrl) {
-                    const getRes = await fetch(masterUrl + '?ts=' + Date.now(), { cache: 'no-store' });
-                    if(getRes.ok) masterData = await getRes.json();
+                if (!getRes || !getRes.ok) {
+                    masterUrl = getMasterBlobUrl(listData, prefix);
+                    if (masterUrl) {
+                        getRes = await fetch(masterUrl + '?ts=' + Date.now(), { cache: 'no-store' });
+                    }
+                }
+
+                if (getRes && getRes.ok) {
+                    masterData = await getRes.json();
                 }
 
                 const indexMap = {
@@ -260,11 +280,17 @@ export default async function handler(req, res) {
                 // Download all parts in parallel to avoid Vercel Serverless Function timeout
                 const partResults = await Promise.all(partUrls.map(async url => {
                     let attempts = 0;
-                    while (attempts < 5) {
+                    while (attempts < 7) {
                         try {
                             const getRes = await fetch(url + '?ts=' + Date.now(), { cache: 'no-store' });
                             if (getRes.ok) {
-                                return await getRes.text();
+                                const text = await getRes.text();
+                                try {
+                                    return JSON.parse(text);
+                                } catch (e) {
+                                    console.error(`Parse attempt ${attempts + 1} failed for ${url}`, e);
+                                    // Treat parse failure as a fetch failure (e.g. CDN HTML error page) and retry
+                                }
                             } else {
                                 console.error(`Fetch attempt ${attempts + 1} returned status ${getRes.status} for ${url}`);
                             }
@@ -272,29 +298,22 @@ export default async function handler(req, res) {
                             console.error(`Fetch attempt ${attempts + 1} failed for ${url}`, e);
                         }
                         attempts++;
-                        await new Promise(r => setTimeout(r, 1000));
+                        await new Promise(r => setTimeout(r, 1500));
                     }
                     return null; // Failed after retries
                 }));
 
                 for (let i = 0; i < partResults.length; i++) {
-                    const text = partResults[i];
-                    if (text) {
-                        try {
-                            const chunkData = JSON.parse(text);
-                            if (chunkData.entities) {
-                                toUpload.entities.push(...chunkData.entities);
-                            }
-                            if (chunkData.logs) {
-                                toUpload.logs.push(...chunkData.logs);
-                            }
-                        } catch (e) {
-                            console.error(`Failed to parse part url ${partUrls[i]}`, e);
-                            parseError = true;
-                            break;
+                    const chunkData = partResults[i];
+                    if (chunkData) {
+                        if (chunkData.entities) {
+                            toUpload.entities.push(...chunkData.entities);
+                        }
+                        if (chunkData.logs) {
+                            toUpload.logs.push(...chunkData.logs);
                         }
                     } else {
-                        console.error(`Failed to download part url ${partUrls[i]} after retries.`);
+                        console.error(`Failed to download or parse part url ${partUrls[i]} after retries.`);
                         parseError = true;
                         break;
                     }
@@ -311,13 +330,27 @@ export default async function handler(req, res) {
 
                 // Fetch Master
                 let masterData = { entities: [], logs: [] };
-                const masterUrl = getMasterBlobUrl(listData, prefix);
+                let masterUrl = getPredictableMasterUrl(prefix);
                 let masterBlobUrlToDelete = null;
+                let getRes = null;
+
+                if (masterUrl) {
+                    getRes = await fetch(masterUrl + '?ts=' + Date.now(), { cache: 'no-store' });
+                    if (getRes.ok) {
+                        masterBlobUrlToDelete = masterUrl;
+                    }
+                }
+
+                if (!getRes || !getRes.ok) {
+                    masterUrl = getMasterBlobUrl(listData, prefix);
+                    if (masterUrl) {
+                        masterBlobUrlToDelete = masterUrl;
+                        getRes = await fetch(masterUrl + '?ts=' + Date.now(), { cache: 'no-store' });
+                    }
+                }
                 
-                if(masterUrl) {
-                    masterBlobUrlToDelete = masterUrl;
-                    const getRes = await fetch(masterUrl + '?ts=' + Date.now(), { cache: 'no-store' });
-                    if(getRes.ok) masterData = await getRes.json();
+                if (getRes && getRes.ok) {
+                    masterData = await getRes.json();
                 }
 
                 // Compute diffs to download before merging
