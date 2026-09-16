@@ -69,7 +69,7 @@ export default async function handler(req, res) {
                 const masterUrl = getMasterBlobUrl(listData, prefix);
                 
                 if(masterUrl) {
-                    const getRes = await fetch(masterUrl, { cache: 'no-store' });
+                    const getRes = await fetch(masterUrl + '?ts=' + Date.now(), { cache: 'no-store' });
                     if(getRes.ok) masterData = await getRes.json();
                 }
 
@@ -209,7 +209,7 @@ export default async function handler(req, res) {
             }
 
             if (action === 'finalizeSync') {
-                const { prefix, macAddress, toDownloadIds } = bodyData;
+                const { prefix, macAddress, toDownloadIds, uploadedPartUrls } = bodyData;
                 
                 // Get all parts
                 const listRes = await fetch(`https://blob.vercel-storage.com/?prefix=${prefix}`, {
@@ -217,24 +217,42 @@ export default async function handler(req, res) {
                 });
                 const listData = await listRes.json();
 
-                const parts = listData.blobs ? listData.blobs.filter(b => b.pathname.includes(`${prefix}_part_${macAddress}_`)) : [];
-                // Sort by part index
-                parts.sort((a, b) => {
-                    const idxA = parseInt(a.pathname.split('_').pop().split('.')[0]);
-                    const idxB = parseInt(b.pathname.split('_').pop().split('.')[0]);
-                    return idxA - idxB;
-                });
+                let partUrls = [];
+                if (uploadedPartUrls && uploadedPartUrls.length > 0) {
+                    // SSRF Validation
+                    partUrls = uploadedPartUrls.filter(url => typeof url === 'string' && url.startsWith('https://') && url.includes('.public.blob.vercel-storage.com'));
+                } else {
+                    // Fallback for older clients that don't send uploadedPartUrls
+                    const parts = listData.blobs ? listData.blobs.filter(b => b.pathname.includes(`${prefix}_part_${macAddress}_`)) : [];
+                    parts.sort((a, b) => {
+                        const idxA = parseInt(a.pathname.split('_').pop().split('.')[0]);
+                        const idxB = parseInt(b.pathname.split('_').pop().split('.')[0]);
+                        return idxA - idxB;
+                    });
+                    partUrls = parts.map(p => p.url);
+                }
 
                 let toUpload = { entities: [], logs: [] };
                 let parseError = false;
 
                 // Download all parts in parallel to avoid Vercel Serverless Function timeout
-                const partResults = await Promise.all(parts.map(async part => {
-                    const getRes = await fetch(part.url, { cache: 'no-store' });
-                    if (getRes.ok) {
-                        return await getRes.text();
+                const partResults = await Promise.all(partUrls.map(async url => {
+                    let attempts = 0;
+                    while (attempts < 5) {
+                        try {
+                            const getRes = await fetch(url + '?ts=' + Date.now(), { cache: 'no-store' });
+                            if (getRes.ok) {
+                                return await getRes.text();
+                            } else {
+                                console.error(`Fetch attempt ${attempts + 1} returned status ${getRes.status} for ${url}`);
+                            }
+                        } catch (e) {
+                            console.error(`Fetch attempt ${attempts + 1} failed for ${url}`, e);
+                        }
+                        attempts++;
+                        await new Promise(r => setTimeout(r, 1000));
                     }
-                    return null;
+                    return null; // Failed after retries
                 }));
 
                 for (let i = 0; i < partResults.length; i++) {
@@ -249,16 +267,20 @@ export default async function handler(req, res) {
                                 toUpload.logs.push(...chunkData.logs);
                             }
                         } catch (e) {
-                            console.error(`Failed to parse part ${parts[i].pathname}`, e);
+                            console.error(`Failed to parse part url ${partUrls[i]}`, e);
                             parseError = true;
                             break;
                         }
+                    } else {
+                        console.error(`Failed to download part url ${partUrls[i]} after retries.`);
+                        parseError = true;
+                        break;
                     }
                 }
 
                 if (parseError) {
                     // Delete parts and lock on failure to unblock
-                    const toDelete = parts.map(p => p.url);
+                    const toDelete = [...partUrls];
                     const lockFile = listData.blobs.find(b => b.pathname.includes(`${prefix}_lock_${macAddress}`));
                     if(lockFile) toDelete.push(lockFile.url);
                     await deleteBlobs(toDelete);
@@ -272,7 +294,7 @@ export default async function handler(req, res) {
                 
                 if(masterUrl) {
                     masterBlobUrlToDelete = masterUrl;
-                    const getRes = await fetch(masterUrl, { cache: 'no-store' });
+                    const getRes = await fetch(masterUrl + '?ts=' + Date.now(), { cache: 'no-store' });
                     if(getRes.ok) masterData = await getRes.json();
                 }
 
@@ -310,7 +332,7 @@ export default async function handler(req, res) {
                 const newMasterBlobUrl = putData.url;
 
                 // Cleanup: Delete all parts, lock, and previous master (if it had a random suffix and was different)
-                const urlsToDelete = parts.map(p => p.url);
+                const urlsToDelete = [...partUrls];
                 const lockFile = listData.blobs.find(b => b.pathname.includes(`${prefix}_lock_${macAddress}`));
                 if(lockFile) urlsToDelete.push(lockFile.url);
                 if (masterBlobUrlToDelete && masterBlobUrlToDelete !== newMasterBlobUrl) {

@@ -290,7 +290,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.7.3</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.7.5</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -891,7 +891,7 @@ var App = {
 
             // 2. Fetch Index
             syncIndicator.innerText = "A obter índice da nuvem..." + authorSuffix;
-            const indexRes = await fetch(`/api/backup?action=index&prefix=${prefix}`);
+            const indexRes = await fetch(`/api/backup?action=index&prefix=${prefix}&ts=${Date.now()}`);
             if(!indexRes.ok) throw new Error("Falha ao obter índice da nuvem.");
             const remoteIndex = await indexRes.json(); 
             
@@ -900,6 +900,7 @@ var App = {
             const toDownloadIds = { entities: [], logs: [] };
             let changesSent = 0;
             let changesReceived = 0;
+            let uploadedPartUrls = [];
 
             const remoteEntitiesMap = new Map();
             if(remoteIndex.entities) remoteIndex.entities.forEach(r => remoteEntitiesMap.set(r.id, r));
@@ -927,6 +928,11 @@ var App = {
 
                 if(!uploadRes.ok) {
                     throw new Error(`Falha ao enviar pacote ${chunkIndex+1}`);
+                }
+
+                const uploadData = await uploadRes.json();
+                if (uploadData && uploadData.url) {
+                    uploadedPartUrls.push(uploadData.url);
                 }
 
                 chunkIndex++;
@@ -1013,7 +1019,7 @@ var App = {
                 await fetch('/api/backup', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'finalizeSync', prefix: prefix, macAddress: macAddress, toDownloadIds: {entities: [], logs: []} })
+                    body: JSON.stringify({ action: 'finalizeSync', prefix: prefix, macAddress: macAddress, toDownloadIds: {entities: [], logs: []}, uploadedPartUrls: uploadedPartUrls })
                 });
                 syncIndicator.style.display = 'none';
                 await CustomDialog.alert("A aplicação já se encontrava totalmente atualizada. Nenhum fragmento trafegado.", "Sincronizado");
@@ -1029,7 +1035,8 @@ var App = {
                     action: 'finalizeSync',
                     prefix: prefix,
                     macAddress: macAddress,
-                    toDownloadIds: toDownloadIds
+                    toDownloadIds: toDownloadIds,
+                    uploadedPartUrls: uploadedPartUrls
                 })
             });
 
