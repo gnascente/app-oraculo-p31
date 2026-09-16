@@ -289,7 +289,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.7.6</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.7.7</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -765,9 +765,11 @@ var App = {
             let details = { videos: 0, images: 0, pdfs: 0, messages: 0 };
 
             await AppDB.entities.each(e => {
+                if (e.isDeleted) return;
                 details.messages += JSON.stringify(e).length;
             });
             await AppDB.logs.each(l => {
+                if (l.isDeleted) return;
                 let logClone = { ...l };
                 delete logClone.images;
                 details.messages += JSON.stringify(logClone).length;
@@ -1164,8 +1166,8 @@ Stack: ${e.stack}`;
                 const startTime = new Date(startInput + "T00:00:00").getTime();
                 const endTime = new Date(endInput + "T23:59:59").getTime();
                 
-                const allEntities = await AppDB.entities.toArray();
-                const allLogsData = await AppDB.logs.toArray();
+                const allEntities = (await AppDB.entities.toArray()).filter(e => !e.isDeleted);
+                const allLogsData = (await AppDB.logs.toArray()).filter(l => !l.isDeleted);
                 const allLogs = allLogsData.filter(l => l.createdAt >= startTime && l.createdAt <= endTime);
                 
                 if (allLogs.length === 0) {
@@ -1388,10 +1390,10 @@ Stack: ${e.stack}`;
         list.innerHTML = '<div class="empty-state"><i class="material-icons" style="animation: spin 1s linear infinite;">sync</i><p>Aguarde...</p></div>';
 
         let resultList = [];
-        let allEntities = await AppDB.entities.toArray();
+        let allEntities = (await AppDB.entities.toArray()).filter(e => !e.isDeleted);
         for(let e of allEntities) {
             let matchesName = e.name.toLowerCase().includes(term);
-            let relatedLogs = await AppDB.logs.filter(l => l.relatedEntities.some(rel => rel.id === e.id) && l.text && l.text.toLowerCase().includes(term)).toArray();
+            let relatedLogs = await AppDB.logs.filter(l => !l.isDeleted && l.relatedEntities.some(rel => rel.id === e.id) && l.text && l.text.toLowerCase().includes(term)).toArray();
             if(matchesName || relatedLogs.length > 0) resultList.push({ entity: e, logsMatched: relatedLogs });
         }
 
@@ -1438,7 +1440,7 @@ Stack: ${e.stack}`;
     },
 
     focusEntity: async function(id, focusTerm = '', focusLogId = null) {
-        const entity = await AppDB.entities.get(id); if(!entity) return;
+        const entity = await AppDB.entities.get(id); if(!entity || entity.isDeleted) return;
         this.searchFocusTerm = focusTerm;
         
         let targetModuleType = entity.type; let targetModuleName = MODULE_MAPPING[entity.type][0]; let targetModuleIcon = MODULE_MAPPING[entity.type][1];
@@ -1635,21 +1637,21 @@ Stack: ${e.stack}`;
         }
 
         let allEntities = await AppDB.entities.where('type').equals(this.moduleType).toArray();
-        let filtered = allEntities.filter(e => e.parentId === null); let hasExactMatch = false;
+        let filtered = allEntities.filter(e => e.parentId === null && !e.isDeleted); let hasExactMatch = false;
 
         if (searchTerm) {
             let resultList = [];
             for(let e of filtered) {
                 if(e.name.toLowerCase() === searchTerm) hasExactMatch = true;
                 let matchesName = e.name.toLowerCase().includes(searchTerm);
-                let relatedLogs = await AppDB.logs.filter(l => l.relatedEntities.some(rel => rel.id === e.id) && l.text && l.text.toLowerCase().includes(searchTerm)).toArray();
+                let relatedLogs = await AppDB.logs.filter(l => !l.isDeleted && l.relatedEntities.some(rel => rel.id === e.id) && l.text && l.text.toLowerCase().includes(searchTerm)).toArray();
                 
                 let tasksMatched = [];
                 if(e.type === 'servico') {
-                    const servTasks = await AppDB.entities.filter(t => t.parentId === e.id && t.type === 'tarefa').toArray();
+                    const servTasks = await AppDB.entities.filter(t => !t.isDeleted && t.parentId === e.id && t.type === 'tarefa').toArray();
                     for(let t of servTasks) {
                         let matchesTaskName = t.name.toLowerCase().includes(searchTerm);
-                        let taskRelatedLogs = await AppDB.logs.filter(l => l.relatedEntities.some(rel => rel.id === t.id) && l.text && l.text.toLowerCase().includes(searchTerm)).toArray();
+                        let taskRelatedLogs = await AppDB.logs.filter(l => !l.isDeleted && l.relatedEntities.some(rel => rel.id === t.id) && l.text && l.text.toLowerCase().includes(searchTerm)).toArray();
                         if(matchesTaskName || taskRelatedLogs.length > 0) tasksMatched.push({ task: t, logsMatched: taskRelatedLogs });
                     }
                 }
@@ -1693,7 +1695,7 @@ Stack: ${e.stack}`;
                 </div>
             `;
 
-            let entityLogs = await AppDB.logs.filter(log => log.relatedEntities.some(rel => rel.id === e.id)).toArray();
+            let entityLogs = await AppDB.logs.filter(log => !log.isDeleted && log.relatedEntities.some(rel => rel.id === e.id)).toArray();
             if (entityLogs.length > 0) {
                 cardHtml += `<div class="log-list">`;
                 cardHtml += await App.buildLogsHTML(entityLogs, e.id, searchTerm);
@@ -1701,7 +1703,7 @@ Stack: ${e.stack}`;
             }
 
             if (e.type === 'servico') {
-                let tasks = await AppDB.entities.filter(t => t.parentId === e.id && t.type === 'tarefa').toArray();
+                let tasks = await AppDB.entities.filter(t => !t.isDeleted && t.parentId === e.id && t.type === 'tarefa').toArray();
                 if (tasks.length > 0) {
                     cardHtml += `<div style="font-size:12px; font-weight:bold; color:var(--on-surface-variant); margin-top:20px; margin-bottom: 8px; text-transform:uppercase; clear:both;">Tarefas do Serviço</div><ul class="subtask-list">`;
                     
@@ -1727,7 +1729,7 @@ Stack: ${e.stack}`;
                                 </div>
                             </div>
                         `;
-                        let taskLogs = await AppDB.logs.filter(log => log.relatedEntities.some(rel => rel.id === t.id)).toArray();
+                        let taskLogs = await AppDB.logs.filter(log => !log.isDeleted && log.relatedEntities.some(rel => rel.id === t.id)).toArray();
                         if (taskLogs.length > 0) {
                             cardHtml += `<div class="log-list" id="task-logs-${t.id}" style="margin-left: 26px; display:${taskLogsDisplay};">`;
                             cardHtml += await App.buildLogsHTML(taskLogs, t.id, searchTerm);
@@ -1902,16 +1904,21 @@ var EntityModal = {
     delete: async function() {
         if(await CustomDialog.confirm("Excluir esta entidade? TODOS os registos gerados nela e sub-tarefas serão apagados.", "Atenção (Cascata)")) {
             const id = this.currentTargetId;
+            const now = Date.now();
             await AppDB.transaction('rw', AppDB.entities, AppDB.logs, async () => {
-                await AppDB.entities.where('parentId').equals(id).delete();
-                await AppDB.entities.where('id').equals(id).delete();
+                let children = await AppDB.entities.where('parentId').equals(id).toArray();
+                for(let child of children) { child.isDeleted = true; child.updatedAt = now; await AppDB.entities.put(child); }
                 
-                await AppDB.logs.where('originEntityId').equals(id).delete();
+                let mainEntity = await AppDB.entities.get(id);
+                if (mainEntity) { mainEntity.isDeleted = true; mainEntity.updatedAt = now; await AppDB.entities.put(mainEntity); }
+
+                let originLogs = await AppDB.logs.where('originEntityId').equals(id).toArray();
+                for(let log of originLogs) { log.isDeleted = true; log.updatedAt = now; await AppDB.logs.put(log); }
                 
                 let affectedLogs = await AppDB.logs.filter(l => l.relatedEntities.some(rel => rel.id === id)).toArray();
                 for(let log of affectedLogs) {
                     log.relatedEntities = log.relatedEntities.filter(rel => rel.id !== id);
-                    log.updatedAt = Date.now();
+                    log.updatedAt = now;
                     await AppDB.logs.put(log);
                 }
             });
@@ -1959,7 +1966,7 @@ var LogModal = {
         dropdown.style.display = 'flex';
 
         let allEntities = await AppDB.entities.toArray();
-        let available = allEntities.filter(e => e.type !== 'tarefa' && e.id !== this.originId && !this.tempRelations.some(rel => rel.id === e.id));
+        let available = allEntities.filter(e => !e.isDeleted && e.type !== 'tarefa' && e.id !== this.originId && !this.tempRelations.some(rel => rel.id === e.id));
         if (term) available = available.filter(e => e.name.toLowerCase().includes(term));
         
         if (available.length === 0) { dropdown.style.display = 'none'; return; }
@@ -1990,7 +1997,12 @@ var LogModal = {
     delete: async function() {
         if(this.editLogId) {
             if(await CustomDialog.confirm("Excluir permanentemente este registo? Os demais registos deste grupo não serão afetados.", "Excluir Log")) {
-                await AppDB.logs.delete(this.editLogId);
+                const log = await AppDB.logs.get(this.editLogId);
+                if (log) {
+                    log.isDeleted = true;
+                    log.updatedAt = Date.now();
+                    await AppDB.logs.put(log);
+                }
                 App.renderList(); this.closeUI(); App.calculateStorage();
             }
         }
