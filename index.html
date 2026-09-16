@@ -289,7 +289,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.7.7</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.7.8</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -921,8 +921,8 @@ var App = {
                 const chunkFileName = `${prefix}_part_${macAddress}_${chunkIndex}.json`;
                 const chunkStr = JSON.stringify(currentChunk);
 
-                const uploadRes = await fetch(`/api/backup?filename=${chunkFileName}`, {
-                    method: 'PUT',
+                const uploadRes = await fetch(`/api/backup?action=uploadChunk&filename=${chunkFileName}`, {
+                    method: 'POST',
                     headers: { 'Content-Type': 'application/octet-stream' }, // Use octet-stream to bypass JSON body parsers that might crash on strings
                     body: chunkStr
                 });
@@ -931,9 +931,17 @@ var App = {
                     throw new Error(`Falha ao enviar pacote ${chunkIndex+1}`);
                 }
 
-                const uploadData = await uploadRes.json();
+                let uploadData;
+                try {
+                    uploadData = await uploadRes.json();
+                } catch (e) {
+                    throw new Error(`A resposta do envio do pacote ${chunkIndex+1} é inválida. A firewall pode estar a bloquear o tráfego.`);
+                }
+
                 if (uploadData && uploadData.url) {
                     uploadedPartUrls.push(uploadData.url);
+                } else {
+                    throw new Error(`Resposta de sucesso falso (sem URL) detectada no pacote ${chunkIndex+1}. A firewall pode estar a bloquear o tráfego.`);
                 }
 
                 chunkIndex++;
@@ -1074,6 +1082,18 @@ var App = {
 
         } catch(e) {
             if(syncIndicator) syncIndicator.style.display = 'none';
+
+            // Clean up lock file explicitly on failure
+            try {
+                await fetch('/api/backup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'cleanup', prefix: prefix, macAddress: macAddress })
+                });
+            } catch (cleanupErr) {
+                console.error("Erro ao limpar trava após falha na sincronização", cleanupErr);
+            }
+
             const rawErrorLog = `Name: ${e.name}
 Message: ${e.message}
 Stack: ${e.stack}`;

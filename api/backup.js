@@ -208,6 +208,28 @@ export default async function handler(req, res) {
                 return res.status(400).json({ error: "Use chunked sync process (startSync -> uploadChunk -> finalizeSync)" });
             }
 
+            if (action === 'uploadChunk') {
+                const filename = req.query.filename;
+                if (!filename) {
+                    return res.status(400).json({ error: 'Filename não especificado.' });
+                }
+                const response = await fetch(`https://blob.vercel-storage.com/${filename}`, {
+                    method: 'PUT',
+                    headers: {
+                        authorization: `Bearer ${token}`,
+                        'x-add-random-suffix': 'false'
+                    },
+                    body: buffer
+                });
+
+                if (!response.ok) {
+                    const errText = await response.text();
+                    return res.status(response.status).json({ error: errText });
+                }
+
+                return res.status(200).json(await response.json());
+            }
+
             if (action === 'finalizeSync') {
                 const { prefix, macAddress, toDownloadIds, uploadedPartUrls } = bodyData;
                 
@@ -348,6 +370,18 @@ export default async function handler(req, res) {
             }
             
             if (action === 'cleanup') {
+                const { prefix, macAddress } = bodyData;
+
+                // Get all parts to find lock
+                const listRes = await fetch(`https://blob.vercel-storage.com/?prefix=${prefix}`, {
+                    headers: { authorization: `Bearer ${token}` }
+                });
+                const listData = await listRes.json();
+
+                const lockFile = listData.blobs ? listData.blobs.find(b => b.pathname.includes(`${prefix}_lock_${macAddress}`)) : null;
+                if (lockFile) {
+                    await deleteBlobs([lockFile.url]);
+                }
                 return res.status(200).json({ success: true });
             }
 
