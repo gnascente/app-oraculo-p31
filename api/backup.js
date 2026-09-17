@@ -48,6 +48,27 @@ export default async function handler(req, res) {
             const prefix = req.query.prefix || ''; 
             const action = req.query.action;
 
+            if (action === 'masterDate') {
+                const listRes = await fetch(`https://blob.vercel-storage.com/?prefix=${prefix}`, {
+                    headers: { authorization: `Bearer ${token}` }
+                });
+                const listData = await listRes.json();
+                let masterDate = null;
+                if (listData && listData.blobs) {
+                    const masterBlob = listData.blobs.find(b => b.pathname === `${prefix}_master.json`);
+                    if (masterBlob) {
+                        masterDate = masterBlob.uploadedAt;
+                    } else {
+                        const potentialMasters = listData.blobs.filter(b => !b.pathname.includes('_lock_') && !b.pathname.includes('_part_'));
+                        if (potentialMasters.length > 0) {
+                            potentialMasters.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+                            masterDate = potentialMasters[0].uploadedAt;
+                        }
+                    }
+                }
+                return res.status(200).json({ uploadedAt: masterDate });
+            }
+
             if (action === 'index') {
                 const listRes = await fetch(`https://blob.vercel-storage.com/?prefix=${prefix}`, {
                     headers: { authorization: `Bearer ${token}` }
@@ -466,7 +487,10 @@ export default async function handler(req, res) {
 
                 await deleteBlobs(urlsToDelete);
 
-                return res.status(200).json(toDownload);
+                // Include a simulated future uploadedAt to avoid sync feedback loop due to subtle delays/clock skew
+                const finalResponse = { ...toDownload, uploadedAt: new Date(Date.now() + 10000).toISOString() };
+
+                return res.status(200).json(finalResponse);
             }
             
             if (action === 'cleanup') {
