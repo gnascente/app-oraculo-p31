@@ -353,20 +353,34 @@ const runSyncCycle = async () => {
                 await db.blocks.put(block);
                 renderBlocks(); // Re-render to show uploading state
 
-                const res = await fetch(`/api/poc-sync?action=uploadChunk`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        sessionId: sessionId,
-                        chunkIndex: chunkIdx,
-                        totalChunks: totalChunks,
-                        data: chunkDataStr,
-                        blockId: block.id
-                    })
-                });
+                let res;
+                try {
+                    res = await fetch(`/api/poc-sync?action=uploadChunk`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            sessionId: sessionId,
+                            chunkIndex: chunkIdx,
+                            totalChunks: totalChunks,
+                            data: chunkDataStr,
+                            blockId: block.id
+                        })
+                    });
+                } catch (networkErr) {
+                    console.error('Network fetch failed:', networkErr);
+                    throw new Error(`Network fetch failed: ${networkErr.message}`);
+                }
+
+                const rawText = await res.text();
+                console.debug(`Raw response text for chunk ${chunkIdx}:`, rawText);
 
                 if (!res.ok) {
-                    const errObj = await res.json().catch(() => ({error: 'Unknown HTTP Error'}));
+                    let errObj = { error: 'Unknown HTTP Error' };
+                    try {
+                        errObj = JSON.parse(rawText);
+                    } catch(e) {
+                        console.error('Failed to parse error response as JSON. Raw text:', rawText);
+                    }
 
                     if (errObj.error === 'SESSION_EXPIRED') {
                         logTerminal(`Sessão expirada para o bloco ${block.id.substring(0,8)}. Reiniciando...`, 'warn');
@@ -376,17 +390,19 @@ const runSyncCycle = async () => {
                         await db.blocks.put(block);
                         throw new Error('SESSION_EXPIRED');
                     }
-                    throw new Error(errObj.error || `HTTP ${res.status}`);
+                    throw new Error(errObj.error || `HTTP ${res.status}: ${rawText.substring(0, 100)}`);
                 }
 
                 let resData;
                 try {
-                    resData = await res.json();
+                    resData = JSON.parse(rawText);
                     if (!resData || (!resData.status && !resData.error)) {
+                        console.error('Invalid JSON payload - possible firewall interception. Raw text:', rawText);
                         throw new Error('Invalid JSON payload - possible firewall interception.');
                     }
                 } catch (parseErr) {
-                    throw new Error('Falha de rede ou firewall bloqueou a resposta JSON.');
+                    console.error('JSON parsing failed or firewall blocked response. Parse Error:', parseErr, 'Raw Text:', rawText);
+                    throw new Error(`Falha de rede ou firewall bloqueou a resposta JSON. Detalhes: ${parseErr.message}`);
                 }
 
                 // If this was the last chunk, it will process the block and return the updated master state
@@ -415,6 +431,7 @@ const runSyncCycle = async () => {
 
         } catch (err) {
             if (err.message !== 'SESSION_EXPIRED') {
+                console.error(`Sync error for block ${block.id}:`, err);
                 logTerminal(`Falha no sync do bloco ${block.id.substring(0,8)}: ${err.message}`, 'fail');
                 block.syncStatus = 'pending';
                 await db.blocks.put(block);
