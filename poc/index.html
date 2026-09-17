@@ -47,12 +47,17 @@
         <main id="terminalView" class="view dos-terminal">
             <div class="terminal-header">
                 <span>C:\SYNC_LOGS></span>
-                <button id="btnCloseTerminal" class="icon-btn" style="color: #0f0;">
-                    <i class="material-icons">close</i>
-                </button>
+                <div>
+                    <button id="btnClearTerminal" class="icon-btn" style="color: #0f0; display: inline-block;" title="Limpar Log">
+                        <i class="material-icons">delete_sweep</i>
+                    </button>
+                    <button id="btnCloseTerminal" class="icon-btn" style="color: #0f0; display: inline-block;">
+                        <i class="material-icons">close</i>
+                    </button>
+                </div>
             </div>
             <div id="terminalOutput" class="terminal-output">
-                <div>Oráculo P-31 Offshore Sync System v1.0</div>
+                <div>Oráculo P-31 Offshore Sync System v1.1</div>
                 <div>Initializing local database... <span class="status-ok">OK</span></div>
                 <div>Waiting for network...</div>
             </div>
