@@ -291,7 +291,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.8.2</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.8.3</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -904,7 +904,7 @@ var App = {
             document.querySelector('.container').prepend(syncIndicator);
         }
         syncIndicator.style.display = 'block';
-        syncIndicator.innerText = "A iniciar sincronização..." + authorSuffix;
+        syncIndicator.innerText = "A iniciar..." + authorSuffix;
         
         try {
             // 1. Lock the sync
@@ -920,12 +920,12 @@ var App = {
             }
 
             // 2. Fetch Index
-            syncIndicator.innerText = "A obter índice da nuvem..." + authorSuffix;
+            syncIndicator.innerText = "A obter índice..." + authorSuffix;
             const indexRes = await fetch(`/api/backup?action=index&prefix=${prefix}&ts=${Date.now()}`);
             if(!indexRes.ok) throw new Error("Falha ao obter índice da nuvem.");
             const remoteIndex = await indexRes.json(); 
             
-            syncIndicator.innerText = "A analisar fragmentos..." + authorSuffix;
+            syncIndicator.innerText = "A analisar..." + authorSuffix;
             
             const toDownloadIds = { entities: [], logs: [] };
             let changesSent = 0;
@@ -943,40 +943,14 @@ var App = {
             let currentChunkSize = 20; // estimate JSON bracket size overhead
             let chunkIndex = 0;
 
-            const uploadCurrentChunk = async (isLast = false) => {
-                if (currentChunk.entities.length === 0 && currentChunk.logs.length === 0) return;
+            let chunksToUpload = [];
 
-                syncIndicator.innerText = `A enviar pacotes... (Parte ${chunkIndex + 1})` + authorSuffix;
-                const chunkFileName = `${prefix}_part_${macAddress}_${chunkIndex}.json`;
-                const chunkStr = JSON.stringify(currentChunk);
-
-                const uploadRes = await fetch(`/api/backup?action=uploadChunk&filename=${chunkFileName}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/octet-stream' }, // Use octet-stream to bypass JSON body parsers that might crash on strings
-                    body: chunkStr
-                });
-
-                if(!uploadRes.ok) {
-                    throw new Error(`Falha ao enviar pacote ${chunkIndex+1}`);
+            const pushCurrentChunk = () => {
+                if (currentChunk.entities.length > 0 || currentChunk.logs.length > 0) {
+                    chunksToUpload.push(currentChunk);
                 }
-
-                let uploadData;
-                try {
-                    uploadData = await uploadRes.json();
-                } catch (e) {
-                    throw new Error(`A resposta do envio do pacote ${chunkIndex+1} é inválida. A firewall pode estar a bloquear o tráfego.`);
-                }
-
-                if (uploadData && uploadData.url) {
-                    uploadedPartUrls.push(uploadData.url);
-                } else {
-                    throw new Error(`Resposta de sucesso falso (sem URL) detectada no pacote ${chunkIndex+1}. A firewall pode estar a bloquear o tráfego.`);
-                }
-
-                chunkIndex++;
                 currentChunk = { entities: [], logs: [] };
                 currentChunkSize = 20;
-                await new Promise(r => setTimeout(r, 50));
             };
 
             // Stream items to upload to prevent OOM
@@ -990,14 +964,14 @@ var App = {
                     const strSize = JSON.stringify(lItem).length;
                     // If a single item is larger than CHUNK_SIZE, send the current chunk first, then put this item in its own chunk
                     if (currentChunkSize + strSize > CHUNK_SIZE && currentChunkSize > 20) {
-                        await uploadCurrentChunk();
+                        pushCurrentChunk();
                     }
                     currentChunk.entities.push(lItem);
                     currentChunkSize += strSize + 1;
                     changesSent++;
                     // If the item itself exceeds chunk size, force an upload immediately after adding it
                     if (currentChunkSize > CHUNK_SIZE) {
-                        await uploadCurrentChunk();
+                        pushCurrentChunk();
                     }
                 }
             }
@@ -1011,23 +985,56 @@ var App = {
                 if (!rItem || lTime > (rItem.updatedAt || 0)) {
                     const strSize = JSON.stringify(lItem).length;
                     if (currentChunkSize + strSize > CHUNK_SIZE && currentChunkSize > 20) {
-                        await uploadCurrentChunk();
+                        pushCurrentChunk();
                     }
                     currentChunk.logs.push(lItem);
                     currentChunkSize += strSize + 1;
                     changesSent++;
                     if (currentChunkSize > CHUNK_SIZE) {
-                        await uploadCurrentChunk();
+                        pushCurrentChunk();
                     }
                 }
             }
 
             // Upload the last pending chunk
-            await uploadCurrentChunk(true);
+            pushCurrentChunk();
+
+            const totalChunks = chunksToUpload.length;
+            for (let i = 0; i < totalChunks; i++) {
+                syncIndicator.innerText = `Parte ${i + 1}/${totalChunks}` + authorSuffix;
+                const chunkData = chunksToUpload[i];
+                const chunkFileName = `${prefix}_part_${macAddress}_${i}.json`;
+                const chunkStr = JSON.stringify(chunkData);
+
+                const uploadRes = await fetch(`/api/backup?action=uploadChunk&filename=${chunkFileName}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/octet-stream' },
+                    body: chunkStr
+                });
+
+                if(!uploadRes.ok) {
+                    throw new Error(`Falha ao enviar pacote ${i+1}`);
+                }
+
+                let uploadData;
+                try {
+                    uploadData = await uploadRes.json();
+                } catch (e) {
+                    throw new Error(`A resposta do envio do pacote ${i+1} é inválida. A firewall pode estar a bloquear o tráfego.`);
+                }
+
+                if (uploadData && uploadData.url) {
+                    uploadedPartUrls.push(uploadData.url);
+                } else {
+                    throw new Error(`Resposta de sucesso falso (sem URL) detectada no pacote ${i+1}. A firewall pode estar a bloquear o tráfego.`);
+                }
+
+                await new Promise(r => setTimeout(r, 50));
+            }
 
             // Verify chunks are fully propagated on CDN before finalizing
             if (uploadedPartUrls.length > 0) {
-                syncIndicator.innerText = "A aguardar propagação na rede global..." + authorSuffix;
+                syncIndicator.innerText = "A propagar..." + authorSuffix;
                 for (let url of uploadedPartUrls) {
                     let attempts = 0;
                     let verified = false;
@@ -1082,7 +1089,7 @@ var App = {
             }
             
             if (changesSent === 0 && changesReceived === 0) {
-                syncIndicator.innerText = "Limpando travas..." + authorSuffix;
+                syncIndicator.innerText = "A limpar..." + authorSuffix;
                 await fetch('/api/backup', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1094,7 +1101,7 @@ var App = {
             }
             
             // 4. Finalize and Download
-            syncIndicator.innerText = "A finalizar e baixar atualizações..." + authorSuffix;
+            syncIndicator.innerText = "A finalizar..." + authorSuffix;
             const syncRes = await fetch('/api/backup', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1114,7 +1121,7 @@ var App = {
             }
             const downloadedData = await syncRes.json();
 
-            syncIndicator.innerText = "A guardar atualizações locais..." + authorSuffix;
+            syncIndicator.innerText = "A guardar..." + authorSuffix;
             
             await AppDB.transaction('rw', AppDB.entities, AppDB.logs, async () => {
                 if(downloadedData.entities && downloadedData.entities.length > 0) {
