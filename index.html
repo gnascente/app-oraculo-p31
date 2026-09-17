@@ -163,6 +163,7 @@
         .action-icon { cursor: pointer; color: var(--on-surface-variant); transition: color 0.2s; font-size: 20px; display:inline-block;}
         .action-icon:hover { color: var(--primary); }
         .action-icon.danger:hover { color: var(--danger); }
+        .action-icon:focus-visible, [role="button"]:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px; }
         .sync-highlight { animation: syncPulse 2s infinite; color: #ffeb3b !important; }
 
         .stacked-deck { width: 100%; height: 160px; position: relative; margin-top: 8px; margin-bottom: 4px; cursor: pointer; display: block; transition: transform 0.2s; background: transparent; }
@@ -286,19 +287,19 @@
 
 <div class="container">
     <header id="mainHeader">
-        <i class="material-icons action-icon" id="btnBack" style="display:none; margin-right: 12px;" onclick="App.goBack()">arrow_back</i>
+        <i class="material-icons action-icon" id="btnBack" style="display:none; margin-right: 12px;" onclick="App.goBack()" role="button" tabindex="0" aria-label="Voltar" title="Voltar">arrow_back</i>
         <h1 id="headerTitle">
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.8.4</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.8.5</span>
             </div>
         </h1>
         <div class="header-actions">
-            <i class="material-icons action-icon" id="syncIconBtn" onclick="App.syncCloud()" title="Sincronizar Nuvem">sync</i>
-            <i class="material-icons action-icon" onclick="App.openPrintModal()" title="Imprimir Relatório">print</i>
+            <i class="material-icons action-icon" id="syncIconBtn" onclick="App.syncCloud()" title="Sincronizar Nuvem" role="button" tabindex="0" aria-label="Sincronizar Nuvem">sync</i>
+            <i class="material-icons action-icon" onclick="App.openPrintModal()" title="Imprimir Relatório" role="button" tabindex="0" aria-label="Imprimir Relatório">print</i>
             <div style="position: relative;" id="menuWrapper">
-                <i class="material-icons action-icon" onclick="App.toggleMenu(event)">more_vert</i>
+                <i class="material-icons action-icon" onclick="App.toggleMenu(event)" role="button" tabindex="0" aria-label="Menu Principal" title="Menu Principal">more_vert</i>
                 <div id="mainMenu" class="dropdown-menu">
                     <input type="file" id="restoreLocalFile" accept=".zip,.json" style="display:none" onchange="App.restoreFromLocal(event)">
                     <div class="menu-item" onclick="document.getElementById('restoreLocalFile').click()"><i class="material-icons">folder_zip</i> Restaurar (Local)</div>
@@ -405,7 +406,7 @@
     <div class="modal-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
             <h2 id="entityModalTitle">Editar Entidade</h2>
-            <i class="material-icons action-icon danger" onclick="EntityModal.delete()">delete</i>
+            <i class="material-icons action-icon danger" onclick="EntityModal.delete()" role="button" tabindex="0" aria-label="Excluir Entidade" title="Excluir Entidade">delete</i>
         </div>
         <div class="input-group">
             <input type="text" id="entityNameEditInput" name="q_entity_edit" class="input-field" placeholder="Nome" autocomplete="new-password" role="presentation" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
@@ -421,7 +422,7 @@
     <div class="modal-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
             <h2 id="logModalTitle">Registar Evento</h2>
-            <i class="material-icons action-icon danger" id="logModalDeleteBtn" onclick="LogModal.delete()" style="display:none;">delete</i>
+            <i class="material-icons action-icon danger" id="logModalDeleteBtn" onclick="LogModal.delete()" style="display:none;" role="button" tabindex="0" aria-label="Excluir Evento" title="Excluir Evento">delete</i>
         </div>
         
         <div class="input-group" id="logLinkContainer">
@@ -475,7 +476,7 @@
             <div class="carousel-btn edit" id="carouselEditBtn" onclick="CarouselModal.editCurrent()"><i class="material-icons">edit</i></div>
             <div class="carousel-btn delete" id="carouselDeleteBtn" onclick="CarouselModal.deleteCurrent()"><i class="material-icons" style="color:var(--danger)">delete</i></div>
         </div>
-        <i class="material-icons action-icon" style="color:white; font-size:32px;" onclick="CarouselModal.closeUI()">close</i>
+        <i class="material-icons action-icon" style="color:white; font-size:32px;" onclick="CarouselModal.closeUI()" role="button" tabindex="0" aria-label="Fechar Galeria" title="Fechar Galeria">close</i>
     </div>
     <div class="carousel-nav-btn left" id="carouselNavLeft" onclick="CarouselModal.prev()"><i class="material-icons">chevron_left</i></div>
     <div class="carousel-nav-btn right" id="carouselNavRight" onclick="CarouselModal.next()"><i class="material-icons">chevron_right</i></div>
@@ -1679,8 +1680,8 @@ Stack: ${e.stack}`;
             
             if (i === 0) {
                 let iconStr = isExpanded ? 'expand_less' : 'expand_more';
-                toggleHtml = `<i class="material-icons action-icon group-toggle-icon" style="font-size:18px; vertical-align:middle; margin-right:4px;" onclick="App.toggleLogGroup('${domGroupId}', event)">${iconStr}</i>`;
-                addIconHtml = `<i class="material-icons action-icon" style="font-size:14px; margin-right:8px;" title="Adicionar novo registo a este cartão" onclick="LogModal.open(null, '${contextEntityId}', '${groupId}')">add</i>`;
+                toggleHtml = `<i class="material-icons action-icon group-toggle-icon" style="font-size:18px; vertical-align:middle; margin-right:4px;" onclick="App.toggleLogGroup('${domGroupId}', event)" role="button" tabindex="0" aria-label="Expandir ou Colapsar Grupo" title="Expandir ou Colapsar Grupo">${iconStr}</i>`;
+                addIconHtml = `<i class="material-icons action-icon" style="font-size:14px; margin-right:8px;" title="Adicionar novo registo a este cartão" onclick="LogModal.open(null, '${contextEntityId}', '${groupId}')" role="button" tabindex="0" aria-label="Adicionar novo registo a este cartão">add</i>`;
             } else {
                 toggleHtml = `<i class="material-icons" style="font-size:18px; vertical-align:middle; margin-right:4px; opacity:0; pointer-events:none;">expand_more</i>`;
                 addIconHtml = ``; 
@@ -1699,7 +1700,7 @@ Stack: ${e.stack}`;
                         </span>
                         <div class="log-actions">
                             ${addIconHtml}
-                            <i class="material-icons action-icon" style="font-size:14px;" title="Editar Registo" onclick="LogModal.open('${log.id}', '${contextEntityId}')">edit</i>
+                            <i class="material-icons action-icon" style="font-size:14px;" title="Editar Registo" onclick="LogModal.open('${log.id}', '${contextEntityId}')" role="button" tabindex="0" aria-label="Editar Registo">edit</i>
                         </div>
                     </div>
                     ${log.text ? `<div class="log-text selectable-text">${displayedText}</div>` : ''}
@@ -1777,10 +1778,10 @@ Stack: ${e.stack}`;
             <li class="task-item" id="entity-${e.id}">
                 <div class="task-header">
                     <div class="task-actions">
-                        <i class="material-icons action-icon" title="Expandir/Colapsar Todos" onclick="App.toggleAllLogGroups('${e.id}')">unfold_more</i>
-                        <i class="material-icons action-icon" title="Criar Novo Cartão de Evento" onclick="LogModal.open(null, '${e.id}')">post_add</i>
-                        ${e.type === 'servico' ? `<i class="material-icons action-icon" title="Adicionar Tarefa" onclick="EntityModal.openTaskPrompt('${e.id}')">add_task</i>` : ''}
-                        <i class="material-icons action-icon" title="Editar Nome/Excluir" onclick="EntityModal.open('${e.id}')">edit</i>
+                        <i class="material-icons action-icon" title="Expandir/Colapsar Todos" onclick="App.toggleAllLogGroups('${e.id}')" role="button" tabindex="0" aria-label="Expandir/Colapsar Todos">unfold_more</i>
+                        <i class="material-icons action-icon" title="Criar Novo Cartão de Evento" onclick="LogModal.open(null, '${e.id}')" role="button" tabindex="0" aria-label="Criar Novo Cartão de Evento">post_add</i>
+                        ${e.type === 'servico' ? `<i class="material-icons action-icon" title="Adicionar Tarefa" onclick="EntityModal.openTaskPrompt('${e.id}')" role="button" tabindex="0" aria-label="Adicionar Tarefa">add_task</i>` : ''}
+                        <i class="material-icons action-icon" title="Editar Nome/Excluir" onclick="EntityModal.open('${e.id}')" role="button" tabindex="0" aria-label="Editar Nome/Excluir">edit</i>
                     </div>
                     <span class="task-title">${AppUtils.highlight(e.name, searchTerm)}</span>
                 </div>
@@ -1810,13 +1811,13 @@ Stack: ${e.stack}`;
                         <li class="subtask-item" id="entity-${t.id}">
                             <div class="subtask-row">
                                 <div class="subtask-text-wrapper" onclick="App.toggleTaskLogs('${t.id}')">
-                                    <i class="material-icons action-icon" style="font-size:24px;" id="task-icon-${t.id}">${taskIcon}</i>
+                                    <i class="material-icons action-icon" style="font-size:24px;" id="task-icon-${t.id}" role="button" tabindex="0" aria-label="Expandir ou Colapsar Tarefa">${taskIcon}</i>
                                     <span class="subtask-text selectable-text">${AppUtils.highlight(t.name, searchTerm)}</span>
                                 </div>
                                 <div class="task-actions" style="gap:8px; float:none; margin:0; padding:0;">
-                                    <i class="material-icons action-icon" style="font-size:16px;" title="Expandir/Colapsar Todos na Tarefa" onclick="App.toggleAllLogGroups('${t.id}')">unfold_more</i>
-                                    <i class="material-icons action-icon" style="font-size:16px;" title="Criar Novo Cartão de Evento na Tarefa" onclick="LogModal.open(null, '${t.id}')">post_add</i>
-                                    <i class="material-icons action-icon" style="font-size:16px;" onclick="EntityModal.open('${t.id}')">edit</i>
+                                    <i class="material-icons action-icon" style="font-size:16px;" title="Expandir/Colapsar Todos na Tarefa" onclick="App.toggleAllLogGroups('${t.id}')" role="button" tabindex="0" aria-label="Expandir/Colapsar Todos na Tarefa">unfold_more</i>
+                                    <i class="material-icons action-icon" style="font-size:16px;" title="Criar Novo Cartão de Evento na Tarefa" onclick="LogModal.open(null, '${t.id}')" role="button" tabindex="0" aria-label="Criar Novo Cartão de Evento na Tarefa">post_add</i>
+                                    <i class="material-icons action-icon" style="font-size:16px;" onclick="EntityModal.open('${t.id}')" role="button" tabindex="0" aria-label="Editar Nome/Excluir" title="Editar Nome/Excluir">edit</i>
                                 </div>
                             </div>
                         `;
@@ -2359,6 +2360,16 @@ Editor.overlay.addEventListener('touchend', stopTextDrag); Editor.overlay.addEve
 Editor.sizeInput.addEventListener('input', (e) => { if(Editor.activeTool === 'text' && Editor.activeText) { Editor.activeText.style.fontSize = Math.max(14, e.target.value * 6) + 'px'; } });
 Editor.canvas.addEventListener('mousedown', (e) => Editor.startDraw(e)); Editor.canvas.addEventListener('mousemove', (e) => Editor.draw(e)); Editor.canvas.addEventListener('mouseup', (e) => Editor.stopDraw(e)); Editor.canvas.addEventListener('mouseleave', (e) => Editor.stopDraw(e));
 Editor.canvas.addEventListener('touchstart', (e) => Editor.startDraw(e), {passive: false}); Editor.canvas.addEventListener('touchmove', (e) => Editor.draw(e), {passive: false}); Editor.canvas.addEventListener('touchend', (e) => Editor.stopDraw(e), {passive: false});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+        const activeEl = document.activeElement;
+        if (activeEl && activeEl.getAttribute('role') === 'button') {
+            e.preventDefault();
+            activeEl.click();
+        }
+    }
+});
 
 App.init();
 </script>

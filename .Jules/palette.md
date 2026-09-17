@@ -1,0 +1,3 @@
+## 2026-09-17 - Keyboard Accessibility for Material Icons
+**Learning:** The application heavily relies on non-semantic `<i>` tags for Material Icons, acting as primary action buttons without native keyboard support (Enter/Space). Since adding inline `onkeydown` handlers to dozens of instances is unscalable, a global listener mapped to `role="button"` effectively enables keyboard accessibility across the entire app with minimal code changes.
+**Action:** When creating new custom UI components or modifying existing non-semantic icon buttons in this design system, ensure they receive `role="button"`, `tabindex="0"`, `aria-label`, and a `title`. The global listener will automatically handle their keyboard interactions.

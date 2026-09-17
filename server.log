@@ -1,6 +1,13 @@
-127.0.0.1 - - [17/Sep/2026 10:05:25] "GET /poc/index.html HTTP/1.1" 200 -
-127.0.0.1 - - [17/Sep/2026 10:05:25] "GET /poc/styles.css HTTP/1.1" 200 -
-127.0.0.1 - - [17/Sep/2026 10:05:25] "GET /poc/app.js HTTP/1.1" 200 -
-127.0.0.1 - - [17/Sep/2026 10:06:35] "GET /poc/index.html HTTP/1.1" 200 -
-127.0.0.1 - - [17/Sep/2026 10:06:35] "GET /poc/styles.css HTTP/1.1" 200 -
-127.0.0.1 - - [17/Sep/2026 10:06:35] "GET /poc/app.js HTTP/1.1" 200 -
+127.0.0.1 - - [17/Sep/2026 16:43:00] "GET /poc/index.html HTTP/1.1" 200 -
+127.0.0.1 - - [17/Sep/2026 16:43:00] "GET /poc/styles.css HTTP/1.1" 200 -
+127.0.0.1 - - [17/Sep/2026 16:43:00] "GET /poc/app.js HTTP/1.1" 200 -
+127.0.0.1 - - [17/Sep/2026 16:43:05] code 501, message Unsupported method ('POST')
+127.0.0.1 - - [17/Sep/2026 16:43:05] "POST /api/poc-sync?action=uploadChunk HTTP/1.1" 501 -
+127.0.0.1 - - [17/Sep/2026 16:43:21] "GET /index.html HTTP/1.1" 200 -
+127.0.0.1 - - [17/Sep/2026 16:43:22] "GET /sw.js?v=1789663402111 HTTP/1.1" 200 -
+127.0.0.1 - - [17/Sep/2026 16:43:37] "GET /index.html HTTP/1.1" 200 -
+127.0.0.1 - - [17/Sep/2026 16:43:37] "GET /sw.js?v=1789663417640 HTTP/1.1" 200 -
+127.0.0.1 - - [17/Sep/2026 16:44:39] "GET /index.html HTTP/1.1" 200 -
+127.0.0.1 - - [17/Sep/2026 16:44:41] "GET /sw.js?v=1789663481300 HTTP/1.1" 200 -
+127.0.0.1 - - [17/Sep/2026 16:45:16] "GET /index.html HTTP/1.1" 200 -
+127.0.0.1 - - [17/Sep/2026 16:45:17] "GET /sw.js?v=1789663517221 HTTP/1.1" 200 -
