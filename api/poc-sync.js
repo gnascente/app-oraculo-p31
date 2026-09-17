@@ -23,7 +23,7 @@ async function kvRequest(command, ...args) {
 
 // Convert base64 to Buffer/Blob suitable for Vercel Blob
 function base64ToBuffer(base64Str) {
-    const matches = base64Str.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    const matches = base64Str.match(/^data:([A-Za-z0-9-+\/]+);base64,(.+)$/);
     if (!matches || matches.length !== 3) {
         // Assume it might be PDF with custom name format
         const pdfMatches = base64Str.match(/^data:application\/pdf;name=([^;]+);base64,(.+)$/);
