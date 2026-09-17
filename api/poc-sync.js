@@ -35,6 +35,61 @@ function base64ToBuffer(base64Str) {
     return { type: matches[1], buffer: Buffer.from(matches[2], 'base64') };
 }
 
+async function logErrorToBlob(err) {
+    try {
+        let existingContent = '';
+        const token = process.env.BLOB_READ_WRITE_TOKEN;
+        let blobUrl = null;
+
+        if (token) {
+            const match = token.match(/^vercel_blob_rw_([^_]+)_/);
+            if (match) {
+                const storeId = match[1].toLowerCase();
+                blobUrl = `https://${storeId}.public.blob.vercel-storage.com/logpocerror.txt`;
+            }
+        }
+
+        let fetchSuccess = false;
+        if (blobUrl) {
+            try {
+                const res = await fetch(`${blobUrl}?ts=${Date.now()}`);
+                if (res.ok) {
+                    existingContent = await res.text();
+                    fetchSuccess = true;
+                }
+            } catch (e) {
+                console.error("Failed to fetch log directly", e);
+            }
+        }
+
+        if (!fetchSuccess) {
+            try {
+                const listResult = await list({ prefix: 'logpocerror.txt' });
+                const blob = listResult.blobs.find(b => b.pathname === 'logpocerror.txt');
+                if (blob) {
+                    const res = await fetch(`${blob.url}?ts=${Date.now()}`);
+                    if (res.ok) {
+                        existingContent = await res.text();
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to list/fetch log", e);
+            }
+        }
+
+        const newLogEntry = `\n--- [${new Date().toISOString()}] ---\nError: ${err.message || err}\nStack: ${err.stack || 'No stack trace'}\n`;
+        const newContent = existingContent + newLogEntry;
+
+        await put('logpocerror.txt', newContent, {
+            access: 'public',
+            addRandomSuffix: false,
+            contentType: 'text/plain'
+        });
+    } catch (e) {
+        console.error("Critical failure in logErrorToBlob", e);
+    }
+}
+
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -67,6 +122,7 @@ export default async function handler(req, res) {
             return res.status(200).json({ status: 'wiped' });
         } catch (err) {
             console.error('Wipe failed:', err);
+            await logErrorToBlob(err).catch(e => console.error('Failed to log to blob', e));
             return res.status(500).json({ error: err.message });
         }
     }
@@ -172,6 +228,7 @@ export default async function handler(req, res) {
 
         } catch (err) {
             console.error(err);
+            await logErrorToBlob(err).catch(e => console.error('Failed to log to blob', e));
             return res.status(500).json({ error: err.message });
         }
     }
