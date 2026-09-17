@@ -1,0 +1,6 @@
+127.0.0.1 - - [17/Sep/2026 10:05:25] "GET /poc/index.html HTTP/1.1" 200 -
+127.0.0.1 - - [17/Sep/2026 10:05:25] "GET /poc/styles.css HTTP/1.1" 200 -
+127.0.0.1 - - [17/Sep/2026 10:05:25] "GET /poc/app.js HTTP/1.1" 200 -
+127.0.0.1 - - [17/Sep/2026 10:06:35] "GET /poc/index.html HTTP/1.1" 200 -
+127.0.0.1 - - [17/Sep/2026 10:06:35] "GET /poc/styles.css HTTP/1.1" 200 -
+127.0.0.1 - - [17/Sep/2026 10:06:35] "GET /poc/app.js HTTP/1.1" 200 -

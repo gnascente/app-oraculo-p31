@@ -11,6 +11,7 @@ const viewMain = document.getElementById('mainView');
 const viewTerminal = document.getElementById('terminalView');
 const btnToggleTerminal = document.getElementById('btnToggleTerminal');
 const btnCloseTerminal = document.getElementById('btnCloseTerminal');
+const btnClearTerminal = document.getElementById('btnClearTerminal');
 const terminalOutput = document.getElementById('terminalOutput');
 const blocksListEl = document.getElementById('blocksList');
 const textInput = document.getElementById('newBlockText');
@@ -29,6 +30,11 @@ btnCloseTerminal.onclick = () => {
     viewTerminal.classList.remove('active');
     viewMain.classList.add('active');
 };
+if (btnClearTerminal) {
+    btnClearTerminal.onclick = () => {
+        terminalOutput.innerHTML = '<div>Oráculo P-31 Offshore Sync System v1.1</div><div>Log limpo. <span class="status-ok">OK</span></div>';
+    };
+}
 
 // Terminal Logger
 const logTerminal = (msg, status = null) => {
@@ -373,7 +379,15 @@ const runSyncCycle = async () => {
                     throw new Error(errObj.error || `HTTP ${res.status}`);
                 }
 
-                const resData = await res.json();
+                let resData;
+                try {
+                    resData = await res.json();
+                    if (!resData || (!resData.status && !resData.error)) {
+                        throw new Error('Invalid JSON payload - possible firewall interception.');
+                    }
+                } catch (parseErr) {
+                    throw new Error('Falha de rede ou firewall bloqueou a resposta JSON.');
+                }
 
                 // If this was the last chunk, it will process the block and return the updated master state
                 if (resData.status === 'completed') {
@@ -402,6 +416,8 @@ const runSyncCycle = async () => {
         } catch (err) {
             if (err.message !== 'SESSION_EXPIRED') {
                 logTerminal(`Falha no sync do bloco ${block.id.substring(0,8)}: ${err.message}`, 'fail');
+                block.syncStatus = 'pending';
+                await db.blocks.put(block);
             }
         }
     }
