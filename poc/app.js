@@ -81,7 +81,11 @@ const renderBlocks = async () => {
                 } else if(m.data) {
                     mediaHtml += `<img src="${m.data}">`;
                 } else if (m.url) {
-                     mediaHtml += `<img src="${m.url}">`; // From cloud
+                     if (m.url.toLowerCase().includes('.pdf')) {
+                         mediaHtml += `<div class="media-preview-pdf"><i class="material-icons">picture_as_pdf</i>PDF</div>`;
+                     } else {
+                         mediaHtml += `<img src="${m.url}">`; // From cloud
+                     }
                 }
             });
             mediaHtml += '</div>';
@@ -321,7 +325,7 @@ const runSyncCycle = async () => {
             };
 
             const payloadStr = JSON.stringify(payload);
-            const totalSize = new Blob([payloadStr]).size;
+            const totalSize = payloadStr.length;
             const totalChunks = Math.ceil(totalSize / CHUNK_SIZE);
 
             logTerminal(`Tamanho: ${(totalSize/1024).toFixed(2)}KB, Chunks: ${totalChunks}`);
