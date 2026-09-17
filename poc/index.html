@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>POC Sync Offshore - P31</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=VT323&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- HEADER -->
+        <header>
+            <div class="header-title">
+                <i class="material-icons">sync</i>
+                <h1>POC Sync Offshore</h1>
+            </div>
+            <div class="header-actions">
+                <button id="btnToggleTerminal" class="icon-btn" title="Ver Terminal DOS">
+                    <i class="material-icons">terminal</i>
+                </button>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT (BLOCKS) -->
+        <main id="mainView" class="view active">
+            <div class="new-block-container">
+                <textarea id="newBlockText" placeholder="Digite até 100 caracteres..." maxlength="100"></textarea>
+                <div class="new-block-actions">
+                    <label class="upload-btn">
+                        <i class="material-icons">attach_file</i> Anexar Mídia
+                        <input type="file" id="newBlockMedia" accept="image/*,video/*,application/pdf" class="hidden-file">
+                    </label>
+                    <button id="btnSaveBlock" class="primary-btn">Salvar Bloco</button>
+                </div>
+                <div id="mediaPreviewContainer" class="media-preview-container"></div>
+            </div>
+
+            <div id="blocksList" class="blocks-list">
+                <!-- Blocks will be rendered here -->
+            </div>
+        </main>
+
+        <!-- TERMINAL (DOS) VIEW -->
+        <main id="terminalView" class="view dos-terminal">
+            <div class="terminal-header">
+                <span>C:\SYNC_LOGS></span>
+                <button id="btnCloseTerminal" class="icon-btn" style="color: #0f0;">
+                    <i class="material-icons">close</i>
+                </button>
+            </div>
+            <div id="terminalOutput" class="terminal-output">
+                <div>Oráculo P-31 Offshore Sync System v1.0</div>
+                <div>Initializing local database... <span class="status-ok">OK</span></div>
+                <div>Waiting for network...</div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

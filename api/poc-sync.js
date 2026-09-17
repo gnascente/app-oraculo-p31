@@ -1,0 +1,151 @@
+import { put } from '@vercel/blob';
+
+// Upstash Redis setup
+const KV_REST_API_URL = process.env.KV_REST_API_URL;
+const KV_REST_API_TOKEN = process.env.KV_REST_API_TOKEN;
+const MAIN_HASH_KEY = 'poc_sync_blocks';
+const SESSION_TTL = 86400; // 24 hours in seconds
+
+// Helper to make KV REST requests
+async function kvRequest(command, ...args) {
+    const res = await fetch(`${KV_REST_API_URL}/${command}`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${KV_REST_API_TOKEN}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(args)
+    });
+    if (!res.ok) throw new Error(`KV Error: ${await res.text()}`);
+    const data = await res.json();
+    return data.result;
+}
+
+// Convert base64 to Buffer/Blob suitable for Vercel Blob
+function base64ToBuffer(base64Str) {
+    const matches = base64Str.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    if (!matches || matches.length !== 3) {
+        // Assume it might be PDF with custom name format
+        const pdfMatches = base64Str.match(/^data:application\/pdf;name=([^;]+);base64,(.+)$/);
+        if (pdfMatches && pdfMatches.length === 3) {
+             return { type: 'application/pdf', buffer: Buffer.from(pdfMatches[2], 'base64'), name: decodeURIComponent(pdfMatches[1]) };
+        }
+        throw new Error('Invalid base64 string');
+    }
+    return { type: matches[1], buffer: Buffer.from(matches[2], 'base64') };
+}
+
+export default async function handler(req, res) {
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const { action } = req.query;
+
+    if (action === 'uploadChunk') {
+        try {
+            const { sessionId, chunkIndex, totalChunks, data, blockId } = req.body;
+
+            // Validation: Ensure sequential upload
+            if (chunkIndex > 0) {
+                // Check if previous chunk exists. If not, the session might have expired.
+                const prevChunkExists = await kvRequest('EXISTS', `${sessionId}:chunk:${chunkIndex - 1}`);
+                if (!prevChunkExists) {
+                    return res.status(400).json({ error: 'SESSION_EXPIRED' });
+                }
+            }
+
+            // Save chunk to staging area (Redis) with TTL
+            await kvRequest('SET', `${sessionId}:chunk:${chunkIndex}`, data, 'EX', SESSION_TTL);
+
+            // Is it the last chunk?
+            if (chunkIndex === totalChunks - 1) {
+                // 1. Assemble chunks
+                let assembledStr = '';
+                for (let i = 0; i < totalChunks; i++) {
+                    const chunkData = await kvRequest('GET', `${sessionId}:chunk:${i}`);
+                    if (!chunkData) {
+                        return res.status(400).json({ error: 'SESSION_EXPIRED' }); // Lost a chunk somehow
+                    }
+                    assembledStr += chunkData;
+                }
+
+                const payload = JSON.parse(assembledStr);
+
+                // 2. Process Media (Upload to Vercel Blob to save DB space)
+                if (payload.media && payload.media.length > 0) {
+                    for (let i = 0; i < payload.media.length; i++) {
+                        let m = payload.media[i];
+                        if (m.data && !m.url) { // Needs upload
+                            const { type, buffer, name } = base64ToBuffer(m.data);
+                            let ext = type.split('/')[1] || 'bin';
+                            if(type === 'image/jpeg') ext = 'jpg';
+
+                            let filename = name ? name : `media_${payload.id}_${i}.${ext}`;
+
+                            // Upload to blob
+                            const blobResult = await put(`poc_sync/${filename}`, buffer, {
+                                access: 'public',
+                                contentType: type,
+                            });
+
+                            // Replace base64 data with url
+                            m.url = blobResult.url;
+                            delete m.data;
+                        }
+                    }
+                }
+
+                // 3. Conflict Resolution & Save (Option B: Bifurcation)
+                const currentServerBlockStr = await kvRequest('HGET', MAIN_HASH_KEY, payload.id);
+
+                let finalBlocksToReturn = [];
+
+                if (payload.isDeleted) {
+                     // Deletions always win
+                     await kvRequest('HSET', MAIN_HASH_KEY, payload.id, JSON.stringify(payload));
+                } else if (currentServerBlockStr) {
+                    const currentServerBlock = JSON.parse(currentServerBlockStr);
+
+                    if (currentServerBlock.version > payload.version && !currentServerBlock.isDeleted) {
+                        // Conflict! Cloud has a newer version. Bifurcate.
+                        const newId = Date.now().toString(); // New unique ID
+                        payload.id = newId;
+                        payload.text = "[Conflito] " + payload.text;
+                        payload.version = 1;
+                        await kvRequest('HSET', MAIN_HASH_KEY, payload.id, JSON.stringify(payload));
+                    } else {
+                        // Safe to update
+                        payload.version = (payload.version || 1) + 1;
+                        await kvRequest('HSET', MAIN_HASH_KEY, payload.id, JSON.stringify(payload));
+                    }
+                } else {
+                    // New block
+                    payload.version = 1;
+                    await kvRequest('HSET', MAIN_HASH_KEY, payload.id, JSON.stringify(payload));
+                }
+
+                // Clean up staging chunks
+                for (let i = 0; i < totalChunks; i++) {
+                     await kvRequest('DEL', `${sessionId}:chunk:${i}`);
+                }
+
+                // Return all current master blocks to client for reconciliation
+                const allBlocksArrayStr = await kvRequest('HVALS', MAIN_HASH_KEY);
+                const masterBlocks = allBlocksArrayStr.map(s => JSON.parse(s));
+
+                return res.status(200).json({ status: 'completed', masterBlocks: masterBlocks });
+
+            } else {
+                // Chunk accepted, but not finished yet
+                return res.status(200).json({ status: 'chunk_accepted' });
+            }
+
+        } catch (err) {
+            console.error(err);
+            return res.status(500).json({ error: err.message });
+        }
+    }
+
+    return res.status(400).json({ error: 'Invalid action' });
+}
