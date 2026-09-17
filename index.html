@@ -291,7 +291,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.8.4</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.8.5</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -762,7 +762,13 @@ var App = {
                 const prefix = "oraculo_sync_master";
                 const res = await fetch(`/api/backup?action=masterDate&prefix=${prefix}&ts=${Date.now()}`, { cache: 'no-store' });
                 if (res.ok) {
-                    const data = await res.json();
+                    const resText = await res.text();
+                    let data;
+                    try {
+                        data = JSON.parse(resText);
+                    } catch (parseErr) {
+                        return; // Silently handle proxy/firewall intercepts during background check
+                    }
                     if (data && data.uploadedAt) {
                         const lastSync = localStorage.getItem('oraculo_last_master_uploaded_at');
                         const syncBtn = document.getElementById('syncIconBtn');
@@ -923,7 +929,13 @@ var App = {
             syncIndicator.innerText = "A obter índice..." + authorSuffix;
             const indexRes = await fetch(`/api/backup?action=index&prefix=${prefix}&ts=${Date.now()}`);
             if(!indexRes.ok) throw new Error("Falha ao obter índice da nuvem.");
-            const remoteIndex = await indexRes.json(); 
+            const indexResText = await indexRes.text();
+            let remoteIndex;
+            try {
+                remoteIndex = JSON.parse(indexResText);
+            } catch (e) {
+                throw new Error("A resposta do índice é inválida. A firewall pode estar a bloquear o tráfego.");
+            }
             
             syncIndicator.innerText = "A analisar..." + authorSuffix;
             
@@ -1018,7 +1030,8 @@ var App = {
 
                 let uploadData;
                 try {
-                    uploadData = await uploadRes.json();
+                    const uploadResText = await uploadRes.text();
+                    uploadData = JSON.parse(uploadResText);
                 } catch (e) {
                     throw new Error(`A resposta do envio do pacote ${i+1} é inválida. A firewall pode estar a bloquear o tráfego.`);
                 }
@@ -1119,7 +1132,13 @@ var App = {
                 try { errText = JSON.parse(errText).error; } catch(e){}
                 throw new Error(errText || "Falha ao finalizar sincronização com o servidor.");
             }
-            const downloadedData = await syncRes.json();
+            const syncResText = await syncRes.text();
+            let downloadedData;
+            try {
+                downloadedData = JSON.parse(syncResText);
+            } catch (e) {
+                throw new Error("A resposta de finalização é inválida. A firewall pode estar a bloquear o tráfego.");
+            }
 
             syncIndicator.innerText = "A guardar..." + authorSuffix;
             
