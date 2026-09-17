@@ -1,4 +1,4 @@
-import { put } from '@vercel/blob';
+import { put, list, del } from '@vercel/blob';
 
 // Upstash Redis setup
 const KV_REST_API_URL = process.env.KV_REST_API_URL;
@@ -41,6 +41,35 @@ export default async function handler(req, res) {
     }
 
     const { action } = req.query;
+
+    if (action === 'wipeAll') {
+        try {
+            // 1. Delete all blocks in Redis
+            await kvRequest('DEL', MAIN_HASH_KEY);
+
+            // 2. Delete all blobs related to POC
+            let hasMore = true;
+            let cursor;
+            while (hasMore) {
+                const listResult = await list({
+                    prefix: 'poc_sync/',
+                    cursor,
+                });
+
+                if (listResult.blobs.length > 0) {
+                    await del(listResult.blobs.map((blob) => blob.url));
+                }
+
+                hasMore = listResult.hasMore;
+                cursor = listResult.cursor;
+            }
+
+            return res.status(200).json({ status: 'wiped' });
+        } catch (err) {
+            console.error('Wipe failed:', err);
+            return res.status(500).json({ error: err.message });
+        }
+    }
 
     if (action === 'uploadChunk') {
         try {

@@ -12,6 +12,7 @@ const viewTerminal = document.getElementById('terminalView');
 const btnToggleTerminal = document.getElementById('btnToggleTerminal');
 const btnCloseTerminal = document.getElementById('btnCloseTerminal');
 const btnClearTerminal = document.getElementById('btnClearTerminal');
+const btnWipeAll = document.getElementById('btnWipeAll');
 const terminalOutput = document.getElementById('terminalOutput');
 const blocksListEl = document.getElementById('blocksList');
 const textInput = document.getElementById('newBlockText');
@@ -31,6 +32,24 @@ btnCloseTerminal.onclick = () => {
     viewMain.classList.add('active');
 };
 if (btnClearTerminal) {
+    if (btnWipeAll) {
+        btnWipeAll.onclick = async () => {
+            if (!confirm('Deseja realmente limpar toda a base local, Redis e arquivos Blob associados à POC?')) return;
+            logTerminal('Iniciando limpeza total (Wipe)...', 'warn');
+            const prevSyncing = isSyncing;
+            isSyncing = true; // Pause sync loop
+            try {
+                await fetch('/api/poc-sync?action=wipeAll', { method: 'POST' });
+                await db.blocks.clear();
+                logTerminal('Limpeza total concluída com sucesso.', 'ok');
+            } catch (err) {
+                logTerminal('Erro durante a limpeza total: ' + err.message, 'fail');
+            } finally {
+                isSyncing = prevSyncing; // Restore
+                await renderBlocks();
+            }
+        };
+    }
     btnClearTerminal.onclick = () => {
         terminalOutput.innerHTML = '<div>Oráculo P-31 Offshore Sync System v1.1</div><div>Log limpo. <span class="status-ok">OK</span></div>';
     };
@@ -299,7 +318,7 @@ const CHUNK_SIZE = 1 * 1024 * 1024; // 1MB for chunks
 const getDeviceId = () => {
     let id = localStorage.getItem('poc_device_id');
     if (!id) {
-        id = 'device_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+        id = 'device_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
         localStorage.setItem('poc_device_id', id);
     }
     return id;
@@ -434,8 +453,8 @@ const runSyncCycle = async () => {
                 console.error(`Sync error for block ${block.id}:`, err);
                 logTerminal(`Falha no sync do bloco ${block.id.substring(0,8)}: ${err.message}`, 'fail');
                 block.syncStatus = 'pending';
-                await db.blocks.put(block);
             }
+            if (block.syncStatus === 'uploading' || block.syncStatus === 'pending') { block.syncStatus = 'pending'; await db.blocks.put(block); }
         }
     }
 
