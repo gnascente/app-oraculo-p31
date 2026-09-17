@@ -96,7 +96,7 @@ export default async function handler(req, res) {
                     if (!chunkData) {
                         return res.status(400).json({ error: 'SESSION_EXPIRED' }); // Lost a chunk somehow
                     }
-                    assembledStr += chunkData;
+                    assembledStr += (typeof chunkData === 'string' ? chunkData : JSON.stringify(chunkData));
                 }
 
                 const payload = JSON.parse(assembledStr);
@@ -126,15 +126,15 @@ export default async function handler(req, res) {
                 }
 
                 // 3. Conflict Resolution & Save (Option B: Bifurcation)
-                const currentServerBlockStr = await kvRequest('HGET', MAIN_HASH_KEY, payload.id);
+                const currentServerBlockRaw = await kvRequest('HGET', MAIN_HASH_KEY, payload.id);
 
                 let finalBlocksToReturn = [];
 
                 if (payload.isDeleted) {
                      // Deletions always win
                      await kvRequest('HSET', MAIN_HASH_KEY, payload.id, JSON.stringify(payload));
-                } else if (currentServerBlockStr) {
-                    const currentServerBlock = JSON.parse(currentServerBlockStr);
+                } else if (currentServerBlockRaw) {
+                    const currentServerBlock = typeof currentServerBlockRaw === 'string' ? JSON.parse(currentServerBlockRaw) : currentServerBlockRaw;
 
                     if (currentServerBlock.version > payload.version && !currentServerBlock.isDeleted) {
                         // Conflict! Cloud has a newer version. Bifurcate.
@@ -161,7 +161,7 @@ export default async function handler(req, res) {
 
                 // Return all current master blocks to client for reconciliation
                 const allBlocksArrayStr = await kvRequest('HVALS', MAIN_HASH_KEY);
-                const masterBlocks = allBlocksArrayStr.map(s => JSON.parse(s));
+                const masterBlocks = allBlocksArrayStr.map(s => typeof s === 'string' ? JSON.parse(s) : s);
 
                 return res.status(200).json({ status: 'completed', masterBlocks: masterBlocks });
 

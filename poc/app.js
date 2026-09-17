@@ -67,7 +67,7 @@ const logTerminal = (msg, status = null) => {
 
     div.innerHTML = `[${time}] ${msg} ${statusHtml}`;
     terminalOutput.appendChild(div);
-    viewTerminal.scrollTop = viewTerminal.scrollHeight;
+    terminalOutput.scrollTop = terminalOutput.scrollHeight;
 };
 
 // Formatting
