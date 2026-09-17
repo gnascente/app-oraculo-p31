@@ -10,17 +10,22 @@ const { chromium } = require('playwright');
   // Route network requests to print to console
   page.on('console', msg => console.log('PAGE LOG:', msg.text()));
 
-  await page.route('/api/poc-sync?action=uploadChunk', route => {
-    // Mocking an error response to trigger our debug logs
-    route.fulfill({
-        status: 400,
-        contentType: 'text/html',
-        body: '<html><body><h1>400 Bad Request Firewall Intercepted</h1></body></html>'
-    });
-  });
-
   await page.goto('http://localhost:8000/poc/index.html');
   await page.waitForTimeout(1000); // Wait for load
+
+  // Mock fetch to simulate firewall HTML intercept
+  await page.evaluate(() => {
+    window.fetch = async (url, options) => {
+      if (url.includes('/api/poc-sync?action=uploadChunk')) {
+        return {
+          ok: false,
+          status: 403,
+          text: async () => '<html><body><h1>403 Firewall Blocked</h1></body></html>'
+        };
+      }
+      return fetch(url, options); // Call original for others (if any)
+    };
+  });
 
   // Click text input
   await page.fill('textarea[id="newBlockText"]', 'Testing debug log payload');
@@ -31,7 +36,7 @@ const { chromium } = require('playwright');
   // Wait a few seconds for polling sync to trigger
   await page.waitForTimeout(6000);
 
-  await page.screenshot({ path: '/home/jules/verification/screenshots/sync_debug.png' });
+  await page.screenshot({ path: '/home/jules/verification/screenshots/sync_debug2.png' });
 
   await context.close();
   await browser.close();
