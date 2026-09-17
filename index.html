@@ -51,6 +51,7 @@
         }
         
         @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes syncPulse { 0% { transform: scale(1); filter: brightness(1); } 50% { transform: scale(1.2); filter: brightness(1.5); color: #fff; } 100% { transform: scale(1); filter: brightness(1); } }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; -webkit-tap-highlight-color: transparent; }
         
@@ -162,6 +163,7 @@
         .action-icon { cursor: pointer; color: var(--on-surface-variant); transition: color 0.2s; font-size: 20px; display:inline-block;}
         .action-icon:hover { color: var(--primary); }
         .action-icon.danger:hover { color: var(--danger); }
+        .sync-highlight { animation: syncPulse 2s infinite; color: #ffeb3b !important; }
 
         .stacked-deck { width: 100%; height: 160px; position: relative; margin-top: 8px; margin-bottom: 4px; cursor: pointer; display: block; transition: transform 0.2s; background: transparent; }
         .stacked-deck:active { transform: scale(0.98); }
@@ -289,11 +291,11 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.8.1</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.8.2</span>
             </div>
         </h1>
         <div class="header-actions">
-            <i class="material-icons action-icon" onclick="App.syncCloud()" title="Sincronizar Nuvem">sync</i>
+            <i class="material-icons action-icon" id="syncIconBtn" onclick="App.syncCloud()" title="Sincronizar Nuvem">sync</i>
             <i class="material-icons action-icon" onclick="App.openPrintModal()" title="Imprimir Relatório">print</i>
             <div style="position: relative;" id="menuWrapper">
                 <i class="material-icons action-icon" onclick="App.toggleMenu(event)">more_vert</i>
@@ -750,6 +752,33 @@ var App = {
             this.currentAuthor = authorEntity.name;
         }
         this.goHome(); this.calculateStorage();
+        this.startAutoSyncCheck();
+    },
+
+    startAutoSyncCheck: function() {
+        setInterval(async () => {
+            if (!navigator.onLine) return;
+            try {
+                const prefix = "oraculo_sync_master";
+                const res = await fetch(`/api/backup?action=masterDate&prefix=${prefix}&ts=${Date.now()}`, { cache: 'no-store' });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.uploadedAt) {
+                        const lastSync = localStorage.getItem('oraculo_last_master_uploaded_at');
+                        const syncBtn = document.getElementById('syncIconBtn');
+                        if (syncBtn) {
+                            if (!lastSync || new Date(data.uploadedAt) > new Date(lastSync)) {
+                                syncBtn.classList.add('sync-highlight');
+                            } else {
+                                syncBtn.classList.remove('sync-highlight');
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                // Silently fail, it's a background process
+            }
+        }, 30000); // 30 seconds
     },
     
     saveExpandedState: function() {
@@ -1097,6 +1126,12 @@ var App = {
             });
 
             syncIndicator.style.display = 'none';
+            if (downloadedData.uploadedAt) {
+                localStorage.setItem('oraculo_last_master_uploaded_at', downloadedData.uploadedAt);
+                const syncBtn = document.getElementById('syncIconBtn');
+                if (syncBtn) syncBtn.classList.remove('sync-highlight');
+            }
+
             this.goHome();
             
             let msg = `Sincronização otimizada concluída com sucesso!
