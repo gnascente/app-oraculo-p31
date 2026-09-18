@@ -3,6 +3,7 @@ import { put, list, del } from '@vercel/blob';
 // Upstash Redis setup
 const KV_REST_API_URL = process.env.KV_REST_API_URL;
 const KV_REST_API_TOKEN = process.env.KV_REST_API_TOKEN;
+const VERCEL_BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
 const MAIN_HASH_KEY = 'poc_sync_blocks';
 const SESSION_TTL = 86400; // 24 hours in seconds
 
@@ -44,7 +45,7 @@ export default async function handler(req, res) {
 
     if (action === 'getLogUrl') {
         try {
-            const listRes = await list({ prefix: 'poc_sync/log.txt' });
+            const listRes = await list({ token: VERCEL_BLOB_TOKEN,  prefix: 'poc_sync/log.txt' });
             if (listRes.blobs.length > 0) {
                 return res.status(200).json({ url: listRes.blobs[0].url });
             }
@@ -67,7 +68,7 @@ export default async function handler(req, res) {
             // Note: Vercel Blob doesn't have an 'append' operation, so we read, concat, and put.
             let existingLog = '';
             try {
-                const listRes = await list({ prefix: 'poc_sync/log.txt' });
+                const listRes = await list({ token: VERCEL_BLOB_TOKEN,  prefix: 'poc_sync/log.txt' });
                 if (listRes.blobs.length > 0) {
                     const blobRes = await fetch(listRes.blobs[0].url + '?ts=' + Date.now());
                     existingLog = await blobRes.text();
@@ -78,7 +79,7 @@ export default async function handler(req, res) {
 
             const newLogContent = existingLog + logEntry;
 
-            await put('poc_sync/log.txt', newLogContent, {
+            await put('poc_sync/log.txt', newLogContent, { token: VERCEL_BLOB_TOKEN,
                 access: 'public',
                 contentType: 'text/plain',
                 addRandomSuffix: false // Overwrite existing
@@ -100,13 +101,13 @@ export default async function handler(req, res) {
             let hasMore = true;
             let cursor;
             while (hasMore) {
-                const listResult = await list({
+                const listResult = await list({ token: VERCEL_BLOB_TOKEN,
                     prefix: 'poc_sync/',
                     cursor,
                 });
 
                 if (listResult.blobs.length > 0) {
-                    await del(listResult.blobs.map((blob) => blob.url));
+                    await del(listResult.blobs.map((blob) => blob.url), { token: VERCEL_BLOB_TOKEN });
                 }
 
                 hasMore = listResult.hasMore;
@@ -162,7 +163,7 @@ export default async function handler(req, res) {
                             let filename = name ? name : `media_${payload.id}_${i}.${ext}`;
 
                             // Upload to blob
-                            const blobResult = await put(`poc_sync/${filename}`, buffer, {
+                            const blobResult = await put(`poc_sync/${filename}`, buffer, { token: VERCEL_BLOB_TOKEN,
                                 access: 'public',
                                 contentType: type,
                             });
@@ -223,12 +224,12 @@ export default async function handler(req, res) {
             console.error('Verbose uploadChunk error:', err);
             try {
                const logEntry = "\n[" + new Date().toISOString() + "] SERVER ERROR in uploadChunk: " + err.message + "\nStack: " + err.stack + "\n----------------------------------------\n";
-               const listRes = await list({ prefix: 'poc_sync/log.txt' });
+               const listRes = await list({ token: VERCEL_BLOB_TOKEN,  prefix: 'poc_sync/log.txt' });
                let existingLog = '';
                if (listRes.blobs.length > 0) {
                    existingLog = await (await fetch(listRes.blobs[0].url + '?ts=' + Date.now())).text();
                }
-               await put('poc_sync/log.txt', existingLog + logEntry, { access: 'public', contentType: 'text/plain', addRandomSuffix: false });
+               await put('poc_sync/log.txt', existingLog + logEntry, { token: VERCEL_BLOB_TOKEN,  access: 'public', contentType: 'text/plain', addRandomSuffix: false });
             } catch(e) { console.error('Failed to write server error log', e); }
             return res.status(500).json({ error: err.message, verbose: err.stack });
         }

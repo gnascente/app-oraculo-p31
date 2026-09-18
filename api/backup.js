@@ -3,7 +3,7 @@ export const config = {
 };
 
 export default async function handler(req, res) {
-    const token = "vercel_blob_rw_lSwvXX6stWnRHpgK_Txuyw1Wkl2opkBzxnWf1mGFW01IJZc";
+    const token = process.env.BLOB_READ_WRITE_TOKEN;
     
     // Helper to run delete requests
     const deleteBlobs = async (urls) => {
