@@ -286,6 +286,8 @@ btnSave.onclick = async () => {
         updatedAt: now
     };
 
+    await sendRemoteLog("User clicked Save (creating block)", { blockId: newBlock.id, textPreview: text.substring(0, 50), mediaCount: currentMedia.length });
+
     await db.blocks.put(newBlock);
 
     // Reset form
@@ -324,7 +326,22 @@ const getDeviceId = () => {
     return id;
 };
 
+
+// Forward explicit errors to the log on the server
+const sendRemoteLog = async (message, context = {}) => {
+    try {
+        await fetch('/api/poc-sync?action=writeLog', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message, context, timestamp: new Date().toISOString() })
+        });
+    } catch (e) {
+        console.error("Failed to send remote log", e);
+    }
+};
+
 const runSyncCycle = async () => {
+
     if (isSyncing || !navigator.onLine) return;
 
     // Check if there's anything pending
@@ -333,6 +350,7 @@ const runSyncCycle = async () => {
 
     isSyncing = true;
     const deviceId = getDeviceId();
+    await sendRemoteLog("Autosync cycle started", { pendingCount: pendingBlocks.length, deviceId });
 
     for (let block of pendingBlocks) {
         logTerminal(`Iniciando sync do bloco ${block.id.substring(0,8)}...`);
@@ -387,6 +405,7 @@ const runSyncCycle = async () => {
                     });
                 } catch (networkErr) {
                     console.error('Network fetch failed:', networkErr);
+                    await sendRemoteLog(`Network fetch failed for block ${block.id}`, { error: networkErr.message, stack: networkErr.stack, chunkIdx, totalChunks });
                     throw new Error(`Network fetch failed: ${networkErr.message}`);
                 }
 
@@ -399,9 +418,11 @@ const runSyncCycle = async () => {
                         errObj = JSON.parse(rawText);
                     } catch(e) {
                         console.error('Failed to parse error response as JSON. Raw text:', rawText);
+                        await sendRemoteLog(`HTTP Error ${res.status} (Not JSON)`, { blockId: block.id, chunkIdx, rawText });
                     }
 
                     if (errObj.error === 'SESSION_EXPIRED') {
+                        await sendRemoteLog(`Session expired for block ${block.id}`, { chunkIdx });
                         logTerminal(`Sessão expirada para o bloco ${block.id.substring(0,8)}. Reiniciando...`, 'warn');
                         // Reset chunk counter to start over next cycle
                         block.uploadedChunks = 0;
@@ -409,6 +430,7 @@ const runSyncCycle = async () => {
                         await db.blocks.put(block);
                         throw new Error('SESSION_EXPIRED');
                     }
+                    await sendRemoteLog(`HTTP Error ${res.status}`, { blockId: block.id, chunkIdx, errorObject: errObj, rawText });
                     throw new Error(errObj.error || `HTTP ${res.status}: ${rawText.substring(0, 100)}`);
                 }
 
@@ -417,14 +439,17 @@ const runSyncCycle = async () => {
                     resData = JSON.parse(rawText);
                     if (!resData || (!resData.status && !resData.error)) {
                         console.error('Invalid JSON payload - possible firewall interception. Raw text:', rawText);
+                        await sendRemoteLog('Invalid JSON payload detected (possible firewall interception)', { rawText, blockId: block.id, chunkIdx });
                         throw new Error('Invalid JSON payload - possible firewall interception.');
                     }
                 } catch (parseErr) {
                     console.error('JSON parsing failed or firewall blocked response. Parse Error:', parseErr, 'Raw Text:', rawText);
+                    await sendRemoteLog('JSON parsing failed or firewall blocked response', { error: parseErr.message, rawText, blockId: block.id, chunkIdx });
                     throw new Error(`Falha de rede ou firewall bloqueou a resposta JSON. Detalhes: ${parseErr.message}`);
                 }
 
                 // If this was the last chunk, it will process the block and return the updated master state
+                await sendRemoteLog(`Successful sync return for block ${block.id} (chunk ${chunkIdx})`, { blockId: block.id, chunkIdx, httpStatus: res.status, responseBody: resData });
                 if (resData.status === 'completed') {
                      logTerminal(`Bloco ${block.id.substring(0,8)} concluído com sucesso.`, 'ok');
 
@@ -452,6 +477,7 @@ const runSyncCycle = async () => {
             if (err.message !== 'SESSION_EXPIRED') {
                 console.error(`Sync error for block ${block.id}:`, err);
                 logTerminal(`Falha no sync do bloco ${block.id.substring(0,8)}: ${err.message}`, 'fail');
+                await sendRemoteLog(`Sync cycle failed for block ${block.id}`, { error: err.message, stack: err.stack });
                 block.syncStatus = 'pending';
             }
             if (block.syncStatus === 'uploading' || block.syncStatus === 'pending') { block.syncStatus = 'pending'; await db.blocks.put(block); }
