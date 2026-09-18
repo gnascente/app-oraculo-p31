@@ -97,6 +97,42 @@ export default async function handler(req, res) {
 
     const { action } = req.query;
 
+    if (action === 'writeLog') {
+        try {
+            const { message, context, timestamp } = req.body;
+
+            const logEntry = "\n[" + (timestamp || new Date().toISOString()) + "] " + message + "\n" +
+                             (context ? JSON.stringify(context, null, 2) + "\n" : "") +
+                             "----------------------------------------\n";
+
+            // Try to append to existing log if it exists, otherwise create new
+            // Note: Vercel Blob doesn't have an 'append' operation, so we read, concat, and put.
+            let existingLog = '';
+            try {
+                const listRes = await list({ prefix: 'poc_sync/log.txt' });
+                if (listRes.blobs.length > 0) {
+                    const blobRes = await fetch(listRes.blobs[0].url + '?ts=' + Date.now());
+                    existingLog = await blobRes.text();
+                }
+            } catch(e) {
+                console.error("Failed to read existing log for append:", e);
+            }
+
+            const newLogContent = existingLog + logEntry;
+
+            await put('poc_sync/log.txt', newLogContent, {
+                access: 'public',
+                contentType: 'text/plain',
+                addRandomSuffix: false // Overwrite existing
+            });
+
+            return res.status(200).json({ status: 'logged' });
+        } catch (err) {
+            console.error('Failed to write log:', err);
+            return res.status(500).json({ error: err.message });
+        }
+    }
+
     if (action === 'wipeAll') {
         try {
             // 1. Delete all blocks in Redis
@@ -227,9 +263,17 @@ export default async function handler(req, res) {
             }
 
         } catch (err) {
-            console.error(err);
-            await logErrorToBlob(err).catch(e => console.error('Failed to log to blob', e));
-            return res.status(500).json({ error: err.message });
+            console.error('Verbose uploadChunk error:', err);
+            try {
+               const logEntry = "\n[" + new Date().toISOString() + "] SERVER ERROR in uploadChunk: " + err.message + "\nStack: " + err.stack + "\n----------------------------------------\n";
+               const listRes = await list({ prefix: 'poc_sync/log.txt' });
+               let existingLog = '';
+               if (listRes.blobs.length > 0) {
+                   existingLog = await (await fetch(listRes.blobs[0].url + '?ts=' + Date.now())).text();
+               }
+               await put('poc_sync/log.txt', existingLog + logEntry, { access: 'public', contentType: 'text/plain', addRandomSuffix: false });
+            } catch(e) { console.error('Failed to write server error log', e); }
+            return res.status(500).json({ error: err.message, verbose: err.stack });
         }
     }
 
