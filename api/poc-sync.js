@@ -9,13 +9,13 @@ const SESSION_TTL = 86400; // 24 hours in seconds
 
 // Helper to make KV REST requests
 async function kvRequest(command, ...args) {
-    const res = await fetch(`${KV_REST_API_URL}/${command}`, {
+    const res = await fetch(`${KV_REST_API_URL}`, {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${KV_REST_API_TOKEN}`,
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify(args)
+        body: JSON.stringify([command, ...args])
     });
     if (!res.ok) throw new Error(`KV Error: ${await res.text()}`);
     const data = await res.json();
