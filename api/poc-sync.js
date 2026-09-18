@@ -35,6 +35,61 @@ function base64ToBuffer(base64Str) {
     return { type: matches[1], buffer: Buffer.from(matches[2], 'base64') };
 }
 
+async function logErrorToBlob(err) {
+    try {
+        let existingContent = '';
+        const token = process.env.BLOB_READ_WRITE_TOKEN;
+        let blobUrl = null;
+
+        if (token) {
+            const match = token.match(/^vercel_blob_rw_([^_]+)_/);
+            if (match) {
+                const storeId = match[1].toLowerCase();
+                blobUrl = `https://${storeId}.public.blob.vercel-storage.com/logpocerror.txt`;
+            }
+        }
+
+        let fetchSuccess = false;
+        if (blobUrl) {
+            try {
+                const res = await fetch(`${blobUrl}?ts=${Date.now()}`);
+                if (res.ok) {
+                    existingContent = await res.text();
+                    fetchSuccess = true;
+                }
+            } catch (e) {
+                console.error("Failed to fetch log directly", e);
+            }
+        }
+
+        if (!fetchSuccess) {
+            try {
+                const listResult = await list({ prefix: 'logpocerror.txt' });
+                const blob = listResult.blobs.find(b => b.pathname === 'logpocerror.txt');
+                if (blob) {
+                    const res = await fetch(`${blob.url}?ts=${Date.now()}`);
+                    if (res.ok) {
+                        existingContent = await res.text();
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to list/fetch log", e);
+            }
+        }
+
+        const newLogEntry = `\n--- [${new Date().toISOString()}] ---\nError: ${err.message || err}\nStack: ${err.stack || 'No stack trace'}\n`;
+        const newContent = existingContent + newLogEntry;
+
+        await put('logpocerror.txt', newContent, {
+            access: 'public',
+            addRandomSuffix: false,
+            contentType: 'text/plain'
+        });
+    } catch (e) {
+        console.error("Critical failure in logErrorToBlob", e);
+    }
+}
+
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -103,6 +158,7 @@ export default async function handler(req, res) {
             return res.status(200).json({ status: 'wiped' });
         } catch (err) {
             console.error('Wipe failed:', err);
+            await logErrorToBlob(err).catch(e => console.error('Failed to log to blob', e));
             return res.status(500).json({ error: err.message });
         }
     }
@@ -132,7 +188,7 @@ export default async function handler(req, res) {
                     if (!chunkData) {
                         return res.status(400).json({ error: 'SESSION_EXPIRED' }); // Lost a chunk somehow
                     }
-                    assembledStr += chunkData;
+                    assembledStr += (typeof chunkData === 'string' ? chunkData : JSON.stringify(chunkData));
                 }
 
                 const payload = JSON.parse(assembledStr);
@@ -162,15 +218,15 @@ export default async function handler(req, res) {
                 }
 
                 // 3. Conflict Resolution & Save (Option B: Bifurcation)
-                const currentServerBlockStr = await kvRequest('HGET', MAIN_HASH_KEY, payload.id);
+                const currentServerBlockRaw = await kvRequest('HGET', MAIN_HASH_KEY, payload.id);
 
                 let finalBlocksToReturn = [];
 
                 if (payload.isDeleted) {
                      // Deletions always win
                      await kvRequest('HSET', MAIN_HASH_KEY, payload.id, JSON.stringify(payload));
-                } else if (currentServerBlockStr) {
-                    const currentServerBlock = JSON.parse(currentServerBlockStr);
+                } else if (currentServerBlockRaw) {
+                    const currentServerBlock = typeof currentServerBlockRaw === 'string' ? JSON.parse(currentServerBlockRaw) : currentServerBlockRaw;
 
                     if (currentServerBlock.version > payload.version && !currentServerBlock.isDeleted) {
                         // Conflict! Cloud has a newer version. Bifurcate.
@@ -197,7 +253,7 @@ export default async function handler(req, res) {
 
                 // Return all current master blocks to client for reconciliation
                 const allBlocksArrayStr = await kvRequest('HVALS', MAIN_HASH_KEY);
-                const masterBlocks = allBlocksArrayStr.map(s => JSON.parse(s));
+                const masterBlocks = allBlocksArrayStr.map(s => typeof s === 'string' ? JSON.parse(s) : s);
 
                 return res.status(200).json({ status: 'completed', masterBlocks: masterBlocks });
 
