@@ -247,7 +247,6 @@ textarea:focus {
     color: #0f0;
     font-family: 'VT323', monospace;
     padding: 16px;
-    overflow: hidden;
 }
 .terminal-header {
     display: flex;
@@ -264,8 +263,6 @@ textarea:focus {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    overflow-y: auto;
-    flex-grow: 1;
 }
 .status-ok { color: #0f0; }
 .status-fail { color: #f00; }
