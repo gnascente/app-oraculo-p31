@@ -246,16 +246,42 @@ textarea:focus {
     background: #000;
     color: #0f0;
     font-family: 'VT323', monospace;
-    padding: 16px;
+    padding: 0; /* padding moved to inner elements */
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    overflow: hidden;
 }
 .terminal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid #0f0;
-    padding-bottom: 8px;
-    margin-bottom: 16px;
+    padding: 16px;
     font-size: 18px;
+    background: #000;
+    flex-shrink: 0;
+}
+.terminal-actions {
+    display: flex;
+    gap: 12px;
+}
+.terminal-action-btn {
+    background: none;
+    border: 1px solid #0f0;
+    color: #0f0;
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'VT323', monospace;
+    font-size: 16px;
+    cursor: pointer;
+}
+.terminal-action-btn:hover {
+    background: #0f0;
+    color: #000;
 }
 .terminal-output {
     font-size: 16px;
@@ -263,6 +289,9 @@ textarea:focus {
     display: flex;
     flex-direction: column;
     gap: 4px;
+    padding: 16px;
+    overflow-y: auto;
+    flex-grow: 1;
 }
 .status-ok { color: #0f0; }
 .status-fail { color: #f00; }
