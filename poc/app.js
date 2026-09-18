@@ -12,6 +12,7 @@ const viewTerminal = document.getElementById('terminalView');
 const btnToggleTerminal = document.getElementById('btnToggleTerminal');
 const btnCloseTerminal = document.getElementById('btnCloseTerminal');
 const btnClearTerminal = document.getElementById('btnClearTerminal');
+const btnViewRemoteLog = document.getElementById('btnViewRemoteLog');
 const btnWipeAll = document.getElementById('btnWipeAll');
 const terminalOutput = document.getElementById('terminalOutput');
 const blocksListEl = document.getElementById('blocksList');
@@ -50,6 +51,22 @@ if (btnClearTerminal) {
             }
         };
     }
+    btnViewRemoteLog.onclick = async () => {
+    try {
+        logTerminal("Buscando URL do log remoto...", "warn");
+        const res = await fetch('/api/poc-sync?action=getLogUrl');
+        const data = await res.json();
+        if (res.ok && data.url) {
+            logTerminal("Log remoto encontrado. Abrindo...", "ok");
+            window.open(data.url + '?ts=' + Date.now(), '_blank');
+        } else {
+            logTerminal(data.error || "Log não encontrado", "fail");
+        }
+    } catch(err) {
+        logTerminal("Erro ao buscar log remoto: " + err.message, "fail");
+    }
+};
+
     btnClearTerminal.onclick = () => {
         terminalOutput.innerHTML = '<div>Oráculo P-31 Offshore Sync System v1.1</div><div>Log limpo. <span class="status-ok">OK</span></div>';
     };
