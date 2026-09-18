@@ -82,7 +82,7 @@ export default async function handler(req, res) {
             await put('poc_sync/log.txt', newLogContent, { token: VERCEL_BLOB_TOKEN,
                 access: 'public',
                 contentType: 'text/plain',
-                addRandomSuffix: false // Overwrite existing
+                allowOverwrite: true // Overwrite existing
             });
 
             return res.status(200).json({ status: 'logged' });
@@ -135,7 +135,7 @@ export default async function handler(req, res) {
             }
 
             // Save chunk to staging area (Redis) with TTL
-            await kvRequest('SET', `${sessionId}:chunk:${chunkIndex}`, data, 'EX', SESSION_TTL);
+            await kvRequest('SET', `${sessionId}:chunk:${chunkIndex}`, data || '', 'EX', SESSION_TTL);
 
             // Is it the last chunk?
             if (chunkIndex === totalChunks - 1) {
@@ -229,7 +229,7 @@ export default async function handler(req, res) {
                if (listRes.blobs.length > 0) {
                    existingLog = await (await fetch(listRes.blobs[0].url + '?ts=' + Date.now())).text();
                }
-               await put('poc_sync/log.txt', existingLog + logEntry, { token: VERCEL_BLOB_TOKEN,  access: 'public', contentType: 'text/plain', addRandomSuffix: false });
+               await put('poc_sync/log.txt', existingLog + logEntry, { token: VERCEL_BLOB_TOKEN,  access: 'public', contentType: 'text/plain', allowOverwrite: true });
             } catch(e) { console.error('Failed to write server error log', e); }
             return res.status(500).json({ error: err.message, verbose: err.stack });
         }
