@@ -135,7 +135,7 @@ export default async function handler(req, res) {
             }
 
             // Save chunk to staging area (Redis) with TTL
-            await kvRequest('SET', `${sessionId}:chunk:${chunkIndex}`, data || '', 'EX', SESSION_TTL);
+            await kvRequest('SET', `${sessionId}:chunk:${chunkIndex}`, data !== undefined && data !== null ? String(data) : '', 'EX', SESSION_TTL);
 
             // Is it the last chunk?
             if (chunkIndex === totalChunks - 1) {
