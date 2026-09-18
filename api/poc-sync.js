@@ -42,6 +42,19 @@ export default async function handler(req, res) {
 
     const { action } = req.query;
 
+    if (action === 'getLogUrl') {
+        try {
+            const listRes = await list({ prefix: 'poc_sync/log.txt' });
+            if (listRes.blobs.length > 0) {
+                return res.status(200).json({ url: listRes.blobs[0].url });
+            }
+            return res.status(404).json({ error: 'Log file not found' });
+        } catch (err) {
+            console.error('Failed to get log URL:', err);
+            return res.status(500).json({ error: err.message });
+        }
+    }
+
     if (action === 'writeLog') {
         try {
             const { message, context, timestamp } = req.body;
