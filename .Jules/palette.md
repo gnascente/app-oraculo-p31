@@ -1,0 +1,3 @@
+## 2024-05-18 - [Global Keydown Listener for Icon Buttons]
+**Learning:** Adding `role="button"` and a global `keydown` event listener in `index.html` makes semantic-less icon buttons (like `<i>` tags) keyboard accessible without needing inline `onkeydown` handlers everywhere. This is a very scalable pattern for adding accessibility to custom components that behave like buttons but lack native semantics.
+**Action:** When working on apps that rely heavily on non-semantic tags (like `<i>` or `<div>`) for primary actions, look for opportunities to add this pattern instead of rewriting all components to use `<button>` tags, especially if a large refactor is out of scope.
