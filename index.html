@@ -161,6 +161,7 @@
         .pill-dark.origin { border-color: var(--primary); color: var(--primary); background: rgba(168, 199, 250, 0.1); }
 
         .action-icon { cursor: pointer; color: var(--on-surface-variant); transition: color 0.2s; font-size: 20px; display:inline-block;}
+        .action-icon:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px; }
         .action-icon:hover { color: var(--primary); }
         .action-icon.danger:hover { color: var(--danger); }
         .sync-highlight { animation: syncPulse 2s infinite; color: #ffeb3b !important; }
@@ -286,19 +287,19 @@
 
 <div class="container">
     <header id="mainHeader">
-        <i class="material-icons action-icon" id="btnBack" style="display:none; margin-right: 12px;" onclick="App.goBack()">arrow_back</i>
+        <i class="material-icons action-icon" role="button" tabindex="0" aria-label="Voltar" id="btnBack" style="display:none; margin-right: 12px;" onclick="App.goBack()">arrow_back</i>
         <h1 id="headerTitle">
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.8.5</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.8.6</span>
             </div>
         </h1>
         <div class="header-actions">
-            <i class="material-icons action-icon" id="syncIconBtn" onclick="App.syncCloud()" title="Sincronizar Nuvem">sync</i>
-            <i class="material-icons action-icon" onclick="App.openPrintModal()" title="Imprimir Relatório">print</i>
+            <i class="material-icons action-icon" role="button" tabindex="0" aria-label="Sincronizar Nuvem" id="syncIconBtn" onclick="App.syncCloud()" title="Sincronizar Nuvem">sync</i>
+            <i class="material-icons action-icon" role="button" tabindex="0" aria-label="Imprimir Relatório" onclick="App.openPrintModal()" title="Imprimir Relatório">print</i>
             <div style="position: relative;" id="menuWrapper">
-                <i class="material-icons action-icon" onclick="App.toggleMenu(event)">more_vert</i>
+                <i class="material-icons action-icon" role="button" tabindex="0" aria-label="Mais opções" onclick="App.toggleMenu(event)">more_vert</i>
                 <div id="mainMenu" class="dropdown-menu">
                     <input type="file" id="restoreLocalFile" accept=".zip,.json" style="display:none" onchange="App.restoreFromLocal(event)">
                     <div class="menu-item" onclick="document.getElementById('restoreLocalFile').click()"><i class="material-icons">folder_zip</i> Restaurar (Local)</div>
@@ -353,7 +354,7 @@
     </div>
 </div>
 
-<button class="fab" id="mainFab" style="display:none;" onclick="LogModal.open(null, App.currentEntityId)">
+<button class="fab" id="mainFab" style="display:none;" onclick="LogModal.open(null, App.currentEntityId)" aria-label="Adicionar Novo Registo">
     <i class="material-icons">add</i>
 </button>
 
@@ -2380,6 +2381,13 @@ Editor.canvas.addEventListener('mousedown', (e) => Editor.startDraw(e)); Editor.
 Editor.canvas.addEventListener('touchstart', (e) => Editor.startDraw(e), {passive: false}); Editor.canvas.addEventListener('touchmove', (e) => Editor.draw(e), {passive: false}); Editor.canvas.addEventListener('touchend', (e) => Editor.stopDraw(e), {passive: false});
 
 App.init();
+
+document.addEventListener('keydown', (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.getAttribute('role') === 'button') {
+        e.preventDefault();
+        e.target.click();
+    }
+});
 </script>
 </body>
 </html>
