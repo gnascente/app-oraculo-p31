@@ -1,0 +1,3 @@
+## 2023-10-27 - [a11y: Making material icon buttons accessible systemically]
+**Learning:** This app heavily uses non-semantic `<i>` tags (Material Icons) as primary action buttons, rendering them completely inaccessible to screen readers and keyboard users (no focus, no Enter/Space interaction, no text alternative). This is a very common pattern in quick-and-dirty UI implementation.
+**Action:** Implemented a systemic fix. When adding `role="button"`, `tabindex="0"`, and `aria-label` to these `<i>` tags, I also added a global `keydown` event listener for 'Enter' and 'Space' that targets elements with `role="button"`. This avoids having to add `onkeydown` handlers to every single icon individually, creating a reusable a11y enhancement pattern for this design system.
