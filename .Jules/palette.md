@@ -1,0 +1,3 @@
+## 2024-05-18 - Making non-semantic tag buttons accessible
+**Learning:** This app heavily uses non-semantic `<i>` tags (Material Icons) and `<div>` tags for its primary action buttons (like the header actions and module cards). Because these elements are not natively focusable or clickable via keyboard, a specific pattern is required: explicitly adding `role="button"`, `tabindex="0"`, `aria-label`, and a global `keydown` event listener to capture `Enter` and `Space` to trigger the `.click()` method.
+**Action:** Always check `<i>` and `<div>` tags used as interactive elements in this app to ensure they have the proper ARIA roles, tabindex, and that the global keydown listener covers them.
