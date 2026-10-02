@@ -1,0 +1,3 @@
+## 2026-10-02 - Non-Semantic Elements Need Global Keyboard Handler
+**Learning:** In this vanilla PWA, interactive actions are heavily built using non-semantic `<i>` (Material Icons) and `<div>` tags with `onclick` handlers instead of native `<button>` tags. Simply adding `role="button"` and `tabindex="0"` makes them focusable, but it does not automatically bind keyboard interactions (Enter/Space) in native browser behavior.
+**Action:** Always complement `role="button"` on non-semantic elements with a global `keydown` event listener to proxy Enter/Space keys to `click()` events, and ensure a CSS rule like `[role="button"]:focus-visible` exists to provide clear visual focus indicators for keyboard users.
