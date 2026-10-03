@@ -163,6 +163,7 @@
         .action-icon { cursor: pointer; color: var(--on-surface-variant); transition: color 0.2s; font-size: 20px; display:inline-block;}
         .action-icon:hover { color: var(--primary); }
         .action-icon.danger:hover { color: var(--danger); }
+        [role="button"]:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
         .sync-highlight { animation: syncPulse 2s infinite; color: #ffeb3b !important; }
 
         .stacked-deck { width: 100%; height: 160px; position: relative; margin-top: 8px; margin-bottom: 4px; cursor: pointer; display: block; transition: transform 0.2s; background: transparent; }
@@ -316,22 +317,22 @@
             </div>
         </div>
         <div class="home-grid" id="homeGrid">
-            <div class="module-card" onclick="App.openModule('servico', 'Serviços', 'handyman')">
+            <div class="module-card" role="button" tabindex="0" title="Módulo de Serviços" aria-label="Abrir Serviços" onclick="App.openModule('servico', 'Serviços', 'handyman')">
                 <i class="material-icons">handyman</i><span>Serviços</span>
             </div>
-            <div class="module-card" onclick="App.openModule('equipamento', 'Equipamentos', 'precision_manufacturing')">
+            <div class="module-card" role="button" tabindex="0" title="Módulo de Equipamentos" aria-label="Abrir Equipamentos" onclick="App.openModule('equipamento', 'Equipamentos', 'precision_manufacturing')">
                 <i class="material-icons">precision_manufacturing</i><span>Equipamentos</span>
             </div>
-            <div class="module-card" onclick="App.openModule('pessoa', 'Pessoas', 'people')">
+            <div class="module-card" role="button" tabindex="0" title="Módulo de Pessoas" aria-label="Abrir Pessoas" onclick="App.openModule('pessoa', 'Pessoas', 'people')">
                 <i class="material-icons">people</i><span>Pessoas</span>
             </div>
-            <div class="module-card" onclick="App.openModule('documento', 'Documentos', 'description')">
+            <div class="module-card" role="button" tabindex="0" title="Módulo de Documentos" aria-label="Abrir Documentos" onclick="App.openModule('documento', 'Documentos', 'description')">
                 <i class="material-icons">description</i><span>Documentos</span>
             </div>
-            <div class="module-card" onclick="App.openModule('auditoria', 'Auditorias', 'verified_user')">
+            <div class="module-card" role="button" tabindex="0" title="Módulo de Auditorias" aria-label="Abrir Auditorias" onclick="App.openModule('auditoria', 'Auditorias', 'verified_user')">
                 <i class="material-icons">verified_user</i><span>Auditorias</span>
             </div>
-            <div class="module-card" onclick="App.openModule('material', 'Materiais', 'inventory_2')">
+            <div class="module-card" role="button" tabindex="0" title="Módulo de Materiais" aria-label="Abrir Materiais" onclick="App.openModule('material', 'Materiais', 'inventory_2')">
                 <i class="material-icons">inventory_2</i><span>Materiais</span>
             </div>
         </div>
@@ -535,6 +536,13 @@ var AppState = {
     }
 };
 window.addEventListener('popstate', (e) => AppState.handlePopState(e));
+
+window.addEventListener('keydown', (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.getAttribute('role') === 'button') {
+        e.preventDefault();
+        e.target.click();
+    }
+});
 
 var CustomDialog = {
     el: document.getElementById('customDialogModal'), titleEl: document.getElementById('customDialogTitle'),
