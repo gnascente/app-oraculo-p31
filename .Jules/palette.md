@@ -1,0 +1,3 @@
+## 2026-10-07 - Keyboard Accessibility on Non-Semantic Tags
+**Learning:** This application heavily relies on non-semantic tags (like `<i>` for icons and `<div>` for cards) with `onclick` handlers for interactive elements. This pattern inherently breaks keyboard navigation (tabbing and activation via Enter/Space) for assistive technologies.
+**Action:** When adding ARIA roles (e.g., `role="button"`) to non-semantic interactive tags in vanilla JS applications, always complement it with a global or delegated `keydown` event listener that watches for 'Enter' or 'Space' keys and programmatically triggers the `.click()` method on the focused element. This restores full keyboard accessibility without needing to refactor the entire DOM structure.

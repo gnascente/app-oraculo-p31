@@ -163,6 +163,7 @@
         .action-icon { cursor: pointer; color: var(--on-surface-variant); transition: color 0.2s; font-size: 20px; display:inline-block;}
         .action-icon:hover { color: var(--primary); }
         .action-icon.danger:hover { color: var(--danger); }
+        [role="button"]:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px; }
         .sync-highlight { animation: syncPulse 2s infinite; color: #ffeb3b !important; }
 
         .stacked-deck { width: 100%; height: 160px; position: relative; margin-top: 8px; margin-bottom: 4px; cursor: pointer; display: block; transition: transform 0.2s; background: transparent; }
@@ -286,19 +287,19 @@
 
 <div class="container">
     <header id="mainHeader">
-        <i class="material-icons action-icon" id="btnBack" style="display:none; margin-right: 12px;" onclick="App.goBack()">arrow_back</i>
+        <i class="material-icons action-icon" id="btnBack" style="display:none; margin-right: 12px;" onclick="App.goBack()" role="button" tabindex="0" aria-label="Voltar">arrow_back</i>
         <h1 id="headerTitle">
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.8.5</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.8.6</span>
             </div>
         </h1>
         <div class="header-actions">
-            <i class="material-icons action-icon" id="syncIconBtn" onclick="App.syncCloud()" title="Sincronizar Nuvem">sync</i>
-            <i class="material-icons action-icon" onclick="App.openPrintModal()" title="Imprimir Relatório">print</i>
+            <i class="material-icons action-icon" id="syncIconBtn" onclick="App.syncCloud()" title="Sincronizar Nuvem" role="button" tabindex="0" aria-label="Sincronizar Nuvem">sync</i>
+            <i class="material-icons action-icon" onclick="App.openPrintModal()" title="Imprimir Relatório" role="button" tabindex="0" aria-label="Imprimir Relatório">print</i>
             <div style="position: relative;" id="menuWrapper">
-                <i class="material-icons action-icon" onclick="App.toggleMenu(event)">more_vert</i>
+                <i class="material-icons action-icon" onclick="App.toggleMenu(event)" role="button" tabindex="0" aria-label="Menu">more_vert</i>
                 <div id="mainMenu" class="dropdown-menu">
                     <input type="file" id="restoreLocalFile" accept=".zip,.json" style="display:none" onchange="App.restoreFromLocal(event)">
                     <div class="menu-item" onclick="document.getElementById('restoreLocalFile').click()"><i class="material-icons">folder_zip</i> Restaurar (Local)</div>
@@ -316,22 +317,22 @@
             </div>
         </div>
         <div class="home-grid" id="homeGrid">
-            <div class="module-card" onclick="App.openModule('servico', 'Serviços', 'handyman')">
+            <div class="module-card" role="button" tabindex="0" aria-label="Abrir módulo Serviços" onclick="App.openModule('servico', 'Serviços', 'handyman')">
                 <i class="material-icons">handyman</i><span>Serviços</span>
             </div>
-            <div class="module-card" onclick="App.openModule('equipamento', 'Equipamentos', 'precision_manufacturing')">
+            <div class="module-card" role="button" tabindex="0" aria-label="Abrir módulo Equipamentos" onclick="App.openModule('equipamento', 'Equipamentos', 'precision_manufacturing')">
                 <i class="material-icons">precision_manufacturing</i><span>Equipamentos</span>
             </div>
-            <div class="module-card" onclick="App.openModule('pessoa', 'Pessoas', 'people')">
+            <div class="module-card" role="button" tabindex="0" aria-label="Abrir módulo Pessoas" onclick="App.openModule('pessoa', 'Pessoas', 'people')">
                 <i class="material-icons">people</i><span>Pessoas</span>
             </div>
-            <div class="module-card" onclick="App.openModule('documento', 'Documentos', 'description')">
+            <div class="module-card" role="button" tabindex="0" aria-label="Abrir módulo Documentos" onclick="App.openModule('documento', 'Documentos', 'description')">
                 <i class="material-icons">description</i><span>Documentos</span>
             </div>
-            <div class="module-card" onclick="App.openModule('auditoria', 'Auditorias', 'verified_user')">
+            <div class="module-card" role="button" tabindex="0" aria-label="Abrir módulo Auditorias" onclick="App.openModule('auditoria', 'Auditorias', 'verified_user')">
                 <i class="material-icons">verified_user</i><span>Auditorias</span>
             </div>
-            <div class="module-card" onclick="App.openModule('material', 'Materiais', 'inventory_2')">
+            <div class="module-card" role="button" tabindex="0" aria-label="Abrir módulo Materiais" onclick="App.openModule('material', 'Materiais', 'inventory_2')">
                 <i class="material-icons">inventory_2</i><span>Materiais</span>
             </div>
         </div>
@@ -405,7 +406,7 @@
     <div class="modal-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
             <h2 id="entityModalTitle">Editar Entidade</h2>
-            <i class="material-icons action-icon danger" onclick="EntityModal.delete()">delete</i>
+            <i class="material-icons action-icon danger" onclick="EntityModal.delete()" role="button" tabindex="0" aria-label="Excluir">delete</i>
         </div>
         <div class="input-group">
             <input type="text" id="entityNameEditInput" name="q_entity_edit" class="input-field" placeholder="Nome" autocomplete="new-password" role="presentation" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
@@ -421,7 +422,7 @@
     <div class="modal-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
             <h2 id="logModalTitle">Registar Evento</h2>
-            <i class="material-icons action-icon danger" id="logModalDeleteBtn" onclick="LogModal.delete()" style="display:none;">delete</i>
+            <i class="material-icons action-icon danger" id="logModalDeleteBtn" onclick="LogModal.delete()" style="display:none;" role="button" tabindex="0" aria-label="Excluir Evento">delete</i>
         </div>
         
         <div class="input-group" id="logLinkContainer">
@@ -472,10 +473,10 @@
     <div class="carousel-header">
         <div style="color: white; font-size: 13px; font-weight:bold; margin-top: 8px; text-shadow: 1px 1px 2px black;" id="carouselSizeIndicator"></div>
         <div class="carousel-actions-global">
-            <div class="carousel-btn edit" id="carouselEditBtn" onclick="CarouselModal.editCurrent()"><i class="material-icons">edit</i></div>
-            <div class="carousel-btn delete" id="carouselDeleteBtn" onclick="CarouselModal.deleteCurrent()"><i class="material-icons" style="color:var(--danger)">delete</i></div>
+            <div class="carousel-btn edit" id="carouselEditBtn" onclick="CarouselModal.editCurrent()" role="button" tabindex="0" aria-label="Editar"><i class="material-icons">edit</i></div>
+            <div class="carousel-btn delete" id="carouselDeleteBtn" onclick="CarouselModal.deleteCurrent()" role="button" tabindex="0" aria-label="Excluir"><i class="material-icons" style="color:var(--danger)">delete</i></div>
         </div>
-        <i class="material-icons action-icon" style="color:white; font-size:32px;" onclick="CarouselModal.closeUI()">close</i>
+        <i class="material-icons action-icon" style="color:white; font-size:32px;" onclick="CarouselModal.closeUI()" role="button" tabindex="0" aria-label="Fechar">close</i>
     </div>
     <div class="carousel-nav-btn left" id="carouselNavLeft" onclick="CarouselModal.prev()"><i class="material-icons">chevron_left</i></div>
     <div class="carousel-nav-btn right" id="carouselNavRight" onclick="CarouselModal.next()"><i class="material-icons">chevron_right</i></div>
@@ -2378,6 +2379,13 @@ Editor.overlay.addEventListener('touchend', stopTextDrag); Editor.overlay.addEve
 Editor.sizeInput.addEventListener('input', (e) => { if(Editor.activeTool === 'text' && Editor.activeText) { Editor.activeText.style.fontSize = Math.max(14, e.target.value * 6) + 'px'; } });
 Editor.canvas.addEventListener('mousedown', (e) => Editor.startDraw(e)); Editor.canvas.addEventListener('mousemove', (e) => Editor.draw(e)); Editor.canvas.addEventListener('mouseup', (e) => Editor.stopDraw(e)); Editor.canvas.addEventListener('mouseleave', (e) => Editor.stopDraw(e));
 Editor.canvas.addEventListener('touchstart', (e) => Editor.startDraw(e), {passive: false}); Editor.canvas.addEventListener('touchmove', (e) => Editor.draw(e), {passive: false}); Editor.canvas.addEventListener('touchend', (e) => Editor.stopDraw(e), {passive: false});
+
+document.addEventListener('keydown', (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.getAttribute('role') === 'button') {
+        e.preventDefault();
+        e.target.click();
+    }
+});
 
 App.init();
 </script>
