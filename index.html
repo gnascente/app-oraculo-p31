@@ -165,6 +165,8 @@
         .action-icon.danger:hover { color: var(--danger); }
         .sync-highlight { animation: syncPulse 2s infinite; color: #ffeb3b !important; }
 
+        [role="button"]:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px; }
+
         .stacked-deck { width: 100%; height: 160px; position: relative; margin-top: 8px; margin-bottom: 4px; cursor: pointer; display: block; transition: transform 0.2s; background: transparent; }
         .stacked-deck:active { transform: scale(0.98); }
         .deck-photo, .pdf-preview.deck-photo { width: calc(100% - 20px); height: 100%; position: absolute; top: 0; left: 10px; object-fit: cover; border-radius: 8px; border: 1px solid #555; box-shadow: var(--shadow-sm); transition: transform 0.2s; }
@@ -286,19 +288,19 @@
 
 <div class="container">
     <header id="mainHeader">
-        <i class="material-icons action-icon" id="btnBack" style="display:none; margin-right: 12px;" onclick="App.goBack()">arrow_back</i>
+        <i class="material-icons action-icon" id="btnBack" style="display:none; margin-right: 12px;" role="button" tabindex="0" aria-label="Voltar" title="Voltar" onclick="App.goBack()">arrow_back</i>
         <h1 id="headerTitle">
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.8.5</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.8.6</span>
             </div>
         </h1>
         <div class="header-actions">
-            <i class="material-icons action-icon" id="syncIconBtn" onclick="App.syncCloud()" title="Sincronizar Nuvem">sync</i>
-            <i class="material-icons action-icon" onclick="App.openPrintModal()" title="Imprimir Relatório">print</i>
+            <i class="material-icons action-icon" id="syncIconBtn" role="button" tabindex="0" aria-label="Sincronizar Nuvem" title="Sincronizar Nuvem" onclick="App.syncCloud()">sync</i>
+            <i class="material-icons action-icon" role="button" tabindex="0" aria-label="Imprimir Relatório" title="Imprimir Relatório" onclick="App.openPrintModal()">print</i>
             <div style="position: relative;" id="menuWrapper">
-                <i class="material-icons action-icon" onclick="App.toggleMenu(event)">more_vert</i>
+                <i class="material-icons action-icon" role="button" tabindex="0" aria-label="Mais opções" title="Mais opções" onclick="App.toggleMenu(event)">more_vert</i>
                 <div id="mainMenu" class="dropdown-menu">
                     <input type="file" id="restoreLocalFile" accept=".zip,.json" style="display:none" onchange="App.restoreFromLocal(event)">
                     <div class="menu-item" onclick="document.getElementById('restoreLocalFile').click()"><i class="material-icons">folder_zip</i> Restaurar (Local)</div>
@@ -316,22 +318,22 @@
             </div>
         </div>
         <div class="home-grid" id="homeGrid">
-            <div class="module-card" onclick="App.openModule('servico', 'Serviços', 'handyman')">
+            <div class="module-card" role="button" tabindex="0" aria-label="Abrir Serviços" title="Abrir Serviços" onclick="App.openModule('servico', 'Serviços', 'handyman')">
                 <i class="material-icons">handyman</i><span>Serviços</span>
             </div>
-            <div class="module-card" onclick="App.openModule('equipamento', 'Equipamentos', 'precision_manufacturing')">
+            <div class="module-card" role="button" tabindex="0" aria-label="Abrir Equipamentos" title="Abrir Equipamentos" onclick="App.openModule('equipamento', 'Equipamentos', 'precision_manufacturing')">
                 <i class="material-icons">precision_manufacturing</i><span>Equipamentos</span>
             </div>
-            <div class="module-card" onclick="App.openModule('pessoa', 'Pessoas', 'people')">
+            <div class="module-card" role="button" tabindex="0" aria-label="Abrir Pessoas" title="Abrir Pessoas" onclick="App.openModule('pessoa', 'Pessoas', 'people')">
                 <i class="material-icons">people</i><span>Pessoas</span>
             </div>
-            <div class="module-card" onclick="App.openModule('documento', 'Documentos', 'description')">
+            <div class="module-card" role="button" tabindex="0" aria-label="Abrir Documentos" title="Abrir Documentos" onclick="App.openModule('documento', 'Documentos', 'description')">
                 <i class="material-icons">description</i><span>Documentos</span>
             </div>
-            <div class="module-card" onclick="App.openModule('auditoria', 'Auditorias', 'verified_user')">
+            <div class="module-card" role="button" tabindex="0" aria-label="Abrir Auditorias" title="Abrir Auditorias" onclick="App.openModule('auditoria', 'Auditorias', 'verified_user')">
                 <i class="material-icons">verified_user</i><span>Auditorias</span>
             </div>
-            <div class="module-card" onclick="App.openModule('material', 'Materiais', 'inventory_2')">
+            <div class="module-card" role="button" tabindex="0" aria-label="Abrir Materiais" title="Abrir Materiais" onclick="App.openModule('material', 'Materiais', 'inventory_2')">
                 <i class="material-icons">inventory_2</i><span>Materiais</span>
             </div>
         </div>
@@ -2380,6 +2382,17 @@ Editor.canvas.addEventListener('mousedown', (e) => Editor.startDraw(e)); Editor.
 Editor.canvas.addEventListener('touchstart', (e) => Editor.startDraw(e), {passive: false}); Editor.canvas.addEventListener('touchmove', (e) => Editor.draw(e), {passive: false}); Editor.canvas.addEventListener('touchend', (e) => Editor.stopDraw(e), {passive: false});
 
 App.init();
+
+// Global keydown event listener for keyboard accessibility
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+        if (e.target.getAttribute('role') === 'button' || e.target.classList.contains('action-icon') || e.target.classList.contains('module-card')) {
+            e.preventDefault();
+            e.target.click();
+        }
+    }
+});
+
 </script>
 </body>
 </html>
