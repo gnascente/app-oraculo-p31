@@ -1,0 +1,3 @@
+## 2024-03-24 - Accessibility for Non-Semantic Buttons
+**Learning:** This app heavily uses non-semantic `<i>` tags (Material Icons) and `<div>` tags as primary action buttons (`.action-icon`, `.module-card`). While they have `onclick` handlers, they are invisible to screen readers and keyboard users by default.
+**Action:** When working with these elements, always explicitly add `role="button"`, `tabindex="0"`, and `aria-label` (if icon-only) to ensure they are accessible. Ensure a global `keydown` event listener is in place to handle 'Enter' and 'Space' activations, and a `[role="button"]:focus-visible` CSS rule provides visual focus indicators.
