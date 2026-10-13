@@ -1,0 +1,3 @@
+## 2026-10-13 - Add Keyboard Accessibility to Icon-Only Action Buttons
+**Learning:** In a vanilla HTML/JS PWA utilizing heavily `<i>` (Material Icons) and `<div>` tags as interactive action buttons, adding `role="button"` and `tabindex="0"` is essential, but inherently they do not respond to standard keyboard interactions ('Enter' or 'Space').
+**Action:** Always implement a global document-level `keydown` event listener to artificially dispatch `.click()` on elements with `role="button"` when Enter or Space is pressed, ensuring full keyboard a11y compatibility for non-semantic interactive components.
