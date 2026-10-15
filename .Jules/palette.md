@@ -1,0 +1,3 @@
+## 2024-03-24 - Accessibility for Icon/Div Actions
+**Learning:** This application heavily uses non-semantic `<i>` tags (Material Icons) and `<div>` tags as primary action buttons (`.action-icon`, `.module-card`). This makes them completely inaccessible to keyboard users and screen readers out-of-the-box.
+**Action:** Always explicitly add `role="button"`, `tabindex="0"`, `title`, and `aria-label` attributes to these non-semantic interactive elements. Added a global `keydown` event listener to handle 'Enter' and 'Space' activations for all `[role="button"]` elements, and a `[role="button"]:focus-visible` CSS rule to ensure visual focus indicators are provided without modifying individual components' styling logic. This is a reusable pattern across the app.
