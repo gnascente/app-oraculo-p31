@@ -1,0 +1,3 @@
+## 2026-10-16 - Keyboard Accessibility on Non-Semantic Elements
+**Learning:** The application heavily uses non-semantic `<i>` (Material Icons) and `<div>` elements as primary actions (`.action-icon`, `.module-card`, `.fab`). This breaks native keyboard navigation (Tab/Enter/Space) and screen reader support, creating a severe accessibility barrier.
+**Action:** Always explicitly add `role="button"`, `tabindex="0"`, `title`, and `aria-label` to these elements. To support keyboard activation, implement a global `keydown` listener targeting elements with `role="button"` that listens for 'Enter' and 'Space' keys, triggering a synthetic `.click()`. Additionally, ensure a `[role="button"]:focus-visible` CSS rule is in place for visual keyboard focus indicators.
