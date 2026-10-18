@@ -1,0 +1,3 @@
+## 2024-05-15 - [Accessibility] Improve Keyboard Navigation and Action Buttons
+**Learning:** Widespread use of non-semantic `<i>` tags as action buttons without keyboard focus/activation makes the app inaccessible to users relying on keyboard navigation.
+**Action:** Always ensure that interactive elements have a semantic HTML tag (like `<button>`), or if using `<i>` or `<div>`, explicitly add `role="button"`, `tabindex="0"`, descriptive `aria-label` attributes, focus indicators (`focus-visible`), and keydown event listeners for 'Enter' or 'Space' to trigger the click action.
