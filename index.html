@@ -78,6 +78,11 @@
         .home-search-container { padding: 16px; background: var(--surface); border-bottom: 1px solid var(--surface-variant); flex-shrink: 0; z-index: 15; position: relative;}
         .home-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; padding: 24px; flex-shrink: 0;}
         
+        [role="button"]:focus-visible, button:focus-visible, .module-card:focus-visible, .action-icon:focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+
         .module-card {
             background: var(--surface-variant); border-radius: 16px; padding: 24px 16px; display: flex; flex-direction: column; align-items: center; justify-content: center;
             gap: 12px; box-shadow: var(--shadow-sm); cursor: pointer; transition: transform 0.2s, background 0.2s; border: 1px solid transparent;
@@ -286,7 +291,7 @@
 
 <div class="container">
     <header id="mainHeader">
-        <i class="material-icons action-icon" id="btnBack" style="display:none; margin-right: 12px;" onclick="App.goBack()">arrow_back</i>
+        <i class="material-icons action-icon" id="btnBack" style="display:none; margin-right: 12px;" onclick="App.goBack()" role="button" tabindex="0" aria-label="Voltar">arrow_back</i>
         <h1 id="headerTitle">
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
@@ -295,14 +300,14 @@
             </div>
         </h1>
         <div class="header-actions">
-            <i class="material-icons action-icon" id="syncIconBtn" onclick="App.syncCloud()" title="Sincronizar Nuvem">sync</i>
-            <i class="material-icons action-icon" onclick="App.openPrintModal()" title="Imprimir Relatório">print</i>
+            <i class="material-icons action-icon" id="syncIconBtn" onclick="App.syncCloud()" title="Sincronizar Nuvem" role="button" tabindex="0" aria-label="Sincronizar Nuvem">sync</i>
+            <i class="material-icons action-icon" onclick="App.openPrintModal()" title="Imprimir Relatório" role="button" tabindex="0" aria-label="Imprimir Relatório">print</i>
             <div style="position: relative;" id="menuWrapper">
-                <i class="material-icons action-icon" onclick="App.toggleMenu(event)">more_vert</i>
-                <div id="mainMenu" class="dropdown-menu">
+                <i class="material-icons action-icon" onclick="App.toggleMenu(event)" role="button" tabindex="0" aria-label="Mais opções">more_vert</i>
+                <div id="mainMenu" class="dropdown-menu" role="menu">
                     <input type="file" id="restoreLocalFile" accept=".zip,.json" style="display:none" onchange="App.restoreFromLocal(event)">
-                    <div class="menu-item" onclick="document.getElementById('restoreLocalFile').click()"><i class="material-icons">folder_zip</i> Restaurar (Local)</div>
-                    <div class="menu-item" onclick="App.exportToLocal()"><i class="material-icons">download</i> Exportar (Local)</div>
+                    <div class="menu-item" onclick="document.getElementById('restoreLocalFile').click()" role="menuitem" tabindex="0"><i class="material-icons">folder_zip</i> Restaurar (Local)</div>
+                    <div class="menu-item" onclick="App.exportToLocal()" role="menuitem" tabindex="0"><i class="material-icons">download</i> Exportar (Local)</div>
                 </div>
             </div>
         </div>
@@ -316,22 +321,22 @@
             </div>
         </div>
         <div class="home-grid" id="homeGrid">
-            <div class="module-card" onclick="App.openModule('servico', 'Serviços', 'handyman')">
+            <div class="module-card" onclick="App.openModule('servico', 'Serviços', 'handyman')" role="button" tabindex="0" aria-label="Módulo Serviços">
                 <i class="material-icons">handyman</i><span>Serviços</span>
             </div>
-            <div class="module-card" onclick="App.openModule('equipamento', 'Equipamentos', 'precision_manufacturing')">
+            <div class="module-card" onclick="App.openModule('equipamento', 'Equipamentos', 'precision_manufacturing')" role="button" tabindex="0" aria-label="Módulo Equipamentos">
                 <i class="material-icons">precision_manufacturing</i><span>Equipamentos</span>
             </div>
-            <div class="module-card" onclick="App.openModule('pessoa', 'Pessoas', 'people')">
+            <div class="module-card" onclick="App.openModule('pessoa', 'Pessoas', 'people')" role="button" tabindex="0" aria-label="Módulo Pessoas">
                 <i class="material-icons">people</i><span>Pessoas</span>
             </div>
-            <div class="module-card" onclick="App.openModule('documento', 'Documentos', 'description')">
+            <div class="module-card" onclick="App.openModule('documento', 'Documentos', 'description')" role="button" tabindex="0" aria-label="Módulo Documentos">
                 <i class="material-icons">description</i><span>Documentos</span>
             </div>
-            <div class="module-card" onclick="App.openModule('auditoria', 'Auditorias', 'verified_user')">
+            <div class="module-card" onclick="App.openModule('auditoria', 'Auditorias', 'verified_user')" role="button" tabindex="0" aria-label="Módulo Auditorias">
                 <i class="material-icons">verified_user</i><span>Auditorias</span>
             </div>
-            <div class="module-card" onclick="App.openModule('material', 'Materiais', 'inventory_2')">
+            <div class="module-card" onclick="App.openModule('material', 'Materiais', 'inventory_2')" role="button" tabindex="0" aria-label="Módulo Materiais">
                 <i class="material-icons">inventory_2</i><span>Materiais</span>
             </div>
         </div>
@@ -353,7 +358,7 @@
     </div>
 </div>
 
-<button class="fab" id="mainFab" style="display:none;" onclick="LogModal.open(null, App.currentEntityId)">
+<button class="fab" id="mainFab" style="display:none;" onclick="LogModal.open(null, App.currentEntityId)" aria-label="Adicionar Registo">
     <i class="material-icons">add</i>
 </button>
 
@@ -520,6 +525,17 @@
 </div>
 
 <script>
+// --- GLOBAL KEYBOARD ACCESSIBILITY ---
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+        const el = document.activeElement;
+        if (el && (el.getAttribute('role') === 'button' || el.getAttribute('role') === 'menuitem' || el.classList.contains('module-card') || el.classList.contains('action-icon'))) {
+            e.preventDefault();
+            el.click();
+        }
+    }
+});
+
 // --- INICIALIZAÇÃO DO DEXIE ---
 const AppDB = new Dexie('OraculoP31');
 AppDB.version(1).stores({ entities: 'id, type, name, parentId, createdAt', logs: 'id, originEntityId' });
