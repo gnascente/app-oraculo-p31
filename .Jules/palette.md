@@ -1,0 +1,3 @@
+## 2024-05-15 - Non-Semantic Tag Accessibility
+**Learning:** The application heavily uses non-semantic tags like `<i>` (Material Icons) and `<div>` as primary action buttons (`.module-card`, `.action-icon`, etc.). These elements are intrinsically inaccessible to keyboard navigation and screen readers because they lack implicit roles, tab order, and keyboard event handling.
+**Action:** Always add `role="button"`, `tabindex="0"`, and appropriate `aria-label` attributes to these elements. Crucially, implement a global `keydown` event listener to handle "Enter" and "Space" key activations for any element with `role="button"`, and ensure visible focus states are present via CSS (`[role="button"]:focus-visible`).
