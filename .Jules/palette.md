@@ -1,0 +1,3 @@
+## 2024-03-20 - Actionable Icon Components as Native Elements
+**Learning:** Across this application, non-semantic `<i>` tags are heavily used as primary action buttons (e.g. within headers, modals, etc.) rather than proper `<button>` elements. This inherently breaks native keyboard navigability and screen reader announcements.
+**Action:** When working on this application, always explicitly add `role="button"`, `tabindex="0"`, descriptive `aria-label` attributes, and manual `onkeydown` handlers (checking for `Enter` and Space ` `) to any interactive icon-only elements to ensure they are accessible.
