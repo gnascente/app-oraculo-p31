@@ -291,7 +291,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.8.5</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.8.6</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -472,13 +472,13 @@
     <div class="carousel-header">
         <div style="color: white; font-size: 13px; font-weight:bold; margin-top: 8px; text-shadow: 1px 1px 2px black;" id="carouselSizeIndicator"></div>
         <div class="carousel-actions-global">
-            <div class="carousel-btn edit" id="carouselEditBtn" onclick="CarouselModal.editCurrent()"><i class="material-icons">edit</i></div>
-            <div class="carousel-btn delete" id="carouselDeleteBtn" onclick="CarouselModal.deleteCurrent()"><i class="material-icons" style="color:var(--danger)">delete</i></div>
+            <div class="carousel-btn edit" id="carouselEditBtn" onclick="CarouselModal.editCurrent()" role="button" tabindex="0" title="Editar" aria-label="Editar item atual" onkeydown="if(event.key === 'Enter' || event.key === ' '){ event.preventDefault(); CarouselModal.editCurrent(); }"><i class="material-icons">edit</i></div>
+            <div class="carousel-btn delete" id="carouselDeleteBtn" onclick="CarouselModal.deleteCurrent()" role="button" tabindex="0" title="Eliminar" aria-label="Eliminar item atual" onkeydown="if(event.key === 'Enter' || event.key === ' '){ event.preventDefault(); CarouselModal.deleteCurrent(); }"><i class="material-icons" style="color:var(--danger)">delete</i></div>
         </div>
-        <i class="material-icons action-icon" style="color:white; font-size:32px;" onclick="CarouselModal.closeUI()">close</i>
+        <i class="material-icons action-icon" style="color:white; font-size:32px;" onclick="CarouselModal.closeUI()" role="button" tabindex="0" title="Fechar" aria-label="Fechar carrossel" onkeydown="if(event.key === 'Enter' || event.key === ' '){ event.preventDefault(); CarouselModal.closeUI(); }">close</i>
     </div>
-    <div class="carousel-nav-btn left" id="carouselNavLeft" onclick="CarouselModal.prev()"><i class="material-icons">chevron_left</i></div>
-    <div class="carousel-nav-btn right" id="carouselNavRight" onclick="CarouselModal.next()"><i class="material-icons">chevron_right</i></div>
+    <div class="carousel-nav-btn left" id="carouselNavLeft" onclick="CarouselModal.prev()" role="button" tabindex="0" title="Anterior" aria-label="Ir para item anterior" onkeydown="if(event.key === 'Enter' || event.key === ' '){ event.preventDefault(); CarouselModal.prev(); }"><i class="material-icons">chevron_left</i></div>
+    <div class="carousel-nav-btn right" id="carouselNavRight" onclick="CarouselModal.next()" role="button" tabindex="0" title="Próximo" aria-label="Ir para próximo item" onkeydown="if(event.key === 'Enter' || event.key === ' '){ event.preventDefault(); CarouselModal.next(); }"><i class="material-icons">chevron_right</i></div>
     <div class="carousel-container" id="carouselContainer"></div>
 </div>
 
