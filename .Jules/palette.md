@@ -1,0 +1,3 @@
+## 2025-01-20 - Adding Accessibility to Header Action Icons
+**Learning:** In this application, non-semantic `<i>` tags are frequently used as primary action buttons (e.g., in the header for back, sync, print, and menu actions). This pattern violates basic accessibility guidelines as these elements are not natively focusable or perceivable as interactive elements by screen readers, and they lack keyboard navigation support.
+**Action:** When encountering non-semantic action elements, manually add `role="button"`, `tabindex="0"`, `aria-label`, and inline `onkeydown` handlers (for 'Enter' and 'Space' keys, ensuring `event.preventDefault()` is called) to make them accessible and navigable via keyboard without relying on custom CSS or changing core layout patterns.
