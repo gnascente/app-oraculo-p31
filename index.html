@@ -291,7 +291,7 @@
             <i class="material-icons" style="color:var(--primary);" id="headerIcon">oil_barrel</i> 
             <div style="display:flex; flex-direction:column; line-height:1; min-width: 0;">
                 <span id="headerText">Oráculo P-31</span>
-                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.8.5</span>
+                <span id="headerVersion" style="font-size: 10px; color: var(--on-surface-variant); font-weight: normal; margin-top:2px;">v 4.8.6</span>
             </div>
         </h1>
         <div class="header-actions">
@@ -472,13 +472,13 @@
     <div class="carousel-header">
         <div style="color: white; font-size: 13px; font-weight:bold; margin-top: 8px; text-shadow: 1px 1px 2px black;" id="carouselSizeIndicator"></div>
         <div class="carousel-actions-global">
-            <div class="carousel-btn edit" id="carouselEditBtn" onclick="CarouselModal.editCurrent()"><i class="material-icons">edit</i></div>
-            <div class="carousel-btn delete" id="carouselDeleteBtn" onclick="CarouselModal.deleteCurrent()"><i class="material-icons" style="color:var(--danger)">delete</i></div>
+            <div class="carousel-btn edit" id="carouselEditBtn" onclick="CarouselModal.editCurrent()" role="button" tabindex="0" title="Editar" aria-label="Editar" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); CarouselModal.editCurrent();}"><i class="material-icons">edit</i></div>
+            <div class="carousel-btn delete" id="carouselDeleteBtn" onclick="CarouselModal.deleteCurrent()" role="button" tabindex="0" title="Excluir" aria-label="Excluir" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); CarouselModal.deleteCurrent();}"><i class="material-icons" style="color:var(--danger)">delete</i></div>
         </div>
-        <i class="material-icons action-icon" style="color:white; font-size:32px;" onclick="CarouselModal.closeUI()">close</i>
+        <i class="material-icons action-icon" style="color:white; font-size:32px;" onclick="CarouselModal.closeUI()" role="button" tabindex="0" title="Fechar" aria-label="Fechar" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); CarouselModal.closeUI();}">close</i>
     </div>
-    <div class="carousel-nav-btn left" id="carouselNavLeft" onclick="CarouselModal.prev()"><i class="material-icons">chevron_left</i></div>
-    <div class="carousel-nav-btn right" id="carouselNavRight" onclick="CarouselModal.next()"><i class="material-icons">chevron_right</i></div>
+    <div class="carousel-nav-btn left" id="carouselNavLeft" onclick="CarouselModal.prev()" role="button" tabindex="0" title="Anterior" aria-label="Anterior" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); CarouselModal.prev();}"><i class="material-icons">chevron_left</i></div>
+    <div class="carousel-nav-btn right" id="carouselNavRight" onclick="CarouselModal.next()" role="button" tabindex="0" title="Próximo" aria-label="Próximo" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); CarouselModal.next();}"><i class="material-icons">chevron_right</i></div>
     <div class="carousel-container" id="carouselContainer"></div>
 </div>
 
@@ -501,21 +501,21 @@
     </div>
 
     <div class="editor-toolbar" onclick="event.stopPropagation()">
-        <button class="tool-btn" onclick="Editor.closeUI()"><i class="material-icons">close</i></button>
+        <button class="tool-btn" onclick="Editor.closeUI()" title="Fechar" aria-label="Fechar"><i class="material-icons">close</i></button>
         <div class="editor-sep"></div>
-        <button class="tool-btn active" id="btnPen" onclick="Editor.setTool('pen')"><i class="material-icons">edit</i></button>
-        <button class="tool-btn" id="btnText" onclick="Editor.setTool('text')"><i class="material-icons">text_fields</i></button>
+        <button class="tool-btn active" id="btnPen" onclick="Editor.setTool('pen')" title="Pincel livre" aria-label="Pincel livre"><i class="material-icons">edit</i></button>
+        <button class="tool-btn" id="btnText" onclick="Editor.setTool('text')" title="Texto" aria-label="Texto"><i class="material-icons">text_fields</i></button>
         <div class="editor-sep"></div>
         
         <div class="color-palette-container">
-            <div id="activeColorBtn" class="active-color-dot" style="background-color: #ff3333;" onclick="event.preventDefault(); event.stopPropagation(); document.getElementById('colorPopup').classList.toggle('show');"></div>
+            <div id="activeColorBtn" class="active-color-dot" style="background-color: #ff3333;" onclick="event.preventDefault(); event.stopPropagation(); document.getElementById('colorPopup').classList.toggle('show');" role="button" tabindex="0" title="Cor do pincel" aria-label="Cor do pincel" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); event.stopPropagation(); document.getElementById('colorPopup').classList.toggle('show');}"></div>
         </div>
         
         <div class="editor-sep"></div>
-        <input type="range" id="editorSize" class="size-slider" min="2" max="9" step="0.5" value="3">
+        <input type="range" id="editorSize" class="size-slider" min="2" max="9" step="0.5" value="3" title="Tamanho do pincel" aria-label="Tamanho do pincel">
         <div class="editor-sep"></div>
-        <button class="tool-btn" onclick="Editor.undo()"><i class="material-icons">undo</i></button>
-        <button class="tool-btn" onclick="Editor.save()" style="background: var(--primary); color: var(--on-primary); margin-left: auto;"><i class="material-icons">check</i></button>
+        <button class="tool-btn" onclick="Editor.undo()" title="Desfazer" aria-label="Desfazer"><i class="material-icons">undo</i></button>
+        <button class="tool-btn" onclick="Editor.save()" style="background: var(--primary); color: var(--on-primary); margin-left: auto;" title="Salvar" aria-label="Salvar"><i class="material-icons">check</i></button>
     </div>
 </div>
 
