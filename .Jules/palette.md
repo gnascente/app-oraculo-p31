@@ -1,0 +1,3 @@
+## 2024-11-04 - Accessible Action Icons
+**Learning:** The application heavily relies on non-semantic `<i>` tags (Material Icons) that function as primary action buttons (e.g. `.action-icon`). Because they are not native `<button>` elements, they are completely invisible to keyboard navigation and screen readers by default.
+**Action:** When adding or modifying these icon buttons, always manually inject `role="button"`, `tabindex="0"`, an appropriate `aria-label`, and implement `onkeydown` handlers for 'Enter' and 'Space' (ensuring to call `event.preventDefault()` to prevent default page scrolling behavior on Spacebar press).
